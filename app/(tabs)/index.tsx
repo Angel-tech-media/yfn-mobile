@@ -1,98 +1,83 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.screen}>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>YFN Mobile</Text>
+        <Text style={styles.title}>Base app shell is ready.</Text>
+        <Text style={styles.copy}>
+          The starter example folders have been removed. Use this screen as the new entry point for
+          your actual product flows.
+        </Text>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Current setup</Text>
+        <Text style={styles.cardCopy}>Expo Router for navigation.</Text>
+        <Text style={styles.cardCopy}>TanStack Query provider wired at the app root.</Text>
+        <Text style={styles.cardCopy}>No root-level starter UI abstractions remaining.</Text>
+      </View>
+
+      <Link href="/modal" style={styles.link}>
+        Open modal
+      </Link>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  screen: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#f8fafc',
   },
-  stepContainer: {
-    gap: 8,
+  hero: {
+    marginBottom: 24,
+  },
+  eyebrow: {
     marginBottom: 8,
+    color: '#0f766e',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    marginBottom: 12,
+    color: '#0f172a',
+    fontSize: 32,
+    fontWeight: '700',
+    lineHeight: 38,
+  },
+  copy: {
+    color: '#475569',
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  card: {
+    marginBottom: 20,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    padding: 20,
+  },
+  cardTitle: {
+    marginBottom: 10,
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardCopy: {
+    color: '#334155',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  link: {
+    color: '#0f766e',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
