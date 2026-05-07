@@ -1,0 +1,81 @@
+import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
+
+import { palette, radius, spacing, typography } from '@/src/theme';
+
+type Props = TextInputProps & {
+  onSend?: () => void;
+  showEmoji?: boolean;
+  showSend?: boolean;
+};
+
+export function InputBar({
+  onSend,
+  showEmoji = true,
+  showSend = true,
+  placeholder = 'Reply',
+  ...rest
+}: Props) {
+  return (
+    <View style={styles.root}>
+      {showEmoji ? (
+        <Ionicons
+          name="happy-outline"
+          size={20}
+          color={palette.ink.onDarkSoft}
+          style={styles.lead}
+        />
+      ) : null}
+      <TextInput
+        {...rest}
+        placeholder={placeholder}
+        placeholderTextColor={palette.ink.onDarkMuted}
+        style={styles.input}
+      />
+      {showSend ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send"
+          hitSlop={8}
+          onPress={onSend}
+          style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="send" size={16} color={palette.ink.onDarkStrong} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing['3'],
+    backgroundColor: 'rgba(20,12,8,0.85)',
+    borderWidth: 1,
+    borderColor: palette.line.onDark,
+    gap: spacing['2'],
+  },
+  lead: {
+    opacity: 0.9,
+  },
+  input: {
+    flex: 1,
+    fontFamily: typography.body.fontFamily,
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    color: palette.ink.onDarkStrong,
+    paddingVertical: 0,
+  },
+  sendBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+});

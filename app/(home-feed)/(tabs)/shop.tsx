@@ -1,0 +1,247 @@
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { useCartCount } from '@/src/store/cart';
+import { palette, radius, spacing, typography } from '@/src/theme';
+
+const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
+
+function CartIcon() {
+  const count = useCartCount();
+  return (
+    <View>
+      <Ionicons name="cart-outline" size={22} color={palette.ink.onDarkStrong} />
+      {count > 0 ? (
+        <View style={cartIconStyles.badge}>
+          <Text style={cartIconStyles.badgeText}>{count > 9 ? '9+' : count}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const cartIconStyles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: palette.brand.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 10,
+    lineHeight: 13,
+    color: '#FFFFFF',
+  },
+});
+
+const CATEGORIES = ['All', 'Fashion', 'Beauty', 'Food', 'Electronics', 'Art', 'Home'];
+
+const PRODUCTS = Array.from({ length: 12 }).map((_, i) => ({
+  id: `prod-${i}`,
+  name: i % 2 ? 'Ankara high shoulder fitted gown' : 'Birkin handbag deluxe edition',
+  price: i % 2 ? '₦24,990' : '₦149,000',
+  category: ['Fashion', 'Fashion', 'Beauty', 'Food', 'Electronics', 'Art'][i % 6],
+}));
+
+export default function ShopScreen() {
+  const [query, setQuery] = useState('');
+  const [activeCat, setActiveCat] = useState('All');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return PRODUCTS.filter((p) => {
+      if (activeCat !== 'All' && p.category !== activeCat) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [query, activeCat]);
+
+  return (
+    <EspressoBackground variant="espresso">
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Shop</Text>
+          <Pressable accessibilityRole="button" hitSlop={8} onPress={() => router.push('/cart')}>
+            <CartIcon />
+          </Pressable>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={palette.ink.onDarkSoft} />
+          <TextInput
+            placeholder="Search products, vendors…"
+            placeholderTextColor={palette.ink.onDarkMuted}
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={palette.ink.onDarkMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}>
+          {CATEGORIES.map((c) => {
+            const isActive = activeCat === c;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => setActiveCat(c)}
+                style={[styles.chip, isActive && styles.chipActive]}>
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{c}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
+          {filtered.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="search" size={40} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyTitle}>No matches</Text>
+              <Text style={styles.emptySubtitle}>Try a different search or category.</Text>
+            </View>
+          ) : (
+            filtered.map((p) => (
+              <Pressable
+                key={p.id}
+                onPress={() => router.push(`/product/${p.id}` as never)}
+                style={styles.tile}>
+                <Image source={PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
+                <Text style={styles.tileName} numberOfLines={2}>{p.name}</Text>
+                <Text style={styles.tilePrice}>{p.price}</Text>
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </EspressoBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing['5'],
+    paddingVertical: spacing['3'],
+  },
+  title: {
+    fontFamily: typography.h1.fontFamily,
+    fontSize: 24,
+    lineHeight: 30,
+    color: palette.ink.onDarkStrong,
+  },
+  searchBar: {
+    marginHorizontal: spacing['5'],
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    paddingHorizontal: spacing['4'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(20,12,8,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    lineHeight: 19,
+    color: palette.ink.onDarkStrong,
+    paddingVertical: 0,
+  },
+  chipsRow: {
+    paddingHorizontal: spacing['5'],
+    gap: spacing['2'],
+    paddingVertical: spacing['4'],
+  },
+  chip: {
+    paddingHorizontal: spacing['4'],
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  chipActive: {
+    backgroundColor: palette.bg.surface,
+    borderColor: palette.bg.surface,
+  },
+  chipText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    lineHeight: 18,
+    color: palette.ink.onDarkSoft,
+  },
+  chipTextActive: {
+    color: palette.ink.onLightStrong,
+  },
+  grid: {
+    paddingHorizontal: spacing['5'],
+    paddingBottom: 100,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing['3'],
+    justifyContent: 'space-between',
+  },
+  tile: {
+    width: '48%',
+    gap: 6,
+  },
+  emptyWrap: {
+    width: '100%',
+    paddingVertical: 64,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: typography.h2.fontFamily,
+    fontSize: 16,
+    color: palette.ink.onDarkStrong,
+  },
+  emptySubtitle: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+  },
+  tileImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  tileName: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    lineHeight: 18,
+    color: palette.ink.onDarkStrong,
+  },
+  tilePrice: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 14,
+    lineHeight: 19,
+    color: palette.brand.orange,
+  },
+});
