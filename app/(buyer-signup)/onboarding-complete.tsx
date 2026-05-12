@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { router } from 'expo-router';
