@@ -51,7 +51,7 @@ export function Avatar({
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

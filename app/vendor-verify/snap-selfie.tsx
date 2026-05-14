@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
   headerCopy: {
     alignItems: 'center',

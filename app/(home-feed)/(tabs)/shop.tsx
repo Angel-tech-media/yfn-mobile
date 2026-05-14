@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     paddingHorizontal: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   searchInput: {
     flex: 1,
@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   chipActive: {
     backgroundColor: palette.bg.surface,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   tileName: {
     fontFamily: typography.body.fontFamily,

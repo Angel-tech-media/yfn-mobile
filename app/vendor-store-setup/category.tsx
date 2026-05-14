@@ -20,8 +20,8 @@ const CATS: Cat[] = [
   { key: 'shoes', label: 'Shoes & Footwear', emoji: '👟', tint: 'rgba(186,104,200,0.18)' },
   { key: 'beauty', label: 'Beauty & Skincare', emoji: '💄', tint: 'rgba(76,175,80,0.18)' },
   { key: 'food', label: 'Food & Drinks', emoji: '🍔', tint: 'rgba(76,175,80,0.18)' },
-  { key: 'electronics', label: 'Electronics', emoji: '🎧', tint: 'rgba(253,134,22,0.18)' },
-  { key: 'art', label: 'Art & Crafts', emoji: '🎨', tint: 'rgba(253,134,22,0.18)' },
+  { key: 'electronics', label: 'Electronics', emoji: '🎧', tint: 'rgba(216, 149, 68,0.18)' },
+  { key: 'art', label: 'Art & Crafts', emoji: '🎨', tint: 'rgba(216, 149, 68,0.18)' },
   { key: 'home', label: 'Home & Living', emoji: '🛋️', tint: 'rgba(244,67,54,0.18)' },
   { key: 'health', label: 'Health & Wellness', emoji: '💪', tint: 'rgba(33,150,243,0.18)' },
   { key: 'services', label: 'Professional Services', emoji: '💼', tint: 'rgba(244,67,54,0.18)' },
@@ -97,10 +97,10 @@ const styles = StyleSheet.create({
   tile: {
     width: '31%',
     aspectRatio: 0.95,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     padding: spacing['2'],
     alignItems: 'center',
     justifyContent: 'center',
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   tilePicked: {
     borderColor: palette.brand.orange,
-    backgroundColor: 'rgba(253,134,22,0.08)',
+    backgroundColor: 'rgba(216, 149, 68,0.08)',
   },
   iconWrap: {
     width: 44,

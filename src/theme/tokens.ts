@@ -1,38 +1,62 @@
 export const palette = {
   brand: {
-    orange: '#FD8616',
-    orangeDeep: '#FF3D00',
-    amber: '#FFC107',
+    // Refined honey gold — warm, premium, pairs with the honey-brown
+    // background. The `orange` / `orangeDeep` keys are kept so all existing
+    // references keep compiling.
+    orange: '#D89544',
+    orangeDeep: '#A6692E',
+    amber: '#E8B864',
+    // Cool accents to balance the warm honey palette.
+    accentSky: '#7AB0D6',
+    accentTeal: '#5DB8AE',
+    accentLavender: '#A89BD4',
+    accentGold: '#E8B864',
+    accentCoral: '#E07A4D',
+    /** Soft chartreuse — for LIVE indicators, "active now", winning state. */
+    accentLime: '#C5D944',
+    accentLimeDeep: '#8FA022',
   },
   bg: {
-    espressoStart: '#4A2614',
-    espressoMid: '#2A140A',
-    espressoEnd: '#160903',
-    welcomePeachStart: '#F4C9B6',
-    welcomePeachMid: '#D89077',
-    welcomePeachEnd: '#5A2A1A',
+    // Warm light theme — soft white with a hint of honey at the bottom.
+    // Token names kept ("espresso") for compile compatibility — the value
+    // is now off-white.
+    espressoStart: '#FFFFFF',
+    espressoMid: '#FAF7F1',
+    espressoEnd: '#F2EDE3',
+    welcomePeachStart: '#FFFFFF',
+    welcomePeachMid: '#FAF7F1',
+    welcomePeachEnd: '#E8DCC4',
     surface: '#FFFFFF',
     surfaceMuted: '#FAFAFA',
-    glassDark: 'rgba(20,12,8,0.55)',
-    glassDarkSoft: 'rgba(255,255,255,0.06)',
+    glassDark: 'rgba(0, 0, 0, 0.04)',
+    glassDarkSoft: 'rgba(0, 0, 0, 0.04)',
+    // Friendly cream theme — used on light surfaces (buyer profile, etc.)
+    cream: '#FAF6EE',
+    creamMuted: '#F2EBDD',
+    creamDeep: '#E8DEC8',
+    sage: '#3B5A4A',
+    sageSoft: '#E5EDE7',
+    coral: '#FF6F4A',
+    softPeach: '#FFE8D6',
   },
   ink: {
     onLightStrong: '#141414',
-    onLightSubtle: '#242424',
-    onDarkStrong: '#FFFFFF',
-    onDarkSoft: 'rgba(255,255,255,0.80)',
-    onDarkMuted: 'rgba(255,255,255,0.60)',
-    onDarkFaint: 'rgba(255,255,255,0.50)',
+    onLightSubtle: '#3B3B3B',
+    // Light-theme remap — "onDark" tokens now resolve to dark text on white.
+    onDarkStrong: '#141414',
+    onDarkSoft: '#3B3B3B',
+    onDarkMuted: '#6B6B6B',
+    onDarkFaint: '#9B9B9B',
   },
   line: {
-    divider: '#D9D9D9',
-    onDark: 'rgba(255,255,255,0.20)',
+    divider: '#E5E0D6',
+    onDark: 'rgba(0, 0, 0, 0.08)',
   },
   status: {
     success: '#4CAF50',
     info: '#1976D2',
     warning: '#FFC107',
-    danger: '#FF3D00',
+    danger: '#A6692E',
   },
   shadow: {
     overlay05: 'rgba(0,0,0,0.05)',

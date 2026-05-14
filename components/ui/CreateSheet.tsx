@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
+import { useUser } from '@/src/store/user';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 import { BottomSheet } from './BottomSheet';
@@ -19,6 +20,7 @@ type Action = {
   icon: keyof typeof Ionicons.glyphMap;
   tint: string;
   href: string;
+  vendorOnly?: boolean;
 };
 
 const ACTIONS: Action[] = [
@@ -47,6 +49,15 @@ const ACTIONS: Action[] = [
     href: '/create/reel',
   },
   {
+    key: 'product',
+    label: 'New product',
+    subtitle: 'List a product for sale',
+    icon: 'pricetag-outline',
+    tint: 'rgba(216, 149, 68,0.18)',
+    href: '/products/add',
+    vendorOnly: true,
+  },
+  {
     key: 'browse-reels',
     label: 'Browse reels',
     subtitle: 'Watch the latest from creators you follow',
@@ -54,22 +65,17 @@ const ACTIONS: Action[] = [
     tint: 'rgba(33,150,243,0.18)',
     href: '/reels',
   },
-  {
-    key: 'product',
-    label: 'New product',
-    subtitle: 'List a product for sale',
-    icon: 'pricetag-outline',
-    tint: 'rgba(253,134,22,0.18)',
-    href: '/products/add',
-  },
 ];
 
 export function CreateSheet({ visible, onClose }: Props) {
+  const role = useUser((s) => s.role);
+  const actions = ACTIONS.filter((a) => !a.vendorOnly || role === 'vendor');
+
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <Text style={styles.title}>Create</Text>
       <View style={styles.list}>
-        {ACTIONS.map((a) => (
+        {actions.map((a) => (
           <Pressable
             key={a.key}
             onPress={() => {
@@ -109,9 +115,9 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   iconWrap: {
     width: 44,

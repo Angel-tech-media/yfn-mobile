@@ -27,7 +27,7 @@ export default function WelcomeScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <BrandLogo size="md" />
+          <BrandLogo size="md" color="#FFFFFF" />
         </View>
 
         <View style={styles.spacer} />
@@ -43,7 +43,7 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label="Get started" onPress={() => router.push('/intent')} />
+          <PrimaryButton label="Get started" onPress={() => router.push('/login')} />
           <View style={styles.altRow}>
             <Text style={styles.altLine}>Already have an account? </Text>
             <Pressable onPress={() => router.push('/login')} hitSlop={8}>
@@ -80,9 +80,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.h1.fontFamily,
     fontSize: 30,
     lineHeight: 36,
-    color: palette.ink.onDarkStrong,
+    color: '#FFFFFF',
     textAlign: 'center',
     letterSpacing: 0.2,
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   titleAccent: {
     color: palette.brand.orange,
@@ -91,8 +94,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.fontFamily,
     fontSize: 14,
     lineHeight: 20,
-    color: palette.ink.onDarkSoft,
+    color: 'rgba(255, 255, 255, 0.88)',
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.30)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   actions: {
     gap: spacing['4'],
@@ -107,7 +113,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.caption.fontFamily,
     fontSize: 13,
     lineHeight: 18,
-    color: palette.ink.onDarkSoft,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   altLink: {
     fontFamily: typography.bodyEmphasis.fontFamily,

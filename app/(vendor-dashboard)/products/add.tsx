@@ -13,6 +13,7 @@ import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 const MAX_IMAGES = 6;
@@ -119,7 +120,20 @@ export default function AddProductScreen() {
       </ScrollView>
 
       <View style={styles.actions}>
-        <PrimaryButton label="Save Product" onPress={() => router.replace('/products/saved')} />
+        <PrimaryButton
+          label="Save Product"
+          onPress={() => {
+            useUserContent.getState().addProduct({
+              name: name || 'Untitled product',
+              price: Number(salePrice.replace(/[^0-9]/g, '')) || 0,
+              category: 'Uncategorised',
+              image: images[0]
+                ? { uri: images[0].uri }
+                : require('@/assets/figma/product-sample.png'),
+            });
+            router.replace('/products/saved');
+          }}
+        />
       </View>
 
       <UploadSheet
@@ -174,9 +188,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   currencyText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -188,7 +202,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: 'rgba(0, 0, 0, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing['2'],
@@ -228,7 +242,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -238,7 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: 'rgba(0, 0, 0, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },

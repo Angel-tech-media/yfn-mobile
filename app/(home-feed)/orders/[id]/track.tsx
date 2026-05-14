@@ -1,11 +1,23 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 
+import { DayStrip, type DayStripItem } from '@/components/ui/DayStrip';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
+const DELIVERY_WEEK: DayStripItem[] = [
+  { key: 'd9', weekday: 'Sat', day: 9, badge: 'PAID' },
+  { key: 'd10', weekday: 'Sun', day: 10, badge: 'SHIP' },
+  { key: 'd11', weekday: 'Mon', day: 11, badge: 'ETA' },
+  { key: 'd12', weekday: 'Tue', day: 12 },
+  { key: 'd13', weekday: 'Wed', day: 13, disabled: true },
+  { key: 'd14', weekday: 'Thu', day: 14, disabled: true },
+  { key: 'd15', weekday: 'Fri', day: 15, disabled: true },
+];
 
 const TIMELINE = [
   { key: 'placed', label: 'Order placed', sub: 'Vibe', date: 'May 6, 9:42 AM', icon: 'checkmark-circle' as const },
@@ -18,6 +30,8 @@ const TIMELINE = [
 
 export default function TrackShipmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [activeDay, setActiveDay] = useState('d11');
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Track shipment" showBack />
@@ -27,6 +41,12 @@ export default function TrackShipmentScreen() {
           <Text style={styles.idValue}>#{id}</Text>
           <Text style={styles.eta}>Estimated delivery · <Text style={styles.etaValue}>Today by 6:00 PM</Text></Text>
         </View>
+
+        <DayStrip
+          items={DELIVERY_WEEK}
+          selectedKey={activeDay}
+          onSelect={setActiveDay}
+        />
 
         <View style={styles.mapPlaceholder}>
           <View style={styles.mapPin}>
@@ -112,7 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: 'rgba(20,12,8,0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     gap: 0,
   },
   timelineTitle: {

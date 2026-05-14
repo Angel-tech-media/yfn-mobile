@@ -31,7 +31,7 @@ export function IconButton({
     variant === 'solid'
       ? palette.bg.surface
       : variant === 'translucent'
-      ? 'rgba(255,255,255,0.12)'
+      ? 'rgba(0, 0, 0, 0.06)'
       : 'transparent';
   const tint = variant === 'solid' ? palette.ink.onLightStrong : color;
   return (

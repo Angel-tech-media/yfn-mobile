@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useUserContent } from '@/src/store/user-content';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function CreateStoryScreen() {
@@ -90,7 +91,15 @@ export default function CreateStoryScreen() {
 
         <View style={styles.actions}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              if (photo) {
+                useUserContent.getState().addStory({
+                  image: { uri: photo.uri },
+                  caption: caption.trim() || undefined,
+                });
+              }
+              router.back();
+            }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
             <Ionicons name="paper-plane" size={18} color={palette.ink.onLightStrong} />
             <Text style={styles.shareLabel}>Share to Story</Text>
@@ -110,7 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: spacing['2'] },
   toolStack: { gap: spacing['2'] },
@@ -143,7 +152,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
   galleryLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,

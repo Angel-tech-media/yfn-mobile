@@ -11,6 +11,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 const MAX_IMAGES = 6;
@@ -34,6 +35,18 @@ export default function CreatePostScreen() {
   };
 
   const canPost = text.trim().length > 0 || images.length > 0;
+  const addPost = useUserContent((s) => s.addPost);
+
+  const handlePost = () => {
+    if (!canPost) return;
+    addPost({
+      caption: text.trim(),
+      image: images[0]
+        ? { uri: images[0].uri }
+        : require('@/assets/figma/product-sample.png'),
+    });
+    router.back();
+  };
 
   return (
     <ScreenContainer variant="espresso">
@@ -41,7 +54,7 @@ export default function CreatePostScreen() {
         title="New post"
         showBack
         rightAction={
-          <Pressable disabled={!canPost} hitSlop={8} onPress={() => router.back()}>
+          <Pressable disabled={!canPost} hitSlop={8} onPress={handlePost}>
             <Text style={[styles.postBtn, !canPost && { opacity: 0.5 }]}>Post</Text>
           </Pressable>
         }
@@ -172,7 +185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     alignSelf: 'flex-start',
     marginTop: 2,
   },
@@ -209,7 +222,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -221,9 +234,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(253,134,22,0.10)',
+    backgroundColor: 'rgba(216, 149, 68,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(253,134,22,0.40)',
+    borderColor: 'rgba(216, 149, 68,0.40)',
   },
   tagText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -235,7 +248,7 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     paddingVertical: spacing['3'],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.10)',
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
     flexWrap: 'wrap',
   },
   toolBtn: {
@@ -245,7 +258,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   toolLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,

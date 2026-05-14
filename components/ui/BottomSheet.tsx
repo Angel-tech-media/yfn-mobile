@@ -42,24 +42,24 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
   },
   sheet: {
-    backgroundColor: '#1A0B05',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing['5'],
     paddingTop: spacing['3'],
     paddingBottom: spacing['8'],
     borderTopWidth: 1,
-    borderColor: palette.line.onDark,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
   handle: {
     alignSelf: 'center',
     width: 48,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.30)',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
     marginBottom: spacing['4'],
   },
 });
