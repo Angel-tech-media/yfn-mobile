@@ -17,8 +17,8 @@ export default function StoreLiveScreen() {
         </Text>
       </View>
       <View style={styles.actions}>
-        <PrimaryButton label="View My Store" onPress={() => router.replace('/(tabs)')} />
-        <PrimaryButton label="Go to Dashboard" variant="ghost" onPress={() => router.replace('/(tabs)')} />
+        <PrimaryButton label="View My Store" onPress={() => router.replace('/(tabs)' as never)} />
+        <PrimaryButton label="Go to Dashboard" variant="ghost" onPress={() => router.replace('/(tabs)' as never)} />
       </View>
       <View style={styles.bottomSpacer} />
     </ScreenContainer>

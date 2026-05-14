@@ -29,7 +29,7 @@ const signupSchema = z.object({
     .regex(/\d/, 'Add at least one number'),
   dob: z.string().min(1, 'Choose your date of birth'),
   gender: z.string().min(1, 'Pick a gender'),
-  agreed: z.literal(true, { errorMap: () => ({ message: 'Accept the terms to continue' }) }),
+  agreed: z.literal(true, { message: 'Accept the terms to continue' }),
 });
 
 type Gender = 'female' | 'male' | 'non-binary' | 'prefer-not';

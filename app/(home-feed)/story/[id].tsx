@@ -7,10 +7,11 @@ import {
   Text,
   TextInput,
   View,
+  type ImageSourcePropType,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image, type ImageSourcePropType } from 'expo-image';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';

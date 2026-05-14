@@ -42,7 +42,8 @@ const STORY_AVATARS: ImageSourcePropType[] = [
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 const SELF_AVATAR = require('@/assets/figma/store-avatar.png');
 
-const STORIES: Array<{ key: string; name: string; isAdd?: boolean; avatar?: ImageSourcePropType }> = [
+type StoryTile = { key: string; name: string; isAdd?: boolean; avatar?: ImageSourcePropType };
+const STORIES: StoryTile[] = [
   { key: 'add', name: 'Your story', isAdd: true },
   { key: 's1', name: 'Olufemi', avatar: STORY_AVATARS[0] },
   { key: 's2', name: 'Adaeze', avatar: STORY_AVATARS[1] },
@@ -252,9 +253,9 @@ export default function HomeFeedScreen() {
   }, []);
 
   // Prepend user-created stories after the "Add Story" tile.
-  const STORIES_VIEW = [
+  const STORIES_VIEW: StoryTile[] = [
     STORIES[0],
-    ...userStories.map((s) => ({
+    ...userStories.map<StoryTile>((s) => ({
       key: s.id,
       name: 'You',
       avatar: s.image as ImageSourcePropType,
@@ -295,7 +296,7 @@ export default function HomeFeedScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open profile"
-              onPress={() => router.push('/(tabs)/profile')}
+              onPress={() => router.push('/(tabs)/profile' as never)}
               style={styles.profileBubble}>
               <Avatar size={32} initials="DO" />
               <View style={styles.statusDot} />

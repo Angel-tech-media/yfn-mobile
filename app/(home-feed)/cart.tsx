@@ -28,7 +28,7 @@ export default function CartScreen() {
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Browse the shop and add items you love.</Text>
           <View style={styles.emptyAction}>
-            <PrimaryButton label="Start shopping" onPress={() => router.replace('/(tabs)/shop')} />
+            <PrimaryButton label="Start shopping" onPress={() => router.replace('/(tabs)/shop' as never)} />
           </View>
         </View>
       ) : (
