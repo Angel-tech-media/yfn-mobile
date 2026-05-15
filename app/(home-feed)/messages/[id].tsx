@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -48,6 +48,12 @@ export default function MessageThreadScreen() {
   const liveMessages = useThreadMessages(threadId);
   const sendChat = useChat((s) => s.send);
   const [draft, setDraft] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (liveMessages.length === 0) return;
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  }, [liveMessages.length]);
 
   // Combine seeded + persisted messages so the thread feels populated and
   // newly-sent ones stick around across navigation.
@@ -93,6 +99,7 @@ export default function MessageThreadScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={80}>
           <ScrollView
+            ref={scrollRef}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.list}>
             {messages.map((m) => (

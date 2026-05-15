@@ -34,5 +34,6 @@ export const useChat = create<State>((set) => ({
   },
 }));
 
+const EMPTY: ChatMessage[] = [];
 export const useThreadMessages = (threadId: string) =>
-  useChat((s) => s.threads[threadId] ?? []);
+  useChat((s) => s.threads[threadId] ?? EMPTY);
