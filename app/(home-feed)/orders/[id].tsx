@@ -7,6 +7,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import {
+  PLATFORM_FEE_LABEL,
+  computePlatformFee,
+} from '@/src/config/fees';
 import { useOrders } from '@/src/store/orders';
 import { useWallet } from '@/src/store/wallet';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -126,7 +130,8 @@ export default function OrderDetailScreen() {
 
   const subtotal = order.items.reduce((a, i) => a + i.qty * i.unit, 0);
   const deliveryFee = order.status === 'released' ? 0 : 1500;
-  const total = subtotal + deliveryFee;
+  const platformFee = computePlatformFee(subtotal);
+  const total = subtotal + deliveryFee + platformFee;
 
   const currentIdx = STATUS_TO_STAGE_INDEX[status];
 
@@ -283,6 +288,10 @@ export default function OrderDetailScreen() {
               <Text style={styles.totalValue}>
                 {deliveryFee === 0 ? 'Free' : fmt(deliveryFee)}
               </Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{PLATFORM_FEE_LABEL}</Text>
+              <Text style={styles.totalValue}>{fmt(platformFee)}</Text>
             </View>
             <View style={styles.totalDivider} />
             <View style={styles.totalRow}>

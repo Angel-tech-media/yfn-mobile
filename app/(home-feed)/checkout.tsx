@@ -9,6 +9,11 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
+import {
+  PLATFORM_FEE_EXPLAINER,
+  PLATFORM_FEE_LABEL,
+  computePlatformFee,
+} from '@/src/config/fees';
 import { useCart, useCartTotal } from '@/src/store/cart';
 import { useOrders } from '@/src/store/orders';
 import { useWallet } from '@/src/store/wallet';
@@ -42,8 +47,11 @@ export default function CheckoutScreen() {
   const promoDiscount = appliedPromo
     ? Math.round((PROMOS[appliedPromo] ?? 0) * subtotal)
     : 0;
-  const tax = useMemo(() => Math.round(subtotal * 0.05), [subtotal]);
-  const finalTotal = subtotal - promoDiscount + deliveryFee + tax;
+  const platformFee = useMemo(
+    () => computePlatformFee(subtotal - promoDiscount),
+    [subtotal, promoDiscount],
+  );
+  const finalTotal = subtotal - promoDiscount + deliveryFee + platformFee;
 
   const applyPromo = () => {
     const code = promo.trim().toUpperCase();
@@ -192,7 +200,11 @@ export default function CheckoutScreen() {
             <SummaryRow label={`Promo (${appliedPromo})`} value={`-₦${promoDiscount.toLocaleString()}`} tone="negative" />
           ) : null}
           <SummaryRow label="Delivery fee" value={deliveryFee === 0 ? 'Free' : `₦${deliveryFee.toLocaleString()}`} />
-          <SummaryRow label="Tax" value={`₦${tax.toLocaleString()}`} />
+          <SummaryRow
+            label={PLATFORM_FEE_LABEL}
+            value={`₦${platformFee.toLocaleString()}`}
+          />
+          <Text style={styles.feeFootnote}>{PLATFORM_FEE_EXPLAINER}</Text>
           <View style={styles.divider} />
           <SummaryRow label="Total" value={`₦${finalTotal.toLocaleString()}`} emphasized />
         </View>
@@ -394,6 +406,13 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkStrong,
   },
   summaryValueStrong: { fontSize: 18 },
+  feeFootnote: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 11,
+    lineHeight: 15,
+    color: palette.ink.onDarkMuted,
+    marginTop: -2,
+  },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(0, 0, 0, 0.10)',

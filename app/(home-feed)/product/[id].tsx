@@ -10,6 +10,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { RepostSheet } from '@/components/ui/RepostSheet';
+import {
+  PLATFORM_FEE_LABEL,
+  computePlatformFee,
+} from '@/src/config/fees';
 import { useCart } from '@/src/store/cart';
 import {
   REFERRAL_FEE_NGN,
@@ -61,14 +65,16 @@ export default function ProductDetailScreen() {
   const recordRepostSale = useEngagement((s) => s.recordRepostSale);
 
   const total = PRICE * quantity;
+  const referralSurcharge = via ? REFERRAL_FEE_NGN : 0;
+  const platformFee = computePlatformFee(total);
+  const grandTotal = total + referralSurcharge + platformFee;
 
   const handlePay = () => {
     setPayState('paying');
     setTimeout(() => {
       const orderId = `ord-${Date.now().toString().slice(-6)}`;
-      const surcharge = via ? REFERRAL_FEE_NGN : 0;
       const result = payFromWallet({
-        amount: total + surcharge,
+        amount: grandTotal,
         orderId,
         vendor: "Sarah's Boutique",
       });
@@ -306,12 +312,14 @@ export default function ProductDetailScreen() {
                     <Text style={styles.payRowValue}>+₦{REFERRAL_FEE_NGN}</Text>
                   </View>
                 ) : null}
+                <View style={styles.payRow}>
+                  <Text style={styles.payRowLabel}>{PLATFORM_FEE_LABEL}</Text>
+                  <Text style={styles.payRowValue}>+₦{platformFee.toLocaleString()}</Text>
+                </View>
                 <View style={styles.payDivider} />
                 <View style={styles.payRow}>
                   <Text style={styles.payTotalLabel}>Total</Text>
-                  <Text style={styles.payTotalValue}>
-                    {fmt(total + (via ? REFERRAL_FEE_NGN : 0))}
-                  </Text>
+                  <Text style={styles.payTotalValue}>{fmt(grandTotal)}</Text>
                 </View>
 
                 {payState === 'low' ? (
@@ -347,7 +355,7 @@ export default function ProductDetailScreen() {
                       ? 'Paid · awaiting delivery'
                       : payState === 'paying'
                       ? 'Securing payment…'
-                      : `Pay ${fmt(total + (via ? REFERRAL_FEE_NGN : 0))} from eWallet`}
+                      : `Pay ${fmt(grandTotal)} from eWallet`}
                   </Text>
                 </Pressable>
 
