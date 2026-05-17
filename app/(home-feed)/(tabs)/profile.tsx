@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +11,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useCartCount } from '@/src/store/cart';
+import { useEngagement } from '@/src/store/engagement';
 import { useUser } from '@/src/store/user';
 import { useWishlistCount } from '@/src/store/wishlist';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -18,40 +20,74 @@ const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 const STORE_BANNER = require('@/assets/figma/store-banner.png');
 const STORE_AVATAR = require('@/assets/figma/store-avatar.png');
 
+type OwnPost = {
+  id: string;
+  kind: 'photo' | 'reel' | 'multi';
+  image: any;
+  likes: number;
+  comments: number;
+};
+
+const POST_STORY_1 = require('@/assets/figma/story-1.png');
+const POST_STORY_2 = require('@/assets/figma/story-2.png');
+const POST_STORY_3 = require('@/assets/figma/story-3.png');
+const POST_STORY_4 = require('@/assets/figma/story-4.png');
+const POST_STORY_5 = require('@/assets/figma/story-5.png');
+const POST_STORY_6 = require('@/assets/figma/story-6.png');
+const POST_HERO = require('@/assets/figma/welcome-hero.png');
+const POST_REEL = require('@/assets/figma/reel-snowboarder.png');
+
+const OWN_POSTS: OwnPost[] = [
+  { id: 'o1', kind: 'multi', image: POST_HERO, likes: 412, comments: 38 },
+  { id: 'o2', kind: 'photo', image: POST_STORY_1, likes: 189, comments: 12 },
+  { id: 'o3', kind: 'photo', image: POST_STORY_2, likes: 256, comments: 24 },
+  { id: 'o4', kind: 'reel', image: POST_REEL, likes: 1124, comments: 87 },
+  { id: 'o5', kind: 'photo', image: POST_STORY_3, likes: 142, comments: 8 },
+  { id: 'o6', kind: 'photo', image: POST_STORY_4, likes: 312, comments: 19 },
+  { id: 'o7', kind: 'reel', image: PRODUCT_IMAGE, likes: 642, comments: 47 },
+  { id: 'o8', kind: 'multi', image: POST_STORY_5, likes: 218, comments: 14 },
+  { id: 'o9', kind: 'photo', image: POST_STORY_6, likes: 167, comments: 9 },
+  { id: 'o10', kind: 'photo', image: POST_STORY_1, likes: 84, comments: 5 },
+  { id: 'o11', kind: 'reel', image: POST_STORY_2, likes: 532, comments: 38 },
+  { id: 'o12', kind: 'photo', image: POST_STORY_3, likes: 201, comments: 16 },
+];
+
 export default function ProfileTabScreen() {
   const role = useUser((s) => s.role);
-  const toggleRole = useUser((s) => s.toggleRole);
+  const isBuyer = role === 'buyer';
 
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>{role === 'vendor' ? 'My Store' : 'Account'}</Text>
+          <Text style={styles.title}>
+            {isBuyer ? '@davidokpo' : 'My Store'}
+          </Text>
           <View style={styles.headerRight}>
-            <Pressable hitSlop={8} onPress={() => router.push('/settings')} style={styles.iconBtn}>
-              <Ionicons name="settings-outline" size={20} color={palette.ink.onDarkStrong} />
+            {isBuyer ? (
+              <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="Notifications">
+                <Ionicons
+                  name="notifications-outline"
+                  size={20}
+                  color={palette.ink.onDarkStrong}
+                />
+              </Pressable>
+            ) : null}
+            <Pressable
+              hitSlop={8}
+              onPress={() => router.push('/settings')}
+              style={styles.iconBtn}
+              accessibilityLabel="Settings">
+              <Ionicons
+                name={isBuyer ? 'menu' : 'settings-outline'}
+                size={20}
+                color={palette.ink.onDarkStrong}
+              />
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.modeWrap}>
-          <View style={styles.modeToggle}>
-            <Pressable
-              onPress={() => role !== 'buyer' && toggleRole()}
-              style={[styles.modeOption, role === 'buyer' && styles.modeOptionActive]}>
-              <Ionicons name="person-outline" size={14} color={role === 'buyer' ? palette.ink.onLightStrong : palette.ink.onDarkSoft} />
-              <Text style={[styles.modeLabel, role === 'buyer' && styles.modeLabelActive]}>Buyer</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => role !== 'vendor' && toggleRole()}
-              style={[styles.modeOption, role === 'vendor' && styles.modeOptionActive]}>
-              <Ionicons name="storefront-outline" size={14} color={role === 'vendor' ? palette.ink.onLightStrong : palette.ink.onDarkSoft} />
-              <Text style={[styles.modeLabel, role === 'vendor' && styles.modeLabelActive]}>Vendor</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {role === 'buyer' ? <BuyerView /> : <VendorView />}
+        {isBuyer ? <BuyerView /> : <VendorView />}
       </SafeAreaView>
     </EspressoBackground>
   );
@@ -60,68 +96,249 @@ export default function ProfileTabScreen() {
 function BuyerView() {
   const cartCount = useCartCount();
   const wishlistCount = useWishlistCount();
+  const [tab, setTab] = useState<'posts' | 'reels' | 'reposts'>('posts');
+  const repostMap = useEngagement((s) => s.reposts);
+  const reposts = Object.values(repostMap);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-      <View style={styles.idCard}>
-        <Avatar size={56} initials="DO" />
-        <View style={styles.idText}>
-          <Text style={styles.name}>David Okpo</Text>
-          <Text style={styles.email}>davidokpo7@gmail.com</Text>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={instaStyles.scroll}>
+      {/* Avatar + stats row */}
+      <View style={instaStyles.topRow}>
+        <View style={instaStyles.avatarRing}>
+          <Avatar size={84} initials="DO" />
         </View>
-        <Pressable onPress={() => router.push('/account/edit')} hitSlop={8} style={styles.editBtn}>
-          <Ionicons name="pencil" size={14} color={palette.ink.onDarkStrong} />
+        <View style={instaStyles.statsRow}>
+          <StatColumn value="48" label="Posts" />
+          <StatColumn value="312" label="Followers" />
+          <StatColumn value="284" label="Following" />
+        </View>
+      </View>
+
+      {/* Identity block */}
+      <View style={instaStyles.identity}>
+        <View style={instaStyles.nameRow}>
+          <Text style={instaStyles.displayName}>David Okpo</Text>
+          <View style={instaStyles.kycBadge}>
+            <Ionicons name="shield-checkmark" size={10} color="#fff" />
+            <Text style={instaStyles.kycBadgeText}>YFN Verified</Text>
+          </View>
+        </View>
+        <Text style={instaStyles.bio}>
+          Lagos · finding good food, good cake, good books{'\n'}KYC-verified buyer on Vibe
+        </Text>
+        <Pressable hitSlop={6}>
+          <Text style={instaStyles.bioLink}>vibe.app/u/davidokpo</Text>
         </Pressable>
       </View>
 
-      <View style={styles.actionGrid}>
-        <ActionTile icon="cube-outline" label="Orders" hint="12" onPress={() => router.push('/orders')} />
-        <ActionTile icon="bag-outline" label="Cart" hint={cartCount ? String(cartCount) : undefined} onPress={() => router.push('/cart')} />
-        <ActionTile icon="heart-outline" label="Wishlist" hint={wishlistCount ? String(wishlistCount) : undefined} onPress={() => router.push('/wishlist')} />
-        <ActionTile icon="notifications-outline" label="Alerts" onPress={() => router.push('/notifications')} />
-      </View>
-
-      <Pressable
-        onPress={() => router.push('/intent')}
-        style={({ pressed }) => [styles.vendorCTA, pressed && { opacity: 0.85 }]}>
-        <View style={styles.vendorIcon}>
-          <Ionicons name="storefront" size={20} color={palette.ink.onDarkStrong} />
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={styles.vendorTitle}>Become a vendor</Text>
-          <Text style={styles.vendorSubtitle}>Open your store and start selling on Vibe</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={palette.brand.orange} />
-      </Pressable>
-
-      <Text style={styles.sectionTitle}>Account</Text>
-      <RowGroup
-        rows={[
-          { key: 'addresses', icon: 'location-outline', label: 'Saved addresses', href: '/account/addresses' },
-          { key: 'payments', icon: 'card-outline', label: 'Payment methods', href: '/account/payment-methods' },
-        ]}
-      />
-
-      <Text style={styles.sectionTitle}>Preferences</Text>
-      <RowGroup
-        rows={[
-          { key: 'notif', icon: 'notifications-outline', label: 'Notifications', href: '/settings/notifications' },
-          { key: 'privacy', icon: 'shield-checkmark-outline', label: 'Privacy', href: '/settings/privacy' },
-          { key: 'help', icon: 'help-circle-outline', label: 'Help & support', href: '/help' },
-        ]}
-      />
-
-      <View style={styles.signOutWrap}>
-        <Pressable onPress={() => router.replace('/login')} style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.85 }]}>
-          <Ionicons name="log-out-outline" size={16} color={palette.status.danger} />
-          <Text style={styles.signOutLabel}>Sign out</Text>
+      {/* Action buttons row */}
+      <View style={instaStyles.buttonRow}>
+        <Pressable
+          onPress={() => router.push('/account/edit')}
+          style={({ pressed }) => [instaStyles.button, pressed && { opacity: 0.85 }]}>
+          <Text style={instaStyles.buttonLabel}>Edit profile</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [instaStyles.button, pressed && { opacity: 0.85 }]}>
+          <Text style={instaStyles.buttonLabel}>Share profile</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/vendor-verify' as never)}
+          accessibilityLabel="Become a vendor"
+          style={({ pressed }) => [instaStyles.iconButton, pressed && { opacity: 0.85 }]}>
+          <Ionicons name="storefront-outline" size={16} color={palette.brand.orange} />
         </Pressable>
       </View>
+
+      {/* Quick actions */}
+      <View style={instaStyles.quickRow}>
+        <QuickAction
+          icon="cube-outline"
+          label="Orders"
+          badge="12"
+          onPress={() => router.push('/orders')}
+        />
+        <QuickAction
+          icon="bag-outline"
+          label="Cart"
+          badge={cartCount ? String(cartCount) : undefined}
+          onPress={() => router.push('/cart')}
+        />
+        <QuickAction
+          icon="heart-outline"
+          label="Wishlist"
+          badge={wishlistCount ? String(wishlistCount) : undefined}
+          onPress={() => router.push('/wishlist')}
+        />
+        <QuickAction
+          icon="wallet-outline"
+          label="Wallet"
+          onPress={() => router.push('/(tabs)/wallet' as never)}
+        />
+      </View>
+
+      {/* Tab strip — Instagram style with Reposts */}
+      <View style={instaStyles.iconTabs}>
+        <Pressable
+          onPress={() => setTab('posts')}
+          style={[instaStyles.iconTab, tab === 'posts' && instaStyles.iconTabActive]}>
+          <Ionicons
+            name="grid-outline"
+            size={20}
+            color={tab === 'posts' ? palette.ink.onDarkStrong : palette.ink.onDarkMuted}
+          />
+        </Pressable>
+        <Pressable
+          onPress={() => setTab('reels')}
+          style={[instaStyles.iconTab, tab === 'reels' && instaStyles.iconTabActive]}>
+          <Ionicons
+            name="play-outline"
+            size={20}
+            color={tab === 'reels' ? palette.ink.onDarkStrong : palette.ink.onDarkMuted}
+          />
+        </Pressable>
+        <Pressable
+          onPress={() => setTab('reposts')}
+          style={[instaStyles.iconTab, tab === 'reposts' && instaStyles.iconTabActive]}>
+          <Ionicons
+            name="repeat"
+            size={20}
+            color={tab === 'reposts' ? palette.brand.orange : palette.ink.onDarkMuted}
+          />
+          {reposts.length > 0 ? (
+            <View style={instaStyles.tabBadge}>
+              <Text style={instaStyles.tabBadgeText}>{reposts.length}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+
+      {tab === 'reposts' ? (
+        reposts.length === 0 ? (
+          <View style={instaStyles.empty}>
+            <Ionicons name="repeat" size={32} color={palette.ink.onDarkMuted} />
+            <Text style={instaStyles.emptyTitle}>No reposts yet</Text>
+            <Text style={instaStyles.emptyText}>
+              Tap the repeat icon on any product you love. Earn ₦50 every time someone buys through you.
+            </Text>
+          </View>
+        ) : (
+          <View style={instaStyles.grid}>
+            {reposts.map((r) => (
+              <Pressable
+                key={r.productId}
+                onPress={() => router.push(`/product/${r.productId}?via=davidokpo` as never)}
+                style={instaStyles.tile}>
+                <Image source={PRODUCT_IMAGE} style={StyleSheet.absoluteFill} contentFit="cover" />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.65)']}
+                  locations={[0.45, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={[instaStyles.tileBadge, { backgroundColor: palette.brand.orange }]}>
+                  <Ionicons name="repeat" size={11} color="#fff" />
+                </View>
+                <View style={instaStyles.tileVendor}>
+                  <Text style={instaStyles.tileVendorText} numberOfLines={1}>
+                    @{r.vendorId}
+                  </Text>
+                  <Text style={instaStyles.tileEarning}>+₦{r.earningsNgn}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )
+      ) : (
+        <View style={instaStyles.grid}>
+          {(tab === 'reels' ? OWN_POSTS.filter((p) => p.kind === 'reel') : OWN_POSTS).map(
+            (p, i) => (
+              <Pressable key={p.id} style={instaStyles.tile}>
+                <Image source={p.image} style={StyleSheet.absoluteFill} contentFit="cover" />
+                <LinearGradient
+                  colors={['transparent', 'rgba(255, 255, 255, 0.55)']}
+                  locations={[0.55, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+                {p.kind === 'reel' ? (
+                  <View style={instaStyles.tileBadge}>
+                    <Ionicons name="play" size={12} color="#fff" />
+                  </View>
+                ) : p.kind === 'multi' ? (
+                  <View style={instaStyles.tileBadge}>
+                    <Ionicons name="copy-outline" size={12} color="#fff" />
+                  </View>
+                ) : null}
+                {i === 0 && tab === 'posts' ? (
+                  <View style={instaStyles.tilePinned}>
+                    <Ionicons name="pin" size={10} color="#fff" />
+                  </View>
+                ) : null}
+                <View style={instaStyles.tileStats}>
+                  <View style={instaStyles.tileStat}>
+                    <Ionicons name="heart" size={10} color="#fff" />
+                    <Text style={instaStyles.tileStatText}>{compact(p.likes)}</Text>
+                  </View>
+                  <View style={instaStyles.tileStat}>
+                    <Ionicons name="chatbubble" size={10} color="#fff" />
+                    <Text style={instaStyles.tileStatText}>{compact(p.comments)}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            ),
+          )}
+        </View>
+      )}
     </ScrollView>
   );
 }
 
+function compact(n: number) {
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
+  return String(n);
+}
+
+function StatColumn({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={instaStyles.statColumn}>
+      <Text style={instaStyles.statValue}>{value}</Text>
+      <Text style={instaStyles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  badge,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  badge?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [instaStyles.quickItem, pressed && { opacity: 0.85 }]}>
+      <View style={instaStyles.quickIcon}>
+        <Ionicons name={icon} size={18} color={palette.ink.onDarkStrong} />
+        {badge ? (
+          <View style={instaStyles.quickBadge}>
+            <Text style={instaStyles.quickBadgeText}>{badge}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={instaStyles.quickLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const VENDOR_CATEGORIES = ['All', 'Dresses', 'Gowns', 'Suits', 'Bags', 'Shoes'];
+
 function VendorView() {
+  const [activeCategory, setActiveCategory] = useState('All');
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vendorScroll}>
       <View style={styles.bannerWrap}>
@@ -152,6 +369,17 @@ function VendorView() {
           <Text style={styles.rating}>4.8</Text>
           <Text style={styles.reviewsCount}>(134 Reviews)</Text>
         </View>
+      </View>
+
+      <View style={styles.bioBlock}>
+        <Text style={styles.bioLine}>Bespoke fashion · NIN-verified · Lagos</Text>
+        <Text style={styles.bioText}>
+          Custom Ankara, lace gowns & corporate two-pieces. Same-day fittings on
+          weekdays. DM for collaborations.
+        </Text>
+        <Pressable hitSlop={6}>
+          <Text style={styles.bioLink}>linktr.ee/sarahsboutique</Text>
+        </Pressable>
       </View>
 
       <View style={styles.storeStatsRow}>
@@ -192,19 +420,61 @@ function VendorView() {
         ))}
       </View>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}>
+        {VENDOR_CATEGORIES.map((c) => {
+          const on = activeCategory === c;
+          return (
+            <Pressable
+              key={c}
+              onPress={() => setActiveCategory(c)}
+              style={[styles.categoryChip, on && styles.categoryChipOn]}>
+              <Text style={[styles.categoryLabel, on && styles.categoryLabelOn]}>
+                {c}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       <View style={styles.grid}>
-        {Array.from({ length: 9 }).map((_, i) => (
+        {VENDOR_GRID.map((p) => (
           <Pressable
-            key={i}
-            onPress={() => router.push(`/product/p${i}` as never)}
+            key={p.id}
+            onPress={() => router.push(`/product/${p.id}` as never)}
             style={styles.tile}>
-            <Image source={PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
+            <Image source={p.image} style={styles.tileImage} contentFit="cover" />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.65)']}
+              locations={[0.45, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.tileMeta}>
+              <Text style={styles.tilePrice}>{p.price}</Text>
+              <Text style={styles.tileCategory} numberOfLines={1}>
+                {p.category}
+              </Text>
+            </View>
           </Pressable>
         ))}
       </View>
     </ScrollView>
   );
 }
+
+const VENDOR_GRID = [
+  { id: 'p1', category: 'Dresses', price: '₦24,990', image: POST_HERO },
+  { id: 'p2', category: 'Gowns', price: '₦42,000', image: POST_STORY_1 },
+  { id: 'p3', category: 'Suits', price: '₦27,000', image: POST_STORY_2 },
+  { id: 'p4', category: 'Bags', price: '₦18,500', image: POST_STORY_3 },
+  { id: 'p5', category: 'Shoes', price: '₦38,500', image: POST_STORY_4 },
+  { id: 'p6', category: 'Accessories', price: '₦12,000', image: POST_STORY_5 },
+  { id: 'p7', category: 'Dresses', price: '₦32,500', image: POST_STORY_6 },
+  { id: 'p8', category: 'Gowns', price: '₦55,000', image: POST_HERO },
+  { id: 'p9', category: 'Bags', price: '₦22,400', image: PRODUCT_IMAGE },
+];
 
 function ActionTile({ icon, label, hint, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; hint?: string; onPress: () => void }) {
   return (
@@ -267,6 +537,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     color: palette.ink.onDarkStrong,
   },
+  titleOnCream: { color: palette.ink.onLightStrong },
   headerRight: { flexDirection: 'row', gap: spacing['2'] },
   iconBtn: {
     width: 36,
@@ -274,7 +545,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  iconBtnOnCream: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(28, 22, 14, 0.08)',
   },
   modeWrap: {
     paddingHorizontal: spacing['5'],
@@ -284,9 +560,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
   modeOption: {
     flex: 1,
@@ -315,9 +591,9 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   idText: { flex: 1, gap: 2 },
   name: {
@@ -337,7 +613,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   actionGrid: {
     flexDirection: 'row',
@@ -348,9 +624,9 @@ const styles = StyleSheet.create({
     flex: 1,
     aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -384,15 +660,15 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(253,134,22,0.10)',
+    backgroundColor: 'rgba(216, 149, 68,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(253,134,22,0.40)',
+    borderColor: 'rgba(216, 149, 68,0.40)',
   },
   vendorIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(253,134,22,0.20)',
+    backgroundColor: 'rgba(216, 149, 68,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,9 +692,9 @@ const styles = StyleSheet.create({
   },
   rowGroup: {
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     overflow: 'hidden',
   },
   row: {
@@ -430,7 +706,7 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   rowLabel: {
     flex: 1,
@@ -475,7 +751,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
   },
   bannerEditLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -556,9 +832,9 @@ const styles = StyleSheet.create({
   },
   vendorBtnGhost: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   vendorBtnSquare: { flex: 0, width: 40, paddingHorizontal: 0 },
   vendorBtnLabel: {
@@ -580,9 +856,9 @@ const styles = StyleSheet.create({
     marginTop: spacing['3'],
     paddingHorizontal: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   searchInput: {
     flex: 1,
@@ -596,7 +872,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['5'],
     marginTop: spacing['3'],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.10)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   tab: {
     flex: 1,
@@ -629,6 +905,391 @@ const styles = StyleSheet.create({
   tileImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  tileMeta: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    right: 8,
+    gap: 1,
+  },
+  tilePrice: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: '#fff',
+  },
+  tileCategory: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  bioBlock: {
+    paddingHorizontal: spacing['5'],
+    paddingTop: spacing['3'],
+    paddingBottom: spacing['3'],
+    gap: 4,
+  },
+  bioLine: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.orange,
+  },
+  bioText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette.ink.onDarkSoft,
+  },
+  bioLink: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.amber,
+    marginTop: 2,
+  },
+  categoryRow: {
+    paddingHorizontal: spacing['5'],
+    paddingVertical: spacing['3'],
+    gap: spacing['2'],
+  },
+  categoryChip: {
+    paddingHorizontal: spacing['3'],
+    height: 30,
+    borderRadius: 999,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  categoryChipOn: {
+    backgroundColor: palette.bg.surface,
+    borderColor: palette.bg.surface,
+  },
+  categoryLabel: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 12,
+    color: palette.ink.onDarkSoft,
+  },
+  categoryLabelOn: {
+    color: palette.ink.onLightStrong,
+  },
+});
+
+const instaStyles = StyleSheet.create({
+  scroll: { paddingBottom: 120 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['2'],
+  },
+  avatarRing: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    padding: 3,
+    backgroundColor: 'rgba(216, 149, 68,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing['4'],
+  },
+  statsRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statColumn: { alignItems: 'center' },
+  statValue: {
+    fontFamily: typography.h2.fontFamily,
+    fontSize: 18,
+    color: palette.ink.onDarkStrong,
+  },
+  statLabel: {
+    ...typography.caption,
+    color: palette.ink.onDarkMuted,
+    marginTop: 2,
+  },
+  identity: {
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['3'],
+    gap: 4,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    flexWrap: 'wrap',
+  },
+  displayName: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 15,
+    color: palette.ink.onDarkStrong,
+  },
+  kycBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: palette.status.success,
+  },
+  kycBadgeText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 10,
+    color: '#fff',
+  },
+  bio: {
+    ...typography.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: palette.ink.onDarkSoft,
+    marginTop: 2,
+  },
+  bioLink: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.amber,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing['2'],
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['4'],
+  },
+  button: {
+    flex: 1,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  buttonLabel: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkStrong,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(216, 149, 68,0.30)',
+  },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    padding: spacing['3'],
+    marginHorizontal: spacing['4'],
+    marginTop: spacing['4'],
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(216, 149, 68,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(216, 149, 68,0.25)',
+  },
+  privacyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(216, 149, 68,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  privacyTitle: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkStrong,
+  },
+  privacySub: {
+    ...typography.caption,
+    color: palette.ink.onDarkMuted,
+    marginTop: 2,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['4'],
+    gap: spacing['2'],
+  },
+  quickItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    padding: spacing['2'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  quickIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    position: 'relative',
+  },
+  quickBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    backgroundColor: palette.brand.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickBadgeText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 10,
+    color: '#fff',
+  },
+  quickLabel: {
+    ...typography.small,
+    color: palette.ink.onDarkSoft,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  iconTabs: {
+    flexDirection: 'row',
+    marginTop: spacing['5'],
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  iconTab: {
+    flex: 1,
+    paddingVertical: spacing['3'],
+    alignItems: 'center',
+  },
+  iconTabActive: {
+    borderBottomWidth: 1,
+    borderBottomColor: palette.ink.onDarkStrong,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing['3'],
+    paddingHorizontal: spacing['4'],
+    gap: spacing['3'],
+  },
+  tile: {
+    width: '47.5%',
+    aspectRatio: 1,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.40)',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLockOverlay: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tilePinned: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: palette.brand.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileStats: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    right: 6,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  tileStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  tileStatText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  tileVendor: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    right: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tileVendorText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    flex: 1,
+  },
+  tileEarning: {
+    color: palette.brand.amber,
+    fontSize: 10,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: 6,
+    right: '30%',
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: palette.brand.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: spacing['8'],
+    paddingHorizontal: spacing['5'],
+    gap: 8,
+  },
+  emptyTitle: {
+    ...typography.title,
+    color: palette.ink.onDarkStrong,
+  },
+  emptyText: {
+    ...typography.body,
+    fontSize: 13,
+    color: palette.ink.onDarkMuted,
+    textAlign: 'center',
   },
 });

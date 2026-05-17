@@ -6,6 +6,8 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { authApi } from '@/src/api';
+import { useTheme, type ThemeMode } from '@/src/store/theme';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 type Row = {
@@ -46,11 +48,50 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
   },
 ];
 
+function ThemeToggle() {
+  const mode = useTheme((s) => s.mode);
+  const setMode = useTheme((s) => s.setMode);
+
+  const options: Array<{ key: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { key: 'light', label: 'Day', icon: 'sunny' },
+    { key: 'dark', label: 'Night', icon: 'moon' },
+    { key: 'system', label: 'System', icon: 'phone-portrait' },
+  ];
+
+  return (
+    <View style={styles.themeRow}>
+      {options.map((o) => {
+        const on = mode === o.key;
+        return (
+          <Pressable
+            key={o.key}
+            onPress={() => setMode(o.key)}
+            style={[styles.themeOption, on && styles.themeOptionOn]}>
+            <Ionicons
+              name={o.icon}
+              size={16}
+              color={on ? palette.ink.onLightStrong : palette.ink.onDarkSoft}
+            />
+            <Text style={[styles.themeLabel, on && styles.themeLabelOn]}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Settings" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <ThemeToggle />
+        </View>
+
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -73,7 +114,14 @@ export default function SettingsScreen() {
         ))}
 
         <View style={styles.dangerWrap}>
-          <PrimaryButton label="Sign out" variant="ghost" onPress={() => router.replace('/login')} />
+          <PrimaryButton
+            label="Sign out"
+            variant="ghost"
+            onPress={async () => {
+              await authApi.logout();
+              router.replace('/login');
+            }}
+          />
           <Pressable hitSlop={8} style={styles.dangerLink}>
             <Text style={styles.dangerLabel}>Delete account</Text>
           </Pressable>
@@ -86,6 +134,33 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: 60, gap: spacing['5'] },
   section: { gap: spacing['2'] },
+  themeRow: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    gap: 4,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  themeOptionOn: {
+    backgroundColor: palette.bg.surface,
+  },
+  themeLabel: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+  },
+  themeLabelOn: { color: palette.ink.onLightStrong },
   sectionTitle: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 12,
@@ -102,9 +177,9 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   iconWrap: {
     width: 36,
@@ -112,7 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   rowLabel: {
     flex: 1,

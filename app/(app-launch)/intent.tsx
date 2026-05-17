@@ -68,7 +68,7 @@ export default function IntentScreen() {
               <GlassCard
                 tone="dark"
                 cornerRadius={radius.lg}
-                borderColor={isSelected ? palette.brand.orange : 'rgba(255,255,255,0.10)'}
+                borderColor={isSelected ? palette.brand.orange : 'rgba(0, 0, 0, 0.06)'}
                 style={[styles.card, isSelected && styles.cardSelected]}>
                 <Image source={opt.icon} style={styles.iconImage} contentFit="contain" />
                 <Text style={styles.cardTitle}>{opt.title}</Text>

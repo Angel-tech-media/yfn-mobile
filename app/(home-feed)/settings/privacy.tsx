@@ -49,7 +49,7 @@ export default function PrivacyScreen() {
               <Switch
                 value={!!state[row.key]}
                 onValueChange={() => toggle(row.key)}
-                trackColor={{ false: 'rgba(255,255,255,0.20)', true: palette.brand.orange }}
+                trackColor={{ false: 'rgba(0, 0, 0, 0.10)', true: palette.brand.orange }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   linkRow: {
     flexDirection: 'row',
@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   iconWrap: {
     width: 36,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   label: {
     fontFamily: typography.bodyEmphasis.fontFamily,

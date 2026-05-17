@@ -1,7 +1,10 @@
 import { Stack } from 'expo-router';
 
+import { RequireAuth } from '@/components/ui/RequireAuth';
+
 export default function HomeFeedLayout() {
   return (
+    <RequireAuth>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="cart" />
@@ -14,25 +17,30 @@ export default function HomeFeedLayout() {
       <Stack.Screen name="reels" />
       <Stack.Screen name="reel" />
       <Stack.Screen name="product/[id]" />
-      <Stack.Screen name="orders" />
+      <Stack.Screen name="orders/index" />
       <Stack.Screen name="orders/[id]" />
       <Stack.Screen name="orders/[id]/track" />
       <Stack.Screen name="orders/[id]/review" />
       <Stack.Screen name="messages/[id]" />
       <Stack.Screen name="post/[id]/comments" options={{ presentation: 'modal' }} />
       <Stack.Screen name="u/[handle]" />
+      <Stack.Screen name="place/[id]" />
+      <Stack.Screen name="news/[id]" />
+      <Stack.Screen name="hive/[...slug]" />
+      <Stack.Screen name="wallet/referrals" />
       <Stack.Screen name="story/[id]" options={{ animation: 'fade' }} />
       <Stack.Screen name="account/edit" />
       <Stack.Screen name="account/addresses" />
       <Stack.Screen name="account/addresses/add" />
       <Stack.Screen name="account/payment-methods" />
       <Stack.Screen name="account/payment-methods/add" />
-      <Stack.Screen name="settings" />
+      <Stack.Screen name="settings/index" />
       <Stack.Screen name="settings/notifications" />
       <Stack.Screen name="settings/privacy" />
       <Stack.Screen name="create/post" options={{ presentation: 'modal' }} />
       <Stack.Screen name="create/story" options={{ presentation: 'fullScreenModal' as never }} />
       <Stack.Screen name="create/reel" options={{ presentation: 'fullScreenModal' as never }} />
     </Stack>
+    </RequireAuth>
   );
 }

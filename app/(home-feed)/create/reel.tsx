@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TextField } from '@/components/ui/TextField';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function CreateReelScreen() {
@@ -93,7 +94,16 @@ export default function CreateReelScreen() {
 
         <View style={styles.actionsBottom}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              if (video) {
+                useUserContent.getState().addReel({
+                  cover: { uri: video.uri },
+                  caption: caption.trim(),
+                  audio,
+                });
+              }
+              router.back();
+            }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
             <Text style={styles.shareLabel}>Post reel</Text>
           </Pressable>

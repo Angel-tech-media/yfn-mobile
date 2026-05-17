@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { z } from 'zod';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -15,7 +16,22 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
+import { authApi } from '@/src/api';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
+const signupSchema = z.object({
+  name: z.string().min(2, 'Name too short'),
+  email: z.string().email('Enter a valid email'),
+  phone: z.string().min(7, 'Phone too short'),
+  password: z
+    .string()
+    .min(12, 'At least 12 characters')
+    .regex(/[A-Z]/, 'Add at least one uppercase letter')
+    .regex(/\d/, 'Add at least one number'),
+  dob: z.string().min(1, 'Choose your date of birth'),
+  gender: z.string().min(1, 'Pick a gender'),
+  agreed: z.literal(true, { message: 'Accept the terms to continue' }),
+});
 
 type Gender = 'female' | 'male' | 'non-binary' | 'prefer-not';
 
@@ -39,19 +55,45 @@ export default function SignupScreen() {
   const [genderOpen, setGenderOpen] = useState(false);
   const [dobOpen, setDobOpen] = useState(false);
 
-  const errors = useMemo(() => {
-    const errs: { email?: string; phone?: string; password?: string } = {};
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Enter a valid email';
-    if (phone && phone.length < 7) errs.phone = 'Phone too short';
-    if (password && password.length < 12) errs.password = 'At least 12 characters';
-    return errs;
-  }, [email, phone, password]);
+  const validation = useMemo(() => {
+    return signupSchema.safeParse({
+      name,
+      email,
+      phone,
+      password,
+      dob,
+      gender: gender ?? '',
+      agreed,
+    });
+  }, [name, email, phone, password, dob, gender, agreed]);
 
-  const canSubmit = useMemo(
-    () =>
-      name && email && phone && password.length >= 12 && gender && dob && agreed && !Object.keys(errors).length,
-    [name, email, phone, password, gender, dob, agreed, errors]
-  );
+  /** Per-field errors only shown if the user has typed in that field. */
+  const errors = useMemo(() => {
+    const errs: Partial<Record<'name' | 'email' | 'phone' | 'password' | 'dob' | 'gender' | 'agreed', string>> = {};
+    if (validation.success) return errs;
+    for (const issue of validation.error.issues) {
+      const key = issue.path[0] as keyof typeof errs;
+      // Don't yell at empty fields the user hasn't touched yet
+      const value =
+        key === 'name' ? name :
+        key === 'email' ? email :
+        key === 'phone' ? phone :
+        key === 'password' ? password :
+        key === 'dob' ? dob :
+        key === 'gender' ? gender :
+        agreed;
+      if (value) errs[key] = issue.message;
+    }
+    return errs;
+  }, [validation, name, email, phone, password, dob, gender, agreed]);
+
+  const canSubmit = validation.success;
+
+  const handleSubmit = async () => {
+    if (!validation.success) return;
+    await authApi.login(email, password, isVendor ? 'vendor' : 'buyer');
+    router.push(isVendor ? '/verify?role=vendor' : '/verify?role=buyer');
+  };
 
   const genderLabel = gender ? GENDER_OPTIONS.find((o) => o.key === gender)?.label : undefined;
 
@@ -114,9 +156,7 @@ export default function SignupScreen() {
           <PrimaryButton
             label="Create Account"
             disabled={!canSubmit}
-            onPress={() =>
-              router.push(isVendor ? '/verify?role=vendor' : '/verify?role=buyer')
-            }
+            onPress={handleSubmit}
           />
 
           <View style={styles.divider}>
@@ -254,7 +294,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: 'rgba(0, 0, 0, 0.10)',
   },
   dividerText: {
     fontFamily: typography.caption.fontFamily,
@@ -305,7 +345,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.h2.fontFamily,
     fontSize: 18,
     lineHeight: 24,
-    color: palette.ink.onDarkStrong,
+    color: palette.ink.onLightStrong,
     marginBottom: spacing['3'],
   },
   sheetRow: {
@@ -317,12 +357,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   sheetRowSelected: {
-    backgroundColor: 'rgba(253,134,22,0.10)',
+    backgroundColor: 'rgba(216, 149, 68,0.10)',
   },
   sheetLabel: {
     fontFamily: typography.bodyLg.fontFamily,
     fontSize: typography.bodyLg.fontSize,
     lineHeight: typography.bodyLg.lineHeight,
-    color: palette.ink.onDarkStrong,
+    color: palette.ink.onLightStrong,
   },
 });

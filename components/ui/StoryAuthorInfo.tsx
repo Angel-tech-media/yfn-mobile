@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
     maxWidth: '85%',
   },
   audioText: {

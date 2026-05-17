@@ -17,11 +17,20 @@ const STORY_AVATARS = [
 ];
 
 const THREADS = [
-  { id: 't1', name: 'Aisha Bello', preview: 'Thanks! When can I expect delivery?', time: '2m', unread: 2, avatar: STORY_AVATARS[0] },
-  { id: 't2', name: 'Joshua Olamilekan-Ayan', preview: 'Order confirmed ✔', time: '14m', unread: 0, avatar: STORY_AVATARS[1] },
-  { id: 't3', name: 'Olusayo Odukoya', preview: 'Loved the dress!', time: '1h', unread: 1, avatar: STORY_AVATARS[2] },
-  { id: 't4', name: 'Janet Ogborini', preview: 'Will restock next week', time: '3h', unread: 0, avatar: STORY_AVATARS[3] },
-  { id: 't5', name: 'Mide', preview: 'Sent you a reel — check it out', time: '1d', unread: 0, avatar: STORY_AVATARS[4] },
+  { id: 't1', name: 'EscrowBot · order ord-1', preview: '₦18,500 held in escrow. Vendor notified.', time: 'now', unread: 1, avatar: STORY_AVATARS[0] },
+  { id: 't2', name: 'Aisha Bello', preview: 'Thanks! When can I expect delivery?', time: '2m', unread: 2, avatar: STORY_AVATARS[0] },
+  { id: 't3', name: 'Joshua Olamilekan-Ayan', preview: 'Order confirmed ✔', time: '14m', unread: 0, avatar: STORY_AVATARS[1] },
+  { id: 't4', name: 'Olusayo Odukoya', preview: 'Loved the dress!', time: '1h', unread: 1, avatar: STORY_AVATARS[2] },
+  { id: 't5', name: 'Janet Ogborini', preview: 'Will restock next week', time: '3h', unread: 0, avatar: STORY_AVATARS[3] },
+  { id: 't6', name: "Sarah's Boutique", preview: 'Your custom fitting is ready — drop by anytime today', time: '4h', unread: 1, avatar: STORY_AVATARS[4] },
+  { id: 't7', name: 'GadgetFix Hub', preview: 'Repair complete. Pick-up code: 7Q2K', time: '5h', unread: 0, avatar: STORY_AVATARS[0] },
+  { id: 't8', name: 'MarketBot', preview: 'New tailor near you matches your saved searches.', time: '7h', unread: 0, avatar: STORY_AVATARS[1] },
+  { id: 't9', name: 'Naija Kitchen', preview: 'Confirming party platter for Saturday 6pm.', time: '9h', unread: 1, avatar: STORY_AVATARS[2] },
+  { id: 't10', name: 'Mide Studios', preview: 'Sent you the gallery preview — let me know your picks', time: '12h', unread: 0, avatar: STORY_AVATARS[3] },
+  { id: 't11', name: 'Tola Threads', preview: 'Jersey size 42 — back in stock 🇳🇬', time: '1d', unread: 0, avatar: STORY_AVATARS[4] },
+  { id: 't12', name: 'Bisi A.', preview: 'You: ok cool, see you Friday', time: '1d', unread: 0, avatar: STORY_AVATARS[0] },
+  { id: 't13', name: 'Mide', preview: 'Sent you a reel — check it out', time: '2d', unread: 0, avatar: STORY_AVATARS[1] },
+  { id: 't14', name: 'Doyin Beauty', preview: 'Confirmed: Saturday 9am, your address', time: '3d', unread: 0, avatar: STORY_AVATARS[2] },
 ];
 
 export default function InboxScreen() {

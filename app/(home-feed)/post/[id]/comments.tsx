@@ -1,199 +1,280 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/ui/Avatar';
-import { InputBar } from '@/components/ui/InputBar';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { TopBar } from '@/components/ui/TopBar';
+import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { palette, spacing, typography } from '@/src/theme';
+
+const STORY_1 = require('@/assets/figma/story-1.png');
+const STORY_2 = require('@/assets/figma/story-2.png');
+const STORY_3 = require('@/assets/figma/story-3.png');
+const STORY_4 = require('@/assets/figma/story-4.png');
+const STORY_5 = require('@/assets/figma/story-5.png');
+const STORE_AVATAR = require('@/assets/figma/store-avatar.png');
 
 type Comment = {
   id: string;
   author: string;
-  body: string;
-  time: string;
+  handle: string;
   avatar: any;
+  text: string;
+  time: string;
   likes: number;
-  liked?: boolean;
+  verified?: boolean;
 };
 
 const SEED: Comment[] = [
-  {
-    id: 'c1',
-    author: 'Aisha Bello',
-    body: 'Absolutely stunning! Do you ship to Abuja?',
-    time: '2h',
-    avatar: require('@/assets/figma/story-1.png'),
-    likes: 12,
-  },
-  {
-    id: 'c2',
-    author: 'Joshua Olamilekan-Ayan',
-    body: 'Where can I get this exact one?',
-    time: '1h',
-    avatar: require('@/assets/figma/story-2.png'),
-    likes: 4,
-  },
-  {
-    id: 'c3',
-    author: 'Olusayo Odukoya',
-    body: 'Linked the product page on the post — tap "Buy now" 💖',
-    time: '45m',
-    avatar: require('@/assets/figma/store-avatar.png'),
-    likes: 28,
-    liked: true,
-  },
-  {
-    id: 'c4',
-    author: 'Mide',
-    body: 'Saving this for next month!',
-    time: '20m',
-    avatar: require('@/assets/figma/story-3.png'),
-    likes: 0,
-  },
+  { id: 'c1', author: 'Aisha Bello', handle: 'aishabello', avatar: STORY_1, text: 'This drop is fire 🔥 Reserving size M.', time: '12m', likes: 24 },
+  { id: 'c2', author: 'Olufemi A.', handle: 'olufemia', avatar: STORY_2, text: 'Reposted to my profile — buyers, the fit is real.', time: '23m', likes: 41 },
+  { id: 'c3', author: 'Bisi A.', handle: 'bisia', avatar: STORY_3, text: 'Do you ship to Abuja? Need by Friday for a wedding.', time: '34m', likes: 9 },
+  { id: 'c4', author: "Sarah's Boutique", handle: 'sarahsboutique', avatar: STORE_AVATAR, text: 'Yes 🇳🇬 same-day dispatch if you order before 2pm. DM your address.', time: '28m', likes: 32, verified: true },
+  { id: 'c5', author: 'Tunde Otun', handle: 'tundeotun', avatar: STORY_4, text: 'The embroidery! Who did this for you?', time: '41m', likes: 18 },
+  { id: 'c6', author: 'Doyin Ojo', handle: 'doyinojo', avatar: STORY_5, text: 'Saved this one. Birthday gift sorted 🎁', time: '1h', likes: 12 },
+  { id: 'c7', author: 'Mide', handle: 'midemoji', avatar: STORY_2, text: 'Can I get a photo of the back? Considering for my Saturday shoot.', time: '2h', likes: 7 },
 ];
 
 export default function CommentsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [comments, setComments] = useState<Comment[]>(SEED);
-  const [draft, setDraft] = useState('');
+  const [composer, setComposer] = useState('');
+  const [comments, setComments] = useState(SEED);
+  const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
+  void id;
 
-  const send = () => {
-    if (!draft.trim()) return;
-    setComments((arr) => [
-      ...arr,
+  const toggleLike = (cId: string) =>
+    setLikedIds((s) => ({ ...s, [cId]: !s[cId] }));
+
+  const post = () => {
+    const text = composer.trim();
+    if (!text) return;
+    setComments((s) => [
       {
         id: `c-${Date.now()}`,
         author: 'David Okpo',
-        body: draft.trim(),
+        handle: 'davidokpo',
+        avatar: STORY_1,
+        text,
         time: 'now',
-        avatar: undefined,
         likes: 0,
       },
+      ...s,
     ]);
-    setDraft('');
-  };
-
-  const toggleLike = (cid: string) => {
-    setComments((arr) =>
-      arr.map((c) =>
-        c.id === cid
-          ? {
-              ...c,
-              liked: !c.liked,
-              likes: c.likes + (c.liked ? -1 : 1),
-            }
-          : c
-      )
-    );
+    setComposer('');
   };
 
   return (
-    <ScreenContainer variant="espresso" edges={['top']}>
-      <TopBar title={`Comments · ${comments.length}`} showBack />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={80}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-          {comments.map((c) => (
-            <View key={c.id} style={styles.row}>
-              {c.avatar ? (
-                <Avatar size={36} source={c.avatar} />
-              ) : (
-                <Avatar size={36} initials="DO" />
-              )}
-              <View style={styles.body}>
-                <Text style={styles.headerLine}>
-                  <Text style={styles.author}>{c.author}</Text>
-                  <Text style={styles.time}>  ·  {c.time}</Text>
-                </Text>
-                <Text style={styles.bodyText}>{c.body}</Text>
-                <View style={styles.actionsRow}>
-                  <Pressable onPress={() => toggleLike(c.id)} hitSlop={6} style={styles.likeBtn}>
-                    <Ionicons
-                      name={c.liked ? 'heart' : 'heart-outline'}
-                      size={14}
-                      color={c.liked ? '#FF3B47' : palette.ink.onDarkSoft}
-                    />
-                    <Text style={styles.likeCount}>{c.likes}</Text>
+    <EspressoBackground variant="espresso">
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
+            <Ionicons name="chevron-down" size={22} color={palette.ink.onLightStrong} />
+          </Pressable>
+          <Text style={styles.title}>Comments</Text>
+          <Pressable hitSlop={8} accessibilityLabel="Share">
+            <Ionicons
+              name="paper-plane-outline"
+              size={20}
+              color={palette.ink.onLightStrong}
+            />
+          </Pressable>
+        </View>
+
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.list}>
+            <Text style={styles.counter}>
+              {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+            </Text>
+
+            {comments.map((c) => {
+              const liked = !!likedIds[c.id];
+              return (
+                <View key={c.id} style={styles.row}>
+                  <Pressable onPress={() => router.push(`/u/${c.handle}` as never)}>
+                    <Image source={c.avatar} style={styles.avatar} />
                   </Pressable>
-                  <Pressable hitSlop={6}>
-                    <Text style={styles.replyText}>Reply</Text>
+                  <View style={styles.bubbleWrap}>
+                    <View style={styles.headerRow}>
+                      <Pressable
+                        onPress={() => router.push(`/u/${c.handle}` as never)}>
+                        <Text style={styles.author}>{c.author}</Text>
+                      </Pressable>
+                      {c.verified ? (
+                        <View style={styles.verifyDot}>
+                          <Ionicons name="shield-checkmark" size={9} color="#fff" />
+                        </View>
+                      ) : null}
+                      <Text style={styles.time}>· {c.time}</Text>
+                    </View>
+                    <Text style={styles.text}>{c.text}</Text>
+                    <View style={styles.actionsRow}>
+                      <Pressable hitSlop={6} onPress={() => toggleLike(c.id)}>
+                        <Text style={styles.actionText}>{liked ? 'Liked' : 'Like'}</Text>
+                      </Pressable>
+                      <Text style={styles.actionDot}>·</Text>
+                      <Pressable hitSlop={6}>
+                        <Text style={styles.actionText}>Reply</Text>
+                      </Pressable>
+                      {c.likes + (liked ? 1 : 0) > 0 ? (
+                        <>
+                          <Text style={styles.actionDot}>·</Text>
+                          <Text style={styles.actionLikes}>
+                            {c.likes + (liked ? 1 : 0)} likes
+                          </Text>
+                        </>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Pressable hitSlop={6} onPress={() => toggleLike(c.id)}>
+                    <Ionicons
+                      name={liked ? 'heart' : 'heart-outline'}
+                      size={14}
+                      color={liked ? palette.status.danger : palette.ink.onLightSubtle}
+                    />
                   </Pressable>
                 </View>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+              );
+            })}
+          </ScrollView>
 
-        <View style={styles.composer}>
-          <Avatar size={32} initials="DO" />
-          <View style={{ flex: 1 }}>
-            <InputBar
-              placeholder={`Comment as @davidokpo · post ${String(id).slice(0, 6)}`}
-              value={draft}
-              onChangeText={setDraft}
-              onSend={send}
-              showEmoji
-              showSend
+          <View style={styles.composer}>
+            <Image source={STORY_1} style={styles.composerAvatar} />
+            <TextInput
+              value={composer}
+              onChangeText={setComposer}
+              placeholder="Add a comment…"
+              placeholderTextColor={palette.ink.onLightSubtle}
+              style={styles.composerInput}
+              multiline
             />
+            <Pressable
+              onPress={post}
+              hitSlop={6}
+              style={[styles.postBtn, composer.trim() ? null : { opacity: 0.4 }]}>
+              <Text style={styles.postLabel}>Post</Text>
+            </Pressable>
           </View>
-        </View>
-      </KeyboardAvoidingView>
-    </ScreenContainer>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </EspressoBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 24, gap: spacing['4'] },
-  row: { flexDirection: 'row', gap: spacing['3'] },
-  body: { flex: 1, gap: 4 },
-  headerLine: { lineHeight: 18 },
+  safe: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['2'],
+    paddingBottom: spacing['3'],
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { ...typography.bodyEmphasis, fontSize: 15, color: palette.ink.onLightStrong },
+  list: {
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['3'],
+    paddingBottom: spacing['8'],
+  },
+  counter: {
+    ...typography.caption,
+    color: palette.ink.onLightSubtle,
+    marginBottom: spacing['3'],
+  },
+  row: {
+    flexDirection: 'row',
+    gap: spacing['3'],
+    paddingVertical: spacing['3'],
+    alignItems: 'flex-start',
+  },
+  avatar: { width: 32, height: 32, borderRadius: 16 },
+  bubbleWrap: { flex: 1, gap: 2 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   author: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    ...typography.bodyEmphasis,
     fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
+    color: palette.ink.onLightStrong,
   },
-  time: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    lineHeight: 14,
-    color: palette.ink.onDarkMuted,
+  verifyDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: palette.status.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bodyText: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
+  time: { ...typography.caption, color: palette.ink.onLightSubtle },
+  text: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette.ink.onLightStrong,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: spacing['4'],
-    paddingTop: 4,
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
   },
-  likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  likeCount: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkSoft,
-  },
-  replyText: {
+  actionText: {
+    ...typography.caption,
+    color: palette.ink.onLightSubtle,
     fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkSoft,
   },
+  actionLikes: { ...typography.caption, color: palette.ink.onLightSubtle },
+  actionDot: { ...typography.caption, color: palette.ink.onLightSubtle },
   composer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     gap: spacing['2'],
-    paddingVertical: spacing['2'],
-    paddingHorizontal: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.10)',
+    paddingHorizontal: spacing['3'],
+    paddingTop: spacing['2'],
+    paddingBottom: spacing['3'],
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  },
+  composerAvatar: { width: 32, height: 32, borderRadius: 16, marginBottom: 4 },
+  composerInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    paddingHorizontal: spacing['3'],
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    color: palette.ink.onLightStrong,
+    ...typography.body,
+    fontSize: 14,
+  },
+  postBtn: { paddingHorizontal: spacing['2'], paddingVertical: 12 },
+  postLabel: {
+    ...typography.bodyEmphasis,
+    color: palette.brand.orange,
+    fontSize: 14,
   },
 });

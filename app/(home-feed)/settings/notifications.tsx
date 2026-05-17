@@ -60,7 +60,7 @@ export default function NotificationPrefsScreen() {
                   <Switch
                     value={!!state[row.key]}
                     onValueChange={() => toggle(row.key)}
-                    trackColor={{ false: 'rgba(255,255,255,0.20)', true: palette.brand.orange }}
+                    trackColor={{ false: 'rgba(0, 0, 0, 0.10)', true: palette.brand.orange }}
                     thumbColor="#FFFFFF"
                   />
                 </View>
@@ -92,9 +92,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   label: {
     fontFamily: typography.bodyEmphasis.fontFamily,

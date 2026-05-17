@@ -10,14 +10,15 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { useAccount } from '@/src/store/account';
+import { useWallet } from '@/src/store/wallet';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const AVAILABLE_BALANCE = 428500;
-
-const QUICK = [10000, 25000, 100000, AVAILABLE_BALANCE];
 
 export default function WithdrawScreen() {
   const methods = useAccount((s) => s.paymentMethods);
+  const balance = useWallet((s) => s.balance);
+  const withdraw = useWallet((s) => s.withdraw);
+  const AVAILABLE_BALANCE = balance;
+  const QUICK = [10000, 25000, 100000, AVAILABLE_BALANCE];
   const [amount, setAmount] = useState('');
   const [methodId, setMethodId] = useState<string | null>(methods.find((m) => m.isDefault)?.id ?? methods[0]?.id ?? null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,9 +30,15 @@ export default function WithdrawScreen() {
   const submit = () => {
     setSubmitting(true);
     setTimeout(() => {
+      const method = methods.find((m) => m.id === methodId);
+      const result = withdraw({
+        amount: numeric,
+        bank: method?.label ?? 'Bank',
+      });
       setSubmitting(false);
+      if (!result.ok) return;
       router.replace('/vendor-dashboard/withdraw-confirmed');
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -123,9 +130,9 @@ const styles = StyleSheet.create({
   balanceCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(20,12,8,0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(253,134,22,0.30)',
+    borderColor: 'rgba(216, 149, 68,0.30)',
     gap: 4,
   },
   balanceLabel: {
@@ -154,7 +161,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.h2.fontFamily,
     fontSize: 18,
     color: palette.ink.onDarkStrong,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderRadius: radius.sm,
     overflow: 'hidden',
     lineHeight: 40,
@@ -169,9 +176,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   quickChipText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -193,7 +200,7 @@ const styles = StyleSheet.create({
   summary: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     gap: spacing['1'],
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },

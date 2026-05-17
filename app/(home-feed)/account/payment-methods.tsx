@@ -92,13 +92,13 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     gap: spacing['2'],
   },
   cardDefault: {
-    borderColor: 'rgba(253,134,22,0.40)',
+    borderColor: 'rgba(216, 149, 68,0.40)',
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brandWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: 'rgba(253,134,22,0.16)',
+    backgroundColor: 'rgba(216, 149, 68,0.16)',
   },
   defaultText: {
     fontFamily: typography.bodyEmphasis.fontFamily,

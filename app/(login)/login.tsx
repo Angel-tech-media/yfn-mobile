@@ -1,27 +1,23 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
-import { LinkText } from '@/components/ui/LinkText';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { authApi } from '@/src/api';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
+import { useUser } from '@/src/store/user';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const setRole = useUser((s) => s.setRole);
 
-  const handleLogin = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      router.replace('/(tabs)');
-    }, 600);
+  const enterAs = async (role: 'buyer' | 'vendor') => {
+    setRole(role);
+    // Mock sign-in with the demo account — real signup flow handles new users.
+    await authApi.login('davidokpo@gmail.com', 'vibe-demo-2026', role);
+    router.replace('/(tabs)' as never);
   };
 
   return (
@@ -29,86 +25,92 @@ export default function LoginScreen() {
       <TopBar title="" showBack />
 
       <View style={styles.titleBlock}>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Log in to keep where you left off</Text>
+        <Text style={styles.title}>Welcome to Vibe</Text>
+        <Text style={styles.subtitle}>How will you be using Vibe today?</Text>
       </View>
 
-      <View style={styles.form}>
-        <TextField
-          placeholder="Email or phone number"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
+      <View style={styles.tiles}>
+        <RoleTile
+          icon="person"
+          label="Buyer"
+          tagline="Discover, shop, and follow vendors near you"
+          gradient={['#D89544', '#A6692E']}
+          onPress={() => enterAs('buyer')}
         />
-        <TextField
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          isPassword
+        <RoleTile
+          icon="storefront"
+          label="Vendor"
+          tagline="Sell your products and reach buyers in your area"
+          gradient={['#2A2540', '#0F0E1F']}
+          accent="#D89544"
+          onPress={() => enterAs('vendor')}
         />
-        <View style={styles.helperRow}>
-          <Text style={styles.helperText}>Password must be 12 characters or more</Text>
-          <LinkText onPress={() => router.push('/forgot-password' as never)} style={styles.helperLink}>
-            Forgot password?
-          </LinkText>
-        </View>
+      </View>
 
-        <View style={styles.loginRow}>
-          <View style={styles.loginGrow}>
-            <PrimaryButton label="Login" loading={submitting} onPress={handleLogin} />
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Use biometrics"
-            style={({ pressed }) => [styles.bioBtn, pressed && { opacity: 0.7 }]}>
-            <Ionicons name="finger-print" size={26} color={palette.ink.onDarkStrong} />
-          </Pressable>
-        </View>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Or sign up with</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <View style={styles.oauthRow}>
-          <OAuthButton icon={<GoogleIcon />} label="Google" />
-          <OAuthButton
-            icon={<Ionicons name="logo-apple" size={20} color={palette.ink.onLightStrong} />}
-            label="Apple"
-          />
-        </View>
+      <View style={styles.note}>
+        <Ionicons name="shield-checkmark" size={14} color={palette.brand.orange} />
+        <Text style={styles.noteText}>
+          Vendors complete NIN verification once selected
+        </Text>
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-        <LinkText onPress={() => router.push('/signup' as never)}>Sign Up</LinkText>
+        <Text style={styles.footerText}>New to Vibe?</Text>
+        <Pressable onPress={() => router.push('/signup' as never)} hitSlop={8}>
+          <Text style={styles.footerLink}>Create account</Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
 }
 
-function OAuthButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+function RoleTile({
+  icon,
+  label,
+  tagline,
+  gradient,
+  accent,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  tagline: string;
+  gradient: [string, string];
+  accent?: string;
+  onPress: () => void;
+}) {
+  const accentColor = accent ?? '#fff';
   return (
-    <Pressable style={({ pressed }) => [styles.oauthBtn, pressed && { opacity: 0.85 }]}>
-      {icon}
-      <Text style={styles.oauthLabel}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]}>
+      <LinearGradient
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[styles.tileIcon, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+        <Ionicons name={icon} size={24} color="#fff" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.tileLabel}>{label}</Text>
+        <Text style={styles.tileTagline}>{tagline}</Text>
+      </View>
+      <View style={[styles.tileArrow, { backgroundColor: accentColor }]}>
+        <Ionicons
+          name="arrow-forward"
+          size={18}
+          color={accent ? '#fff' : palette.ink.onLightStrong}
+        />
+      </View>
     </Pressable>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <View style={styles.googleIconWrap}>
-      <Text style={styles.googleIcon}>G</Text>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   titleBlock: {
-    paddingTop: spacing['4'],
+    paddingTop: spacing['5'],
     paddingBottom: spacing['8'],
     alignItems: 'center',
     gap: spacing['2'],
@@ -121,109 +123,84 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette.ink.onDarkMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing['5'],
+  },
+  tiles: {
+    gap: spacing['3'],
+  },
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    padding: spacing['4'],
+    minHeight: 110,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  tileIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLabel: {
+    fontFamily: typography.h2.fontFamily,
+    fontSize: 22,
+    lineHeight: 28,
+    color: '#fff',
+  },
+  tileTagline: {
+    fontFamily: typography.body.fontFamily,
     fontSize: 13,
     lineHeight: 18,
-    color: palette.ink.onDarkMuted,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
   },
-  form: {
-    gap: spacing['3'],
-  },
-  helperRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  tileArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    marginTop: -spacing['1'],
+    justifyContent: 'center',
   },
-  helperText: {
+  note: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    justifyContent: 'center',
+    marginTop: spacing['4'],
+  },
+  noteText: {
     fontFamily: typography.caption.fontFamily,
     fontSize: 12,
     lineHeight: 16,
-    color: palette.ink.onDarkMuted,
-    flex: 1,
-    marginRight: spacing['2'],
-  },
-  helperLink: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  loginRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    marginTop: spacing['2'],
-  },
-  loginGrow: {
-    flex: 1,
-  },
-  bioBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(20,12,8,0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    marginVertical: spacing['4'],
-  },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.20)',
-  },
-  dividerText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    color: palette.ink.onDarkMuted,
-  },
-  oauthRow: {
-    flexDirection: 'row',
-    gap: spacing['3'],
-  },
-  oauthBtn: {
-    flex: 1,
-    height: 56,
-    borderRadius: radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing['2'],
-    backgroundColor: palette.bg.surface,
-  },
-  oauthLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette.ink.onLightStrong,
-  },
-  googleIconWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleIcon: {
-    fontFamily: typography.display.fontFamily,
-    fontSize: 18,
-    lineHeight: 20,
-    color: '#4285F4',
+    color: palette.ink.onDarkSoft,
   },
   footer: {
     paddingVertical: spacing['5'],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    marginTop: 'auto',
   },
   footerText: {
     fontFamily: typography.caption.fontFamily,
     fontSize: 13,
     lineHeight: 18,
     color: palette.ink.onDarkSoft,
+  },
+  footerLink: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    lineHeight: 18,
+    color: palette.brand.orange,
   },
 });

@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    backgroundColor: 'rgba(20,12,8,0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderWidth: 1,
     borderColor: palette.line.onDark,
   },

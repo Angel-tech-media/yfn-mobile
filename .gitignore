@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Sim/device screenshots from local testing
+.sim-shots/
+
 # debug
 npm-debug.*
 yarn-debug.*

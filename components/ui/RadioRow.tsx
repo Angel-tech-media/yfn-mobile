@@ -34,9 +34,9 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     gap: spacing['3'],
   },
   rowSelected: {

@@ -45,7 +45,7 @@ export default function TwoFactorScreen() {
         <PrimaryButton
           label="Verify"
           disabled={code.length !== 6}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => router.replace('/(tabs)' as never)}
         />
       </View>
     </ScreenContainer>

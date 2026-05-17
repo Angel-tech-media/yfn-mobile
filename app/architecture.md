@@ -18,6 +18,7 @@ not affect URLs — every existing URL keeps working.
 | Vendor Store Setup       | `app/vendor-store-setup/`           | `/vendor-store-setup`, `/vendor-store-setup/...` |
 | Vendor Dashboard         | `app/(vendor-dashboard)/`           | `/vendor-dashboard`, `/vendor-store`, `/products/...` |
 | Home Feed (Buyer/All)    | `app/(home-feed)/`                  | `/(tabs)`, `/cart`, `/checkout`, `/orders/...`, `/wishlist`, `/notifications`, `/messages/...`, `/post/...`, `/u/...`, `/story/...`, `/reels`, `/reel`, `/search`, `/help`, `/account/...`, `/settings/...`, `/create/...` |
+|                          | Bottom tabs (in `(tabs)/`)          | Home · Discover (map) · `+` · Wallet · News · Profile. `shop` and `inbox` remain as routes (`href: null`) but are not in the bar. |
 | Components               | `components/ui/`                    | (UI primitives, not routed) |
 
 Each Figma section folder owns its own `_layout.tsx` that registers its

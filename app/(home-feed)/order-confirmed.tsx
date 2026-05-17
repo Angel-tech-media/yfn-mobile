@@ -33,7 +33,7 @@ export default function OrderConfirmedScreen() {
       </Animated.View>
       <View style={styles.actions}>
         <PrimaryButton label="View orders" onPress={() => router.replace('/orders')} />
-        <PrimaryButton label="Continue shopping" variant="ghost" onPress={() => router.replace('/(tabs)/shop')} />
+        <PrimaryButton label="Continue shopping" variant="ghost" onPress={() => router.replace('/(tabs)/shop' as never)} />
       </View>
       <View style={styles.bottomSpacer} />
     </ScreenContainer>

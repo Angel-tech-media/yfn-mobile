@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InputBar } from '@/components/ui/InputBar';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { useChat, useThreadMessages } from '@/src/store/chat';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 type Msg = {
@@ -42,16 +43,34 @@ const PEERS: Record<string, { name: string; avatar: any; verified?: boolean }> =
 
 export default function MessageThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const peer = PEERS[String(id) as keyof typeof PEERS] ?? PEERS.default;
-  const [messages, setMessages] = useState<Msg[]>(SEED);
+  const threadId = String(id ?? 'default');
+  const peer = PEERS[threadId as keyof typeof PEERS] ?? PEERS.default;
+  const liveMessages = useThreadMessages(threadId);
+  const sendChat = useChat((s) => s.send);
   const [draft, setDraft] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (liveMessages.length === 0) return;
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  }, [liveMessages.length]);
+
+  // Combine seeded + persisted messages so the thread feels populated and
+  // newly-sent ones stick around across navigation.
+  const messages: Msg[] = [
+    ...SEED,
+    ...liveMessages.map((m) => ({
+      id: m.id,
+      from: 'me' as const,
+      body: m.text,
+      time: 'now',
+    })),
+  ];
 
   const send = () => {
-    if (!draft.trim()) return;
-    setMessages((arr) => [
-      ...arr,
-      { id: `m-${Date.now()}`, from: 'me', body: draft.trim(), time: 'now' },
-    ]);
+    const text = draft.trim();
+    if (!text) return;
+    sendChat(threadId, text);
     setDraft('');
   };
 
@@ -80,6 +99,7 @@ export default function MessageThreadScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={80}>
           <ScrollView
+            ref={scrollRef}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.list}>
             {messages.map((m) => (
@@ -130,7 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['2'],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.10)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
   iconBtn: {
     width: 36,
@@ -138,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   peerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   peerName: {
@@ -169,7 +189,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleThemStyle: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
     borderBottomLeftRadius: 4,
   },
   bubbleText: {
@@ -184,14 +204,14 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     padding: spacing['2'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
     width: 240,
   },
   productImg: {
     width: 56,
     height: 56,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -214,6 +234,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['2'],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.10)',
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
   },
 });

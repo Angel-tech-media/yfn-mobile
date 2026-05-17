@@ -1,7 +1,10 @@
 import { Stack } from 'expo-router';
 
+import { RequireAuth } from '@/components/ui/RequireAuth';
+
 export default function VendorDashboardLayout() {
   return (
+    <RequireAuth>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="vendor-dashboard" />
       <Stack.Screen name="vendor-store" />
@@ -13,5 +16,6 @@ export default function VendorDashboardLayout() {
       <Stack.Screen name="products/saved" options={{ animation: 'fade' }} />
       <Stack.Screen name="products/[id]" />
     </Stack>
+    </RequireAuth>
   );
 }

@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   removeBtn: {
     position: 'absolute',
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },

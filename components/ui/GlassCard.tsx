@@ -24,8 +24,8 @@ export function GlassCard({
   style,
 }: Props) {
   const fallbackBg =
-    tone === 'dark' ? 'rgba(20,12,8,0.55)' : 'rgba(255,255,255,0.10)';
-  const ring = borderColor ?? (tone === 'dark' ? 'rgba(255,255,255,0.10)' : palette.line.onDark);
+    tone === 'dark' ? 'rgba(255, 255, 255, 0.55)' : 'rgba(0, 0, 0, 0.06)';
+  const ring = borderColor ?? (tone === 'dark' ? 'rgba(0, 0, 0, 0.06)' : palette.line.onDark);
 
   if (Platform.OS === 'android') {
     return (

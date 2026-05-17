@@ -106,9 +106,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   changeLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,

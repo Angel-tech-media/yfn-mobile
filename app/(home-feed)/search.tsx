@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -29,11 +29,14 @@ const PRODUCTS = [
   { id: 'p3', name: 'Leopard heeled sandals', price: '₦38,500' },
 ];
 
-const TABS = ['Top', 'People', 'Products', 'Tags'] as const;
+const TABS = ['People', 'Tags', 'Top', 'Products'] as const;
 
 export default function SearchScreen() {
+  const params = useLocalSearchParams<{ focus?: string }>();
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<typeof TABS[number]>('Top');
+  const [tab, setTab] = useState<typeof TABS[number]>(
+    params.focus === 'people' ? 'People' : 'People',
+  );
 
   const q = query.trim().toLowerCase();
 
@@ -60,7 +63,7 @@ export default function SearchScreen() {
           <Ionicons name="search" size={18} color={palette.ink.onDarkSoft} />
           <TextInput
             autoFocus
-            placeholder="Search Vibe"
+            placeholder="Search people, @handles, #hashtags"
             placeholderTextColor={palette.ink.onDarkMuted}
             value={query}
             onChangeText={setQuery}
@@ -216,9 +219,9 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     paddingHorizontal: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(20,12,8,0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   searchInput: {
     flex: 1,
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: 'rgba(253,134,22,0.18)',
+    backgroundColor: 'rgba(216, 149, 68,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -292,9 +295,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   tabActive: { backgroundColor: palette.bg.surface, borderColor: palette.bg.surface },
   tabLabel: {
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,

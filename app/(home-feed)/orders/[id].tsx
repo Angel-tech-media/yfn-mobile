@@ -1,372 +1,621 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/ui/Avatar';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { StatusBadge, type StatusKey } from '@/components/ui/StatusBadge';
-import { TopBar } from '@/components/ui/TopBar';
+import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import {
+  PLATFORM_FEE_LABEL,
+  computePlatformFee,
+} from '@/src/config/fees';
+import { useOrders } from '@/src/store/orders';
+import { useWallet } from '@/src/store/wallet';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
-const ITEMS = [
-  { id: 'A', name: 'Maxi Sky Blue Gown with Floral', sku: '#8814564', price: '₦25,000', qty: 1 },
-  { id: 'B', name: 'Gucci Ladies Hip-toe Shoes', sku: '#8814564', price: '₦135,000', qty: 1 },
-  { id: 'C', name: '3pcs Panties Collection', sku: '#8814564', price: '₦45,000', qty: 1 },
+const PRODUCT = require('@/assets/figma/product-sample.png');
+const STORE = require('@/assets/figma/store-avatar.png');
+
+type Stage = 'paid' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'released';
+type Status = 'paid' | 'confirmed' | 'shipped' | 'delivered' | 'released';
+
+type OrderData = {
+  id: string;
+  vendor: string;
+  vendorHandle: string;
+  items: Array<{ name: string; qty: number; unit: number; image: any }>;
+  status: Status;
+  placedAt: string;
+  estimatedDelivery: string;
+  shipTo: string;
+  shipPhone: string;
+  referrerHandle?: string;
+};
+
+const ORDERS: Record<string, OrderData> = {
+  'ord-1': {
+    id: 'ord-1',
+    vendor: 'Aisha Threads',
+    vendorHandle: 'aishathreads',
+    items: [
+      { name: 'Ankara A-line Dress', qty: 1, unit: 18500, image: PRODUCT },
+    ],
+    status: 'shipped',
+    placedAt: 'May 6 · 9:42 AM',
+    estimatedDelivery: 'Today by 6:00 PM',
+    shipTo: '12 Adeola Odeku, Victoria Island, Lagos',
+    shipPhone: '+234 803 555 0142',
+  },
+  'ord-2': {
+    id: 'ord-2',
+    vendor: 'GadgetFix Hub',
+    vendorHandle: 'gadgetfix',
+    items: [{ name: 'iPhone screen replacement', qty: 1, unit: 9200, image: PRODUCT }],
+    status: 'released',
+    placedAt: 'May 4 · 2:14 PM',
+    estimatedDelivery: 'Delivered May 5',
+    shipTo: 'Walk-in · VI repair studio',
+    shipPhone: '+234 802 555 0801',
+  },
+  'ord-3': {
+    id: 'ord-3',
+    vendor: 'Zara Cakes',
+    vendorHandle: 'zaracakes',
+    items: [{ name: 'Three-tier celebration cake', qty: 1, unit: 4500, image: PRODUCT }],
+    status: 'delivered',
+    placedAt: 'May 1 · 11:02 AM',
+    estimatedDelivery: 'Delivered May 3',
+    shipTo: '8 Marwa Rd, Lekki Phase 1',
+    shipPhone: '+234 815 555 0140',
+  },
+};
+
+const FALLBACK: OrderData = {
+  id: 'ord-x',
+  vendor: 'Vendor',
+  vendorHandle: 'vendor',
+  items: [{ name: 'Product', qty: 1, unit: 0, image: PRODUCT }],
+  status: 'paid',
+  placedAt: 'just now',
+  estimatedDelivery: 'TBC',
+  shipTo: 'Lagos',
+  shipPhone: '',
+};
+
+const STAGES: Array<{ key: Stage; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { key: 'paid', label: 'Paid · held in escrow', icon: 'lock-closed' },
+  { key: 'confirmed', label: 'Vendor confirmed', icon: 'checkmark-circle' },
+  { key: 'packed', label: 'Packed', icon: 'cube' },
+  { key: 'shipped', label: 'In transit', icon: 'navigate' },
+  { key: 'delivered', label: 'Delivered', icon: 'home' },
+  { key: 'released', label: 'Released to vendor', icon: 'checkmark-done' },
 ];
 
-type Stage = { key: StatusKey; label: string; date: string };
+const STATUS_TO_STAGE_INDEX: Record<Status, number> = {
+  paid: 0,
+  confirmed: 1,
+  shipped: 3,
+  delivered: 4,
+  released: 5,
+};
 
-const TIMELINE: Stage[] = [
-  { key: 'pending', label: 'Order placed', date: 'May 6, 9:42 AM' },
-  { key: 'confirmed', label: 'Confirmed', date: 'May 6, 10:20 AM' },
-  { key: 'shipped', label: 'Shipped', date: 'May 7, 8:15 AM' },
-  { key: 'completed', label: 'Delivered', date: '—' },
-];
+const fmt = (n: number) => '₦' + n.toLocaleString('en-NG');
 
 export default function OrderDetailScreen() {
-  const { id, state } = useLocalSearchParams<{ id: string; state?: StatusKey }>();
-  const status: StatusKey = (state ?? 'pending') as StatusKey;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const placedOrder = useOrders((s) => s.orders.find((o) => o.id === String(id)));
+  const order: OrderData = placedOrder
+    ? {
+        id: placedOrder.id,
+        vendor: placedOrder.vendor,
+        vendorHandle: placedOrder.vendorHandle,
+        items: placedOrder.items.map((it) => ({ ...it, image: PRODUCT })),
+        status: placedOrder.status === 'confirmed' ? 'confirmed' : placedOrder.status,
+        placedAt: new Date(placedOrder.placedAt).toLocaleString('en-NG', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        estimatedDelivery: 'Today by 6:00 PM',
+        shipTo: '12 Adeola Odeku, Victoria Island, Lagos',
+        shipPhone: '+234 803 555 0142',
+        referrerHandle: placedOrder.referrerHandle,
+      }
+    : ORDERS[String(id ?? 'ord-1')] ?? { ...FALLBACK, id: String(id) };
+  const [status, setStatus] = useState<Status>(order.status);
+  const releaseFromEscrow = useWallet((s) => s.releaseFromEscrow);
 
-  const stageIndex = TIMELINE.findIndex((t) => t.key === status);
+  const subtotal = order.items.reduce((a, i) => a + i.qty * i.unit, 0);
+  const deliveryFee = order.status === 'released' ? 0 : 1500;
+  const platformFee = computePlatformFee(subtotal);
+  const total = subtotal + deliveryFee + platformFee;
 
-  const showAccept = status === 'pending';
-  const showTrack = status === 'shipped' || status === 'confirmed';
-  const showRate = status === 'completed';
+  const currentIdx = STATUS_TO_STAGE_INDEX[status];
+
+  const confirmDelivery = () => {
+    setStatus('delivered');
+    setTimeout(() => {
+      releaseFromEscrow({
+        amount: subtotal,
+        orderId: order.id,
+        vendor: order.vendor,
+      });
+      setStatus('released');
+    }, 600);
+  };
 
   return (
-    <ScreenContainer variant="espresso">
-      <TopBar
-        title="Order Details"
-        showBack
-        rightAction={
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={20} color={palette.ink.onDarkStrong} />
+    <EspressoBackground variant="espresso">
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
+            <Ionicons name="chevron-back" size={20} color={palette.ink.onLightStrong} />
           </Pressable>
-        }
-      />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <View style={styles.idRow}>
-          <View>
-            <Text style={styles.idLabel}>Order ID</Text>
-            <Text style={styles.idValue}>#{id}</Text>
-          </View>
-          <StatusBadge status={status} />
+          <Text style={styles.title}>Order #{order.id}</Text>
+          <Pressable hitSlop={8} accessibilityLabel="More">
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={20}
+              color={palette.ink.onLightStrong}
+            />
+          </Pressable>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Status timeline</Text>
-          <View style={styles.timeline}>
-            {TIMELINE.map((step, i) => {
-              const reached = i <= stageIndex;
-              const isCurrent = i === stageIndex;
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scroll}>
+          {/* Status hero */}
+          <View style={styles.statusCard}>
+            <View style={styles.statusHeader}>
+              <Text style={styles.statusKicker}>
+                {status === 'released'
+                  ? 'Order complete'
+                  : status === 'delivered'
+                  ? 'Awaiting payout'
+                  : status === 'shipped'
+                  ? 'On its way'
+                  : status === 'confirmed'
+                  ? 'Vendor confirmed'
+                  : 'Paid · held in escrow'}
+              </Text>
+              <Text style={styles.statusEta}>{order.estimatedDelivery}</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push(`/orders/${order.id}/track` as never)}
+              style={styles.trackBtn}>
+              <Ionicons name="map-outline" size={14} color={palette.brand.orange} />
+              <Text style={styles.trackLabel}>Open live tracking</Text>
+            </Pressable>
+          </View>
+
+          {/* Timeline */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Status</Text>
+            {STAGES.map((s, i) => {
+              const reached = i <= currentIdx;
+              const active = i === currentIdx;
               return (
-                <View key={step.key} style={styles.stage}>
-                  <View style={styles.stageRail}>
-                    <View
-                      style={[
-                        styles.stageDot,
-                        reached && styles.stageDotReached,
-                        isCurrent && styles.stageDotCurrent,
-                      ]}>
-                      {reached ? <Ionicons name="checkmark" size={11} color="#FFFFFF" /> : null}
-                    </View>
-                    {i < TIMELINE.length - 1 ? (
-                      <View style={[styles.stageLine, reached && styles.stageLineReached]} />
+                <View key={s.key} style={styles.stageRow}>
+                  <View
+                    style={[
+                      styles.stageDot,
+                      reached && styles.stageDotOn,
+                      active && styles.stageDotActive,
+                    ]}>
+                    {reached ? (
+                      <Ionicons name={s.icon} size={12} color="#fff" />
                     ) : null}
                   </View>
-                  <View style={styles.stageBody}>
-                    <Text style={[styles.stageLabel, !reached && styles.stageLabelMuted]}>
-                      {step.label}
-                    </Text>
-                    <Text style={styles.stageDate}>{step.date}</Text>
-                  </View>
+                  {i < STAGES.length - 1 ? (
+                    <View
+                      style={[styles.stageLine, reached && styles.stageLineOn]}
+                    />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.stageLabel,
+                      active && styles.stageLabelActive,
+                      !reached && { color: palette.ink.onLightSubtle },
+                    ]}>
+                    {s.label}
+                  </Text>
                 </View>
               );
             })}
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Customer Info</Text>
-          <View style={styles.customerRow}>
-            <Avatar size={48} source={require('@/assets/figma/story-1.png')} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.customerName}>Aisha Bello</Text>
-              <Text style={styles.customerMeta}>aishabello@email.com</Text>
+          {/* Vendor */}
+          <Pressable
+            onPress={() => router.push(`/u/${order.vendorHandle}` as never)}
+            style={styles.vendorCard}>
+            <Image source={STORE} style={styles.vendorAvatar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.vendorName}>{order.vendor}</Text>
+              <Text style={styles.vendorMeta}>NIN-verified · DM open</Text>
             </View>
-            <Pressable style={styles.chatBtn} hitSlop={8}>
-              <Ionicons name="chatbubble-outline" size={16} color={palette.ink.onDarkStrong} />
+            <Pressable
+              onPress={() => router.push(`/messages/${order.vendorHandle}` as never)}
+              style={styles.msgBtn}>
+              <Ionicons
+                name="chatbubble-outline"
+                size={16}
+                color={palette.brand.orange}
+              />
             </Pressable>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={16} color={palette.ink.onDarkSoft} />
-            <Text style={styles.metaText}>15 Admiralty Way, Lekki Phase 1</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="call-outline" size={16} color={palette.ink.onDarkSoft} />
-            <Text style={styles.metaText}>+602 323 4567</Text>
-          </View>
-        </View>
+          </Pressable>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Summary</Text>
-          {ITEMS.map((it) => (
-            <View key={it.id} style={styles.itemRow}>
-              <Image source={require('@/assets/figma/product-sample.png')} style={styles.itemThumb} contentFit="cover" />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
-                <Text style={styles.itemSku}>{it.sku} · {it.price}</Text>
+          {/* Referrer attribution — repost-as-referral */}
+          {order.referrerHandle ? (
+            <Pressable
+              onPress={() => router.push(`/u/${order.referrerHandle}` as never)}
+              style={styles.referrerCard}>
+              <Ionicons name="repeat" size={14} color={palette.brand.orange} />
+              <Text style={styles.referrerText}>
+                Reached via{' '}
+                <Text style={styles.referrerHandle}>@{order.referrerHandle}</Text>
+                's repost — they earn ₦50 on this order.
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={palette.ink.onLightSubtle} />
+            </Pressable>
+          ) : null}
+
+          {/* Items */}
+          <Text style={styles.sectionTitle}>Items</Text>
+          {order.items.map((it, i) => (
+            <View key={i} style={styles.itemRow}>
+              <Image source={it.image} style={styles.itemImage} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemName} numberOfLines={2}>
+                  {it.name}
+                </Text>
+                <Text style={styles.itemMeta}>Qty {it.qty}</Text>
               </View>
-              <Text style={styles.itemQty}>Qty: {it.qty}</Text>
+              <Text style={styles.itemPrice}>{fmt(it.qty * it.unit)}</Text>
             </View>
           ))}
-        </View>
 
-        <View style={styles.summary}>
-          <Text style={styles.cardTitle}>Order Summary</Text>
-          <SummaryRow label="Order amount" value="₦205,000" />
-          <SummaryRow label="Promo code" value="-₦3,500" tone="negative" />
-          <SummaryRow label="Delivery fee" value="₦4,300" />
-          <SummaryRow label="Tax" value="₦6,174" />
-          <View style={styles.divider} />
-          <SummaryRow label="Total Amount" value="₦211,974" emphasized />
-        </View>
-      </ScrollView>
-
-      {showAccept ? (
-        <View style={styles.actions}>
-          <Pressable style={styles.rejectBtn} onPress={() => router.back()}>
-            <Text style={styles.rejectLabel}>Reject</Text>
-          </Pressable>
-          <View style={styles.acceptWrap}>
-            <PrimaryButton label="Accept Order" onPress={() => router.back()} />
+          {/* Totals */}
+          <View style={styles.totals}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text style={styles.totalValue}>{fmt(subtotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Delivery fee</Text>
+              <Text style={styles.totalValue}>
+                {deliveryFee === 0 ? 'Free' : fmt(deliveryFee)}
+              </Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{PLATFORM_FEE_LABEL}</Text>
+              <Text style={styles.totalValue}>{fmt(platformFee)}</Text>
+            </View>
+            <View style={styles.totalDivider} />
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabelStrong}>Total · in escrow</Text>
+              <Text style={styles.totalValueStrong}>{fmt(total)}</Text>
+            </View>
           </View>
-        </View>
-      ) : showTrack ? (
-        <View style={[styles.actions, { flexDirection: 'column', gap: spacing['2'] }]}>
-          <PrimaryButton label="Track shipment" onPress={() => router.push(`/orders/${id}/track` as never)} />
-        </View>
-      ) : showRate ? (
-        <View style={[styles.actions, { flexDirection: 'column', gap: spacing['2'] }]}>
-          <PrimaryButton label="Leave a review" onPress={() => router.push(`/orders/${id}/review` as never)} />
-        </View>
-      ) : null}
-    </ScreenContainer>
-  );
-}
 
-function SummaryRow({
-  label,
-  value,
-  emphasized,
-  tone,
-}: {
-  label: string;
-  value: string;
-  emphasized?: boolean;
-  tone?: 'negative';
-}) {
-  return (
-    <View style={styles.summaryRow}>
-      <Text style={[styles.summaryLabel, emphasized && styles.summaryLabelStrong]}>{label}</Text>
-      <Text
-        style={[
-          styles.summaryValue,
-          emphasized && styles.summaryValueStrong,
-          tone === 'negative' && { color: palette.brand.orange },
-        ]}>
-        {value}
-      </Text>
-    </View>
+          {/* Shipping */}
+          <Text style={styles.sectionTitle}>Shipping</Text>
+          <View style={styles.shipCard}>
+            <View style={styles.shipRow}>
+              <Ionicons name="location-outline" size={16} color={palette.brand.orange} />
+              <Text style={styles.shipText}>{order.shipTo}</Text>
+            </View>
+            <View style={styles.shipRow}>
+              <Ionicons name="call-outline" size={16} color={palette.brand.orange} />
+              <Text style={styles.shipText}>{order.shipPhone || '—'}</Text>
+            </View>
+            <View style={styles.shipRow}>
+              <Ionicons name="time-outline" size={16} color={palette.brand.orange} />
+              <Text style={styles.shipText}>Placed {order.placedAt}</Text>
+            </View>
+          </View>
+
+          {/* Actions */}
+          {status === 'released' ? (
+            <Pressable
+              onPress={() => router.push(`/orders/${order.id}/review` as never)}
+              style={[styles.primaryBtn, { backgroundColor: palette.brand.orange }]}>
+              <Ionicons name="star-outline" size={16} color="#fff" />
+              <Text style={styles.primaryLabel}>Leave a review</Text>
+            </Pressable>
+          ) : status === 'shipped' || status === 'delivered' ? (
+            <Pressable
+              onPress={confirmDelivery}
+              style={[styles.primaryBtn, { backgroundColor: palette.status.success }]}>
+              <Ionicons name="checkmark" size={16} color="#fff" />
+              <Text style={styles.primaryLabel}>
+                {status === 'delivered'
+                  ? 'Releasing to vendor…'
+                  : 'Confirm delivery (releases escrow)'}
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable style={[styles.primaryBtn, { backgroundColor: palette.brand.orange }]}>
+              <Ionicons name="navigate-outline" size={16} color="#fff" />
+              <Text style={styles.primaryLabel}>Track shipment</Text>
+            </Pressable>
+          )}
+
+          <Pressable style={styles.secondaryBtn}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={16}
+              color={palette.status.danger}
+            />
+            <Text style={styles.secondaryLabel}>Report a problem</Text>
+          </Pressable>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </EspressoBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: 40, gap: spacing['3'] },
-  idRow: {
+  safe: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['2'],
+    paddingBottom: spacing['3'],
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    ...typography.bodyEmphasis,
+    fontSize: 15,
+    color: palette.ink.onLightStrong,
+  },
+  scroll: { paddingHorizontal: spacing['4'], paddingBottom: 40 },
+  statusCard: {
+    padding: spacing['4'],
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    shadowColor: 'rgba(40, 26, 16, 0.18)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  idLabel: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    color: palette.ink.onDarkMuted,
+  statusKicker: {
+    ...typography.title,
+    color: palette.ink.onLightStrong,
   },
-  idValue: {
-    fontFamily: typography.h2.fontFamily,
-    fontSize: 20,
-    lineHeight: 26,
-    color: palette.ink.onDarkStrong,
-  },
-  card: {
-    padding: spacing['4'],
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(20,12,8,0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    gap: spacing['3'],
-  },
-  cardTitle: {
+  statusEta: {
+    ...typography.caption,
+    color: palette.brand.orangeDeep,
     fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
   },
-  timeline: { gap: 0 },
-  stage: { flexDirection: 'row', gap: spacing['3'] },
-  stageRail: { alignItems: 'center', width: 20 },
+  trackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing['3'],
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(216, 149, 68, 0.14)',
+  },
+  trackLabel: {
+    ...typography.bodyEmphasis,
+    fontSize: 13,
+    color: palette.brand.orange,
+  },
+  section: { marginTop: spacing['5'] },
+  sectionTitle: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
+    marginTop: spacing['4'],
+    marginBottom: spacing['3'],
+  },
+  stageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    paddingVertical: 8,
+  },
   stageDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.30)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0, 0, 0, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stageDotReached: {
+  stageDotOn: { backgroundColor: palette.brand.orange },
+  stageDotActive: {
     backgroundColor: palette.brand.orange,
-    borderColor: palette.brand.orange,
-  },
-  stageDotCurrent: {
-    transform: [{ scale: 1.1 }],
+    shadowColor: palette.brand.orange,
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 4,
   },
   stageLine: {
-    width: 1.5,
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    marginTop: 2,
-    minHeight: 24,
+    position: 'absolute',
+    left: 10,
+    top: 28,
+    width: 2,
+    height: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.10)',
   },
-  stageLineReached: {
-    backgroundColor: palette.brand.orange,
-  },
-  stageBody: { flex: 1, paddingBottom: spacing['3'], gap: 2 },
+  stageLineOn: { backgroundColor: palette.brand.orange },
   stageLabel: {
+    ...typography.body,
+    color: palette.ink.onLightStrong,
+  },
+  stageLabelActive: {
     fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkStrong,
   },
-  stageLabelMuted: {
-    fontFamily: typography.body.fontFamily,
-    color: palette.ink.onDarkMuted,
+  vendorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    padding: spacing['3'],
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    marginTop: spacing['3'],
   },
-  stageDate: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkMuted,
+  vendorAvatar: { width: 44, height: 44, borderRadius: 22 },
+  vendorName: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
   },
-  customerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['3'] },
-  customerName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette.ink.onDarkStrong,
+  vendorMeta: {
+    ...typography.caption,
+    color: palette.ink.onLightSubtle,
+    marginTop: 2,
   },
-  customerMeta: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    color: palette.ink.onDarkMuted,
-  },
-  chatBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  msgBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(216, 149, 68, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-  metaText: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkSoft,
+  referrerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    padding: spacing['3'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(216, 149, 68, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(216, 149, 68, 0.28)',
+    marginTop: spacing['2'],
+  },
+  referrerText: {
+    flex: 1,
+    ...typography.caption,
+    color: palette.ink.onLightStrong,
+    lineHeight: 17,
+  },
+  referrerHandle: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    color: palette.brand.orangeDeep,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['3'],
+    paddingVertical: spacing['3'],
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
   },
-  itemThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+  itemImage: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   itemName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
   },
-  itemSku: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    lineHeight: 14,
-    color: palette.ink.onDarkMuted,
+  itemMeta: {
+    ...typography.caption,
+    color: palette.ink.onLightSubtle,
+    marginTop: 2,
   },
-  itemQty: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkSoft,
+  itemPrice: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
   },
-  summary: {
-    padding: spacing['4'],
-    gap: spacing['2'],
+  totals: {
+    marginTop: spacing['3'],
+    padding: spacing['3'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    gap: spacing['1'],
   },
-  summaryRow: {
+  totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
-  summaryLabel: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkMuted,
+  totalLabel: {
+    ...typography.body,
+    color: palette.ink.onLightSubtle,
   },
-  summaryLabelStrong: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    color: palette.ink.onDarkStrong,
+  totalValue: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
   },
-  summaryValue: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkSoft,
+  totalDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    marginVertical: 4,
   },
-  summaryValueStrong: {
-    fontSize: 16,
-    color: palette.ink.onDarkStrong,
+  totalLabelStrong: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onLightStrong,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.20)',
-    marginVertical: spacing['2'],
+  totalValueStrong: {
+    ...typography.h2,
+    fontSize: 18,
+    color: palette.brand.orangeDeep,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing['3'],
-    paddingVertical: spacing['3'],
-  },
-  rejectBtn: {
-    flex: 1,
-    height: 52,
+  shipCard: {
+    padding: spacing['3'],
     borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    gap: spacing['2'],
+  },
+  shipRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  shipText: { ...typography.body, color: palette.ink.onLightStrong, flex: 1 },
+  primaryBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(244,67,54,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(244,67,54,0.40)',
+    gap: 8,
+    marginTop: spacing['5'],
+    height: 52,
+    borderRadius: 999,
   },
-  rejectLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
+  primaryLabel: {
+    ...typography.bodyEmphasis,
+    color: '#fff',
     fontSize: 15,
-    color: '#FF6A55',
   },
-  acceptWrap: { flex: 1 },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: spacing['3'],
+    paddingVertical: 12,
+  },
+  secondaryLabel: {
+    ...typography.caption,
+    color: palette.status.danger,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
 });

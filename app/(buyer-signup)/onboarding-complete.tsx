@@ -27,7 +27,7 @@ export default function OnboardingCompleteScreen() {
         <Text style={styles.subtitle}>Start exploring vendors, products{'\n'}and stories near you</Text>
       </Animated.View>
       <Animated.View style={{ opacity: fade }}>
-        <PrimaryButton label="Continue" onPress={() => router.replace('/(tabs)')} />
+        <PrimaryButton label="Continue" onPress={() => router.replace('/(tabs)' as never)} />
       </Animated.View>
       <View style={styles.bottomSpacer} />
     </ScreenContainer>

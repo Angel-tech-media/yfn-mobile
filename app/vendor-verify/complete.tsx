@@ -22,7 +22,7 @@ export default function VerifyCompleteScreen() {
       </View>
       <View style={styles.actions}>
         <PrimaryButton label="Continue to store setup" onPress={() => router.replace('/vendor-store-setup' as never)} />
-        <PrimaryButton label="Go to dashboard" variant="ghost" onPress={() => router.replace('/(tabs)')} />
+        <PrimaryButton label="Go to dashboard" variant="ghost" onPress={() => router.replace('/(tabs)' as never)} />
       </View>
       <View style={styles.bottomSpacer} />
     </ScreenContainer>
