@@ -1,0 +1,26 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+/**
+ * API base URL. Resolves in this order:
+ *   1. `EXPO_PUBLIC_API_URL` env var
+ *   2. `extra.apiUrl` in app.json
+ *   3. Sensible per-platform localhost defaults for dev
+ *
+ * In production the env var should be set at build time via `eas.json`.
+ */
+function resolveBaseUrl(): string {
+  const fromEnv =
+    process.env.EXPO_PUBLIC_API_URL ??
+    (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+
+  if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
+  return 'http://localhost:3000';
+}
+
+export const API_BASE_URL = resolveBaseUrl();
+export const API_PREFIX = '/api/v1';
+
+export const apiUrl = (path: string): string =>
+  `${API_BASE_URL}${API_PREFIX}${path.startsWith('/') ? path : `/${path}`}`;

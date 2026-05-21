@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { authBackend } from '@/src/api/backend';
+
 export type AuthUser = {
   id: string;
   handle: string;
@@ -45,39 +47,48 @@ export const useAuth = create<AuthState>((set, get) => ({
   loading: false,
 
   signIn: async ({ email, password, role }) => {
-    set({ loading: true });
-    // Mock latency
-    await new Promise((r) => setTimeout(r, 500));
     if (!email || !password || password.length < 8) {
-      set({ loading: false });
       return { ok: false, reason: 'Email and 8+ character password required.' };
     }
-    set({
-      loading: false,
-      accessToken: 'mock-access-' + Date.now(),
-      refreshToken: 'mock-refresh-' + Date.now(),
-      user: {
-        id: `u-${Date.now().toString().slice(-6)}`,
-        handle: email.split('@')[0],
-        name: email
-          .split('@')[0]
-          .replace(/[._-]/g, ' ')
-          .replace(/\b\w/g, (c) => c.toUpperCase()),
-        email,
-        role,
-        kycVerified: false,
-        createdAt: new Date().toISOString(),
-      },
-    });
-    return { ok: true };
+    set({ loading: true });
+    try {
+      const result = await authBackend.login({ email, password });
+      set({
+        loading: false,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        user: {
+          id: result.user.id,
+          handle: result.user.username,
+          name: result.user.displayName,
+          email: result.user.email,
+          role: result.user.role === 'admin' ? role : (result.user.role as 'buyer' | 'vendor'),
+          kycVerified: false,
+          createdAt: new Date().toISOString(),
+        },
+      });
+      return { ok: true };
+    } catch (error) {
+      set({ loading: false });
+      const reason = error instanceof Error ? error.message : 'Sign-in failed.';
+      return { ok: false, reason };
+    }
   },
 
-  signOut: () => set({ accessToken: null, refreshToken: null, user: null }),
+  signOut: () => {
+    void authBackend.logout().catch(() => undefined);
+    set({ accessToken: null, refreshToken: null, user: null });
+  },
 
   refresh: async () => {
-    if (!get().refreshToken) return;
-    await new Promise((r) => setTimeout(r, 250));
-    set({ accessToken: 'mock-access-' + Date.now() });
+    const current = get().refreshToken;
+    if (!current) return;
+    try {
+      const tokens = await authBackend.refresh(current);
+      set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+    } catch {
+      set({ accessToken: null, refreshToken: null, user: null });
+    }
   },
 }));
 
