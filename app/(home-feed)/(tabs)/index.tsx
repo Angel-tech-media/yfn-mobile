@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+
 import {
   Pressable,
   RefreshControl,
@@ -10,17 +11,18 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BlurView } from 'expo-blur';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RepostSheet } from '@/components/ui/RepostSheet';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { useFeed } from '@/src/api/feed/hooks';
 import {
   useEngagement,
   useIsLiked,
@@ -40,8 +42,6 @@ const STORY_AVATARS: ImageSourcePropType[] = [
 ];
 
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
-const SELF_AVATAR = require('@/assets/figma/store-avatar.png');
-
 type StoryTile = { key: string; name: string; isAdd?: boolean; avatar?: ImageSourcePropType };
 const STORIES: StoryTile[] = [
   { key: 'add', name: 'Your story', isAdd: true },
@@ -78,6 +78,7 @@ type PostItem = {
   product: string;
   price: string;
   oldPrice: string;
+  imageUrl?: string;
 };
 
 type RepostItem = {
@@ -242,15 +243,29 @@ const FEED_POSTS: FeedItem[] = [
 ];
 
 export default function HomeFeedScreen() {
+  const { data, isError, isFetching, refetch } = useFeed({ limit: 30 });
   const userPosts = useUserContent((s) => s.posts);
   const userStories = useUserContent((s) => s.stories);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate a network refetch — real impl would call walletApi/feedApi
-    setTimeout(() => setRefreshing(false), 900);
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  const backendPosts: FeedItem[] | undefined = data?.items.map((item) => ({
+    kind: 'post',
+    id: item.id,
+    author: item.author.name,
+    badge: !!item.author.verified,
+    caption: item.caption,
+    product: item.product?.name ?? '',
+    price: item.product ? formatNaira(item.product.price) : '',
+    oldPrice: '',
+    imageUrl: item.imageUrls[0],
+  }));
+  const feedPosts = backendPosts ?? (process.env.EXPO_PUBLIC_USE_MOCK_FEED === 'true' ? FEED_POSTS : []);
 
   // Prepend user-created stories after the "Add Story" tile.
   const STORIES_VIEW: StoryTile[] = [
@@ -309,7 +324,7 @@ export default function HomeFeedScreen() {
           contentContainerStyle={styles.scroll}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={refreshing || isFetching}
               onRefresh={onRefresh}
               tintColor={palette.brand.orange}
               colors={[palette.brand.orange]}
@@ -340,6 +355,12 @@ export default function HomeFeedScreen() {
           </View>
 
           <View style={styles.feed}>
+            {isError ? (
+              <View style={styles.emptyFeed}>
+                <Text style={styles.emptyFeedText}>Could not load feed from the backend.</Text>
+                <PrimaryButton label="Retry" onPress={() => refetch()} style={styles.retryBtn} />
+              </View>
+            ) : null}
             {userPosts.map((p, i) => (
               <FeedCard
                 key={p.id}
@@ -356,18 +377,22 @@ export default function HomeFeedScreen() {
                 }}
               />
             ))}
-            {FEED_POSTS.map((item, i) =>
-              item.kind === 'repost' ? (
+            {feedPosts.map((item, i) =>
+              (item.kind === 'repost' ? (
                 <RepostFeedCard key={item.id} item={item} />
               ) : (
                 <FeedCard key={item.id} post={item} idx={userPosts.length + i} />
-              )
+              ))
             )}
           </View>
         </ScrollView>
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function formatNaira(kobo: number): string {
+  return `₦${Math.round(kobo / 100).toLocaleString('en-NG')}`;
 }
 
 function FeedCard({ post, idx }: { post: PostItem; idx: number }) {
@@ -403,7 +428,11 @@ function FeedCard({ post, idx }: { post: PostItem; idx: number }) {
 
       <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
 
-      <Image source={PRODUCT_IMAGE} style={styles.heroImage} contentFit="cover" />
+      <Image
+        source={post.imageUrl ? { uri: post.imageUrl } : PRODUCT_IMAGE}
+        style={styles.heroImage}
+        contentFit="cover"
+      />
 
       <View style={styles.engagementRow}>
         <Pressable onPress={() => toggleLike(post.id)} hitSlop={6} style={styles.engageBtn}>
@@ -708,6 +737,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['5'],
     gap: spacing['4'],
     paddingTop: spacing['3'],
+  },
+  emptyFeed: {
+    gap: spacing['3'],
+    padding: spacing['4'],
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  emptyFeedText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette.ink.onDarkSoft,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    alignSelf: 'center',
+    minWidth: 120,
   },
   cardWrap: {
     borderRadius: radius.lg,

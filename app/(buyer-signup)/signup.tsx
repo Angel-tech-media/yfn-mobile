@@ -35,7 +35,7 @@ const signupSchema = z.object({
 
 type Gender = 'female' | 'male' | 'non-binary' | 'prefer-not';
 
-const GENDER_OPTIONS: Array<{ key: Gender; label: string }> = [
+const GENDER_OPTIONS: { key: Gender; label: string }[] = [
   { key: 'female', label: 'Female' },
   { key: 'male', label: 'Male' },
   { key: 'non-binary', label: 'Non-binary' },
@@ -54,6 +54,8 @@ export default function SignupScreen() {
   const [agreed, setAgreed] = useState(false);
   const [genderOpen, setGenderOpen] = useState(false);
   const [dobOpen, setDobOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validation = useMemo(() => {
     return signupSchema.safeParse({
@@ -87,11 +89,26 @@ export default function SignupScreen() {
     return errs;
   }, [validation, name, email, phone, password, dob, gender, agreed]);
 
-  const canSubmit = validation.success;
+  const canSubmit = validation.success && !submitting;
 
   const handleSubmit = async () => {
     if (!validation.success) return;
-    await authApi.login(email, password, isVendor ? 'vendor' : 'buyer');
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = await authApi.register({
+      name,
+      email,
+      phone,
+      password,
+      role: isVendor ? 'vendor' : 'buyer',
+      dob,
+      gender: gender ?? undefined,
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
     router.push(isVendor ? '/verify?role=vendor' : '/verify?role=buyer');
   };
 
@@ -153,9 +170,16 @@ export default function SignupScreen() {
             />
           </View>
 
+          {submitError ? (
+            <Text accessibilityRole="alert" style={styles.fieldError}>
+              {submitError}
+            </Text>
+          ) : null}
+
           <PrimaryButton
             label="Create Account"
             disabled={!canSubmit}
+            loading={submitting}
             onPress={handleSubmit}
           />
 
