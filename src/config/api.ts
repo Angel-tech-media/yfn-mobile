@@ -15,8 +15,8 @@ function resolveBaseUrl(): string {
     (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
   if (fromEnv) return fromEnv.replace(/\/$/, '');
 
-  if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
-  return 'http://localhost:3000';
+  if (Platform.OS === 'android') return 'http://10.0.2.2:4000';
+  return 'http://localhost:4000';
 }
 
 export const API_BASE_URL = resolveBaseUrl();

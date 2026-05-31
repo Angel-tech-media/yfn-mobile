@@ -3,9 +3,16 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 
-import type { ChatConversation, ChatMessage } from '@/src/api/backend';
 import { API_BASE_URL } from '@/src/config/api';
 import { useAuth } from '@/src/store/auth';
+
+import type { ChatConversation, ChatMessage } from '@/src/api/types';
+
+function appendMessage(prev: ChatMessage[] | undefined, message: ChatMessage): ChatMessage[] {
+  if (!prev) return [message];
+  if (prev.some((m) => m.id === message.id)) return prev;
+  return [...prev, message];
+}
 
 /**
  * Subscribes a screen to live updates for a single conversation.
@@ -41,13 +48,9 @@ export function useChatSocket(conversationId: string | undefined): void {
     });
 
     socket.on('chat:message', (message: ChatMessage) => {
-      qc.setQueryData<ChatMessage[]>(
-        ['chat', 'messages', conversationId],
-        (prev) => {
-          if (!prev) return [message];
-          if (prev.some((m) => m.id === message.id)) return prev;
-          return [...prev, message];
-        },
+      qc.setQueriesData<ChatMessage[]>(
+        { queryKey: ['chat', 'messages', conversationId] },
+        (prev) => appendMessage(prev, message),
       );
       qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
     });

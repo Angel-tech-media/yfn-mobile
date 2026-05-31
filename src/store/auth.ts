@@ -14,37 +14,73 @@ export type AuthUser = {
 };
 
 type AuthState = {
-  /** Access token; in production move to expo-secure-store. */
+  /** Access token; in production persist with expo-secure-store. */
   accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
   loading: boolean;
-  /** Sign-in flow — mocked locally for now. */
+  signUp: (input: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+    role: 'buyer' | 'vendor';
+    dob?: string;
+    gender?: 'female' | 'male' | 'non-binary' | 'prefer-not';
+  }) => Promise<{ ok: true } | { ok: false; reason: string }>;
   signIn: (input: {
     email: string;
     password: string;
     role: 'buyer' | 'vendor';
   }) => Promise<{ ok: true } | { ok: false; reason: string }>;
   signOut: () => void;
-  /** Refresh expired access token (no-op in mock). */
+  /** Refresh expired access token. */
   refresh: () => Promise<void>;
 };
 
 export const useAuth = create<AuthState>((set, get) => ({
-  // Demo defaults — keeps RequireAuth happy so you can test deep-links
-  // without going through login every reload. Real auth wipes this on logout.
-  accessToken: 'demo-access-token',
-  refreshToken: 'demo-refresh-token',
-  user: {
-    id: 'u-demo',
-    handle: 'davidokpo',
-    name: 'David Okpo',
-    email: 'davidokpo@gmail.com',
-    role: 'buyer',
-    kycVerified: true,
-    createdAt: new Date('2026-01-01').toISOString(),
-  },
+  accessToken: null,
+  refreshToken: null,
+  user: null,
   loading: false,
+
+  signUp: async ({ name, email, phone, password, role, dob, gender }) => {
+    if (!name || !email || !password || password.length < 8) {
+      return { ok: false, reason: 'Name, email, and 8+ character password required.' };
+    }
+    set({ loading: true });
+    try {
+      const username = email.split('@')[0]?.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || email;
+      const result = await authBackend.register({
+        username,
+        email,
+        password,
+        role,
+        displayName: name,
+        phone,
+        dob,
+        gender,
+      });
+      set({
+        loading: false,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        user: {
+          id: result.user.id,
+          handle: result.user.username,
+          name: result.user.displayName,
+          email: result.user.email,
+          role: result.user.role === 'admin' ? role : (result.user.role as 'buyer' | 'vendor'),
+          kycVerified: !!result.user.kycVerified,
+          createdAt: result.user.createdAt ?? new Date().toISOString(),
+        },
+      });
+      return { ok: true };
+    } catch (error) {
+      set({ loading: false });
+      return { ok: false, reason: error instanceof Error ? error.message : 'Signup failed.' };
+    }
+  },
 
   signIn: async ({ email, password, role }) => {
     if (!email || !password || password.length < 8) {
@@ -63,8 +99,8 @@ export const useAuth = create<AuthState>((set, get) => ({
           name: result.user.displayName,
           email: result.user.email,
           role: result.user.role === 'admin' ? role : (result.user.role as 'buyer' | 'vendor'),
-          kycVerified: false,
-          createdAt: new Date().toISOString(),
+          kycVerified: !!result.user.kycVerified,
+          createdAt: result.user.createdAt ?? new Date().toISOString(),
         },
       });
       return { ok: true };

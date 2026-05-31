@@ -15,7 +15,9 @@ export class HttpError extends Error {
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
   /** Skip Authorization header even if a token exists. */
   anonymous?: boolean;
   /** Skip the 401-refresh-retry dance for endpoints that issue tokens. */
@@ -27,12 +29,15 @@ export interface HttpOptions {
  * Typed fetch wrapper. Adds Authorization, JSON encoding, and on 401 retries
  * once after refreshing the access token.
  */
+// eslint-disable-next-line complexity
 export async function request<T>(path: string, options: HttpOptions = {}): Promise<T> {
   const url = buildUrl(path, options.query);
   const auth = useAuth.getState();
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers };
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
+  if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
   if (!options.anonymous && auth.accessToken) {
     headers['Authorization'] = `Bearer ${auth.accessToken}`;
   }
@@ -42,7 +47,9 @@ export async function request<T>(path: string, options: HttpOptions = {}): Promi
     headers,
     signal: options.signal,
   };
-  if (options.body !== undefined) init.body = JSON.stringify(options.body);
+  if (options.body !== undefined) {
+    init.body = isFormData ? (options.body as BodyInit) : JSON.stringify(options.body);
+  }
 
   let response = await fetch(url, init);
 
