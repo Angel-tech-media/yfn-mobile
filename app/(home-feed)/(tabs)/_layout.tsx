@@ -6,7 +6,8 @@ import { Tabs } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/ui/CreateSheet';
-import { palette } from '@/src/theme';
+import { useColors } from '@/src/store/theme';
+import type { SemanticColors } from '@/src/theme';
 
 type TabKey = 'index' | 'market' | 'hive' | 'wallet' | 'profile';
 type IconSet = 'ion' | 'mci';
@@ -30,8 +31,28 @@ const TABS_RIGHT: TabSpec[] = [
   { key: 'profile', iconSet: 'ion', icon: 'person-outline', iconActive: 'person', label: 'Profile' },
 ];
 
-function TabIcon({ spec, focused }: { spec: TabSpec; focused: boolean }) {
-  const color = focused ? palette.brand.orangeDeep : palette.brand.orange;
+/** Per-tab accent: Home uses Maya blue, the rest use the brand colour. */
+const tabAccent = (key: TabKey, colors: SemanticColors): string =>
+  key === 'index' ? colors.accentHome : colors.tabActive;
+
+/** Add an alpha channel to a #RRGGBB hex (e.g. for soft active tints). */
+const withAlpha = (hex: string, alpha: number): string => {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+};
+
+function TabIcon({
+  spec,
+  focused,
+  colors,
+}: {
+  spec: TabSpec;
+  focused: boolean;
+  colors: SemanticColors;
+}) {
+  const color = focused ? tabAccent(spec.key, colors) : colors.tabInactive;
   if (spec.iconSet === 'mci') {
     return (
       <MaterialCommunityIcons
@@ -52,6 +73,7 @@ function TabIcon({ spec, focused }: { spec: TabSpec; focused: boolean }) {
 
 export default function TabLayout() {
   const [createOpen, setCreateOpen] = useState(false);
+  const colors = useColors();
 
   const renderTab = (t: TabSpec, focused: boolean, onPress: () => void) => (
     <Pressable
@@ -60,8 +82,11 @@ export default function TabLayout() {
       accessibilityLabel={t.label}
       accessibilityState={{ selected: focused }}
       onPress={onPress}
-      style={[styles.slot, focused && styles.slotActive]}>
-      <TabIcon spec={t} focused={focused} />
+      style={[
+        styles.slot,
+        focused && { backgroundColor: withAlpha(tabAccent(t.key, colors), 0.16) },
+      ]}>
+      <TabIcon spec={t} focused={focused} colors={colors} />
     </Pressable>
   );
 
@@ -73,7 +98,11 @@ export default function TabLayout() {
           const activeName = state.routes[state.index]?.name;
           return (
             <SafeAreaView edges={['bottom']} style={styles.safe}>
-              <View style={styles.bar}>
+              <View
+                style={[
+                  styles.bar,
+                  { backgroundColor: colors.tabBarBg, borderColor: colors.border },
+                ]}>
                 {TABS_LEFT.map((t) =>
                   renderTab(t, activeName === t.key, () => navigation.navigate(t.key)),
                 )}
@@ -82,8 +111,12 @@ export default function TabLayout() {
                   accessibilityRole="button"
                   accessibilityLabel="Create"
                   onPress={() => setCreateOpen(true)}
-                  style={({ pressed }) => [styles.createBtn, pressed && { opacity: 0.85 }]}>
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  style={({ pressed }) => [
+                    styles.createBtn,
+                    { backgroundColor: colors.brandPrimary, shadowColor: colors.brandPrimary },
+                    pressed && { opacity: 0.85 },
+                  ]}>
+                  <Ionicons name="add" size={20} color={colors.brandPrimaryText} />
                 </Pressable>
 
                 {TABS_RIGHT.map((t) =>
@@ -122,9 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 6,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
@@ -138,17 +169,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slotActive: {
-    backgroundColor: 'rgba(216, 149, 68, 0.18)',
-  },
   createBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: palette.brand.orange,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: palette.brand.orange,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

@@ -30,7 +30,7 @@ import {
   useIsSaved,
 } from '@/src/store/engagement';
 import { useUserContent } from '@/src/store/user-content';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { brand, palette, radius, spacing, typography } from '@/src/theme';
 
 const STORY_AVATARS: ImageSourcePropType[] = [
   require('@/assets/figma/story-1.png'),
@@ -326,8 +326,8 @@ export default function HomeFeedScreen() {
             <RefreshControl
               refreshing={refreshing || isFetching}
               onRefresh={onRefresh}
-              tintColor={palette.brand.orange}
-              colors={[palette.brand.orange]}
+              tintColor={brand.maya}
+              colors={[brand.maya]}
             />
           }>
           <View style={styles.storiesWrap}>
@@ -457,7 +457,7 @@ function FeedCard({ post, idx }: { post: PostItem; idx: number }) {
           <Ionicons
             name="repeat"
             size={22}
-            color={reposted ? palette.brand.orange : palette.ink.onDarkStrong}
+            color={reposted ? brand.maya : palette.ink.onDarkStrong}
           />
           {reposted ? <Text style={styles.engageCount}>Reposted</Text> : null}
         </Pressable>
@@ -469,7 +469,7 @@ function FeedCard({ post, idx }: { post: PostItem; idx: number }) {
           <Ionicons
             name={saved ? 'bookmark' : 'bookmark-outline'}
             size={22}
-            color={saved ? palette.brand.orange : palette.ink.onDarkStrong}
+            color={saved ? brand.maya : palette.ink.onDarkStrong}
           />
         </Pressable>
       </View>
@@ -526,7 +526,7 @@ function RepostFeedCard({ item }: { item: RepostItem }) {
             style={{ flex: 1 }}
             onPress={() => router.push(`/u/${item.reposter.handle}` as never)}>
             <View style={styles.repostHeaderText}>
-              <Ionicons name="repeat" size={14} color={palette.brand.orange} />
+              <Ionicons name="repeat" size={14} color={brand.maya} />
               <Text style={styles.repostHeaderName}>{item.reposter.name}</Text>
               <Text style={styles.repostHeaderVerb}>reposted</Text>
             </View>
@@ -579,7 +579,7 @@ function RepostFeedCard({ item }: { item: RepostItem }) {
             <Ionicons
               name="repeat"
               size={22}
-              color={reposted ? palette.brand.orange : palette.ink.onDarkStrong}
+              color={reposted ? brand.maya : palette.ink.onDarkStrong}
             />
             {reposted ? <Text style={styles.engageCount}>Reposted</Text> : null}
           </Pressable>
@@ -591,7 +591,7 @@ function RepostFeedCard({ item }: { item: RepostItem }) {
             <Ionicons
               name={saved ? 'bookmark' : 'bookmark-outline'}
               size={22}
-              color={saved ? palette.brand.orange : palette.ink.onDarkStrong}
+              color={saved ? brand.maya : palette.ink.onDarkStrong}
             />
           </Pressable>
         </View>
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: palette.brand.orange,
+    backgroundColor: brand.maya,
     borderWidth: 1.5,
     borderColor: palette.bg.espressoEnd,
   },
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: palette.brand.orange,
+    backgroundColor: brand.maya,
     borderWidth: 2,
     borderColor: palette.bg.espressoEnd,
   },
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: palette.brand.orange,
+    borderColor: brand.maya,
     padding: 2,
   },
   storyRingAdd: {
@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: palette.ink.onDarkSoft,
     borderLeftWidth: 3,
-    borderLeftColor: palette.brand.orange,
+    borderLeftColor: brand.maya,
     paddingLeft: spacing['3'],
   },
   embeddedVendor: {
