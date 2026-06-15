@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { useColorScheme } from 'react-native';
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -6,9 +7,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { QueryProvider } from '@/src/providers/query-provider';
+import { ToastProvider } from '@/src/providers/toast-provider';
 import { appFonts } from '@/src/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
@@ -37,23 +40,27 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
+    <SafeAreaProvider>
+      <QueryProvider>
+        <ToastProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
 
-          {/* Figma sections — each is a route group */}
-          <Stack.Screen name="(app-launch)" />
-          <Stack.Screen name="(login)" />
-          <Stack.Screen name="(buyer-signup)" />
-          <Stack.Screen name="(vendor-signup)" />
-          <Stack.Screen name="(vendor-dashboard)" />
-          <Stack.Screen name="(home-feed)" />
+              {/* Figma sections — each is a route group */}
+              <Stack.Screen name="(app-launch)" />
+              <Stack.Screen name="(login)" />
+              <Stack.Screen name="(buyer-signup)" />
+              <Stack.Screen name="(vendor-signup)" />
+              <Stack.Screen name="(vendor-dashboard)" />
+              <Stack.Screen name="(home-feed)" />
 
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="light" />
-      </ThemeProvider>
-    </QueryProvider>
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            </Stack>
+            <StatusBar style="light" />
+          </ThemeProvider>
+        </ToastProvider>
+      </QueryProvider>
+    </SafeAreaProvider>
   );
 }
