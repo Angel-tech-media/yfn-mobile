@@ -17,6 +17,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { authApi } from '@/src/api';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 const signupSchema = z.object({
@@ -44,6 +45,7 @@ const GENDER_OPTIONS: { key: Gender; label: string }[] = [
 
 export default function SignupScreen() {
   const { role } = useLocalSearchParams<{ role?: 'vendor' | 'buyer' }>();
+  const toast = useToast();
   const isVendor = role === 'vendor';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,7 +57,6 @@ export default function SignupScreen() {
   const [genderOpen, setGenderOpen] = useState(false);
   const [dobOpen, setDobOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validation = useMemo(() => {
     return signupSchema.safeParse({
@@ -94,7 +95,6 @@ export default function SignupScreen() {
   const handleSubmit = async () => {
     if (!validation.success) return;
     setSubmitting(true);
-    setSubmitError(null);
     const result = await authApi.register({
       name,
       email,
@@ -106,7 +106,12 @@ export default function SignupScreen() {
     });
     setSubmitting(false);
     if (!result.ok) {
-      setSubmitError(result.error);
+      toast.error('Could not create account', {
+        description:
+          result.error === 'Validation failed'
+            ? 'Check your details and try again.'
+            : result.error,
+      });
       return;
     }
     router.push(isVendor ? '/verify?role=vendor' : '/verify?role=buyer');
@@ -169,12 +174,6 @@ export default function SignupScreen() {
               }
             />
           </View>
-
-          {submitError ? (
-            <Text accessibilityRole="alert" style={styles.fieldError}>
-              {submitError}
-            </Text>
-          ) : null}
 
           <PrimaryButton
             label="Create Account"
