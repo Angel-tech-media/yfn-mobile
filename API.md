@@ -6,7 +6,6 @@ repo. It is derived from:
 - `src/api/backend.ts` for endpoints already wired to the live API client.
 - `src/api/index.ts` for mock endpoints that still need a real backend.
 - `src/store/*` and app screens for response fields the UI renders.
-- `backend/schema.sql` for persisted entities and money invariants.
 
 ## Transport
 
