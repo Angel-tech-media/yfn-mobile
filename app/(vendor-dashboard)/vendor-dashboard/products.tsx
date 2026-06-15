@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -9,47 +9,21 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { StockTag } from '@/components/ui/StockTag';
 import { TopBar } from '@/components/ui/TopBar';
-import { useUserContent } from '@/src/store/user-content';
+import { useMe } from '@/src/api/account/hooks';
+import { useVendorProducts } from '@/src/api/vendors/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
-type ProductRow = {
-  id: string;
-  name: string;
-  price: string;
-  stock: number;
-  sales: number;
-  image?: any;
-};
-
-const SEED: ProductRow[] = [
-  { id: 'p1', name: 'Ankara high shoulder fitted gown', price: '₦24,990', stock: 12, sales: 86 },
-  { id: 'p2', name: 'Birkin handbag deluxe edition', price: '₦149,000', stock: 0, sales: 24 },
-  { id: 'p3', name: 'Leopard heeled sandals', price: '₦38,500', stock: 5, sales: 142 },
-  { id: 'p4', name: 'Silk floral kimono dress', price: '₦27,500', stock: 18, sales: 64 },
-];
-
-const FILTERS = ['All', 'Active', 'Out of stock', 'Drafts'];
+const FILTERS = ['All', 'Active', 'Out of stock'];
 
 export default function MyProductsScreen() {
   const [filter, setFilter] = useState('All');
-  const userProducts = useUserContent((s) => s.products);
+  const { data: me } = useMe();
+  const { data: products = [], isLoading, isError, refetch, isFetching } = useVendorProducts(me?.handle);
 
-  // Live products from the user-content store come first; then the seeded mocks.
-  const ALL: ProductRow[] = [
-    ...userProducts.map((p) => ({
-      id: p.id,
-      name: p.name,
-      price: '₦' + p.price.toLocaleString('en-NG'),
-      stock: 1,
-      sales: 0,
-      image: p.image,
-    })),
-    ...SEED,
-  ];
-
-  const list = ALL.filter((p) => {
+  const list = products.filter((p) => {
     if (filter === 'Active') return p.stock > 0;
     if (filter === 'Out of stock') return p.stock === 0;
     return true;
@@ -76,18 +50,34 @@ export default function MyProductsScreen() {
       </ScrollView>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-        {list.map((p) => (
+        {isLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator color={palette.brand.orange} />
+            <Text style={styles.emptyText}>Loading products…</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Couldn&apos;t load products.</Text>
+            <Pressable onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+            </Pressable>
+          </View>
+        ) : list.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="pricetag-outline" size={32} color={palette.ink.onDarkMuted} />
+            <Text style={styles.emptyText}>No products found.</Text>
+          </View>
+        ) : list.map((p) => (
           <Pressable
             key={p.id}
             onPress={() => router.push(`/products/${p.id}` as never)}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
-            <Image source={PRODUCT_IMAGE} style={styles.thumb} contentFit="cover" />
+            <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.thumb} contentFit="cover" />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.name} numberOfLines={2}>{p.name}</Text>
-              <Text style={styles.price}>{p.price}</Text>
+              <Text style={styles.name} numberOfLines={2}>{p.title}</Text>
+              <Text style={styles.price}>{formatKobo(p.price)}</Text>
               <View style={styles.metaRow}>
                 <StockTag inStock={p.stock > 0} label={p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'} />
-                <Text style={styles.salesText}>{p.sales} sold</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={palette.ink.onDarkMuted} />
@@ -120,6 +110,17 @@ const styles = StyleSheet.create({
   },
   chipTextActive: { color: palette.ink.onLightStrong },
   list: { paddingBottom: 40, gap: spacing['3'] },
+  empty: { alignItems: 'center', paddingVertical: spacing['8'], gap: spacing['2'] },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.orange,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -5,14 +5,9 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { useMarketplaceHome } from '@/src/hooks/use-marketplace';
+import { useMarketplaceHome } from '@/src/api/marketplace/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
-/**
- * Live marketplace home — reads the ranked feed straight from the NestJS backend
- * (/api/v1/marketplace/home). Demonstrates the production wire-up; the polished
- * Discover screen continues to use mock data until UI variants are decided.
- */
 export default function LiveMarketplaceScreen() {
   const { data, isLoading, isError, refetch, isFetching } = useMarketplaceHome();
 

@@ -8,7 +8,11 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { useMe } from '@/src/api/account/hooks';
+import { useOrders } from '@/src/api/orders/hooks';
+import { useWallet } from '@/src/api/wallet/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
 const QUICK_TILES: Array<{ key: string; label: string; icon: keyof typeof Ionicons.glyphMap; href: string }> = [
   { key: 'products', label: 'Products', icon: 'pricetags-outline', href: '/vendor-dashboard/products' },
@@ -17,33 +21,22 @@ const QUICK_TILES: Array<{ key: string; label: string; icon: keyof typeof Ionico
   { key: 'store', label: 'My Store', icon: 'storefront-outline', href: '/vendor-store' },
 ];
 
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const SALES_PCTS = [40, 65, 50, 80, 60, 90, 70];
-const BUYERS_PCTS = [25, 40, 35, 55, 45, 60, 50];
-
-const RECENT_ORDERS = [
-  { id: '#8814564', name: 'Joshua Olamilekan-Ayan', total: '₦67,550', state: 'Pending' },
-  { id: '#8814566', name: 'Aisha Bello', total: '₦87,550', state: 'Confirmed' },
-  { id: '#8814570', name: 'Tola Adekunle', total: '₦127,000', state: 'Shipped' },
-];
-
-const STORIES = [
-  { key: 's1', date: 'Today' },
-  { key: 's2', date: 'May 6' },
-  { key: 's3', date: 'May 4' },
-  { key: 's4', date: 'May 2' },
-];
-
 export default function VendorDashboardScreen() {
+  const { data: me } = useMe();
+  const { data: wallet } = useWallet();
+  const { data: orders = [] } = useOrders({ role: 'vendor', limit: 20 });
+  const chart = buildOrderChart(orders);
+  const maxDayTotal = Math.max(...chart.map((day) => day.total), 1);
+
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.idRow}>
-            <Avatar size={36} source={require('@/assets/figma/store-avatar.png')} />
+            <Avatar size={36} source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined} initials={(me?.name ?? 'Vendor')[0]} />
             <View style={styles.nameRow}>
-              <Text style={styles.storeName}>Sarah&apos;s Boutique</Text>
-              <VerifiedCheck tone="success" size={14} />
+              <Text style={styles.storeName}>{me?.name ?? 'Vendor dashboard'}</Text>
+              {me?.kycVerified ? <VerifiedCheck tone="success" size={14} /> : null}
             </View>
           </View>
           <Pressable hitSlop={8} style={styles.notifBtn}>
@@ -55,12 +48,8 @@ export default function VendorDashboardScreen() {
           <View style={styles.balanceCard}>
             <View style={styles.balanceTop}>
               <Text style={styles.balanceLabel}>Total Balance</Text>
-              <View style={styles.deltaBadge}>
-                <Ionicons name="trending-up" size={12} color="#1F8E26" />
-                <Text style={styles.deltaText}>+3%</Text>
-              </View>
             </View>
-            <Text style={styles.balanceValue}>₦428,500.00</Text>
+            <Text style={styles.balanceValue}>{formatKobo(wallet?.balance ?? 0)}</Text>
             <View style={styles.balanceActions}>
               <View style={{ flex: 1 }}>
                 <PrimaryButton
@@ -108,22 +97,22 @@ export default function VendorDashboardScreen() {
             </View>
             <View style={styles.chartWrap}>
               <View style={styles.bars}>
-                {DAYS.map((d, i) => (
-                  <View key={d + i} style={styles.barCol}>
-                    <View style={[styles.bar, { height: `${SALES_PCTS[i]}%`, backgroundColor: palette.brand.orange }]} />
+                {chart.map((d) => (
+                  <View key={d.label} style={styles.barCol}>
+                    <View style={[styles.bar, { height: `${Math.max(8, (d.total / maxDayTotal) * 100)}%`, backgroundColor: palette.brand.orange }]} />
                     <View
                       style={[
                         styles.bar,
                         styles.barOverlay,
-                        { height: `${BUYERS_PCTS[i]}%`, backgroundColor: 'rgba(255,255,255,0.55)' },
+                        { height: `${Math.max(6, (d.count / Math.max(...chart.map((day) => day.count), 1)) * 100)}%`, backgroundColor: 'rgba(255,255,255,0.55)' },
                       ]}
                     />
                   </View>
                 ))}
               </View>
               <View style={styles.daysRow}>
-                {DAYS.map((d, i) => (
-                  <Text key={d + i} style={styles.dayLabel}>{d}</Text>
+                {chart.map((d) => (
+                  <Text key={d.label} style={styles.dayLabel}>{d.label}</Text>
                 ))}
               </View>
             </View>
@@ -137,21 +126,25 @@ export default function VendorDashboardScreen() {
               </Pressable>
             </View>
             <View style={styles.recentList}>
-              {RECENT_ORDERS.map((o) => (
+              {orders.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No recent orders yet.</Text>
+                </View>
+              ) : orders.slice(0, 3).map((o) => (
                 <Pressable
                   key={o.id}
-                  onPress={() => router.push(`/orders/${o.id.replace('#','')}` as never)}
+                  onPress={() => router.push(`/orders/${o.id}` as never)}
                   style={styles.recentRow}>
                   <View style={styles.thumb}>
                     <Ionicons name="cube-outline" size={20} color="rgba(255,255,255,0.30)" />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={styles.recentId}>{o.id}</Text>
-                    <Text style={styles.recentName}>{o.name}</Text>
+                    <Text style={styles.recentId}>#{o.id}</Text>
+                    <Text style={styles.recentName}>{o.items.map((item) => item.name).join(' · ')}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                    <Text style={styles.recentTotal}>{o.total}</Text>
-                    <Text style={styles.recentState}>{o.state}</Text>
+                    <Text style={styles.recentTotal}>{formatKobo(o.grandTotal)}</Text>
+                    <Text style={styles.recentState}>{o.status}</Text>
                   </View>
                 </Pressable>
               ))}
@@ -169,20 +162,40 @@ export default function VendorDashboardScreen() {
               <Pressable style={styles.storyAdd}>
                 <Ionicons name="add" size={28} color={palette.ink.onDarkStrong} />
               </Pressable>
-              {STORIES.map((s) => (
-                <View key={s.key} style={styles.storyCard}>
-                  <View style={styles.storyImage}>
-                    <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.30)" />
-                  </View>
-                  <Text style={styles.storyDate}>{s.date}</Text>
+              <View style={styles.storyCard}>
+                <View style={styles.storyImage}>
+                  <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.30)" />
                 </View>
-              ))}
+                <Text style={styles.storyDate}>No stories</Text>
+              </View>
             </ScrollView>
           </View>
         </ScrollView>
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function buildOrderChart(orders: { placedAt: string; grandTotal: number }[]) {
+  const days = Array.from({ length: 7 }).map((_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return {
+      key: date.toISOString().slice(0, 10),
+      label: date.toLocaleDateString('en-NG', { weekday: 'short' }).slice(0, 1),
+      total: 0,
+      count: 0,
+    };
+  });
+  for (const order of orders) {
+    const key = new Date(order.placedAt).toISOString().slice(0, 10);
+    const day = days.find((item) => item.key === key);
+    if (day) {
+      day.total += order.grandTotal;
+      day.count += 1;
+    }
+  }
+  return days;
 }
 
 const styles = StyleSheet.create({
@@ -340,6 +353,16 @@ const styles = StyleSheet.create({
     color: palette.brand.orange,
   },
   recentList: { gap: spacing['2'] },
+  emptyState: {
+    padding: spacing['4'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+  },
   recentRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -6,19 +6,18 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import {
-  REFERRAL_FEE_NGN,
-  REFERRAL_RATE_LABEL,
-  useEngagement,
-  useRepostStats,
-} from '@/src/store/engagement';
+import { useDeleteRepost } from '@/src/api/reposts/hooks';
+import { useWalletReferrals } from '@/src/api/wallet/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const fmt = (n: number) => '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 0 });
+import { formatKobo } from '@/src/utils/money';
 
 export default function ReferralsScreen() {
-  const { list, totalEarnings, totalClicks, totalConversions } = useRepostStats();
-  const removeRepost = useEngagement((s) => s.toggleRepost);
+  const { data, isLoading, isError, refetch, isFetching } = useWalletReferrals();
+  const deleteRepost = useDeleteRepost();
+  const list = data?.list ?? [];
+  const totalEarnings = data?.totalEarned ?? 0;
+  const totalClicks = data?.clicks ?? 0;
+  const totalConversions = data?.conversions ?? 0;
 
   const conversionRate = totalClicks
     ? Math.round((totalConversions / totalClicks) * 100)
@@ -48,7 +47,7 @@ export default function ReferralsScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.hero}>
             <Text style={styles.heroLabel}>Total earned from reposts</Text>
-            <Text style={styles.heroAmount}>{fmt(totalEarnings)}</Text>
+            <Text style={styles.heroAmount}>{formatKobo(totalEarnings)}</Text>
             <View style={styles.heroFooter}>
               <Pressable
                 onPress={() => router.push('/vendor-dashboard/withdraw' as never)}
@@ -73,14 +72,16 @@ export default function ReferralsScreen() {
             <Kpi label="Conv. rate" value={`${conversionRate}%`} icon="trending-up" />
           </View>
 
-          {/* Earnings explainer */}
-          <View style={styles.explainer}>
-            <Ionicons name="information-circle" size={16} color={palette.brand.orange} />
-            <Text style={styles.explainerText}>
-              Buyers pay an extra ₦{REFERRAL_FEE_NGN} on top of the price when they reach the
-              vendor through your repost. {REFERRAL_RATE_LABEL}.
-            </Text>
-          </View>
+          {isError ? (
+            <View style={styles.explainer}>
+              <Ionicons name="cloud-offline-outline" size={16} color={palette.brand.orange} />
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.explainerText}>
+                  {isFetching ? 'Retrying referral data…' : 'Couldn&apos;t load referral data. Tap to retry.'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           {/* Repost list */}
           <View style={styles.listHeader}>
@@ -90,7 +91,12 @@ export default function ReferralsScreen() {
             </Pressable>
           </View>
 
-          {list.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.empty}>
+              <Ionicons name="repeat" size={32} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyTitle}>Loading reposts…</Text>
+            </View>
+          ) : list.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="repeat" size={32} color={palette.ink.onDarkMuted} />
               <Text style={styles.emptyTitle}>No reposts yet</Text>
@@ -139,15 +145,11 @@ export default function ReferralsScreen() {
                 </View>
                 <View style={styles.repostEarning}>
                   <Text style={styles.repostEarningAmount}>
-                    {fmt(r.earningsNgn)}
+                    {formatKobo(r.earnings)}
                   </Text>
                   <Pressable
-                    onPress={() =>
-                      removeRepost({
-                        productId: r.productId,
-                        vendorId: r.vendorId,
-                      })
-                    }
+                    onPress={() => deleteRepost.mutate(r.id)}
+                    disabled={deleteRepost.isPending}
                     hitSlop={6}>
                     <Text style={styles.repostRemove}>Remove</Text>
                   </Pressable>
@@ -183,8 +185,10 @@ function Kpi({
   );
 }
 
-function timeAgo(ts: number) {
-  const diffMin = Math.floor((Date.now() - ts) / 60_000);
+function timeAgo(ts: string) {
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return ts;
+  const diffMin = Math.floor((Date.now() - date.getTime()) / 60_000);
   if (diffMin < 1) return 'just now';
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffH = Math.floor(diffMin / 60);

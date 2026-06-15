@@ -10,6 +10,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useReviewOrder } from '@/src/api/orders/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
@@ -20,6 +21,7 @@ export default function ReviewScreen() {
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const { pick, pickMany } = useImagePicker();
+  const reviewOrder = useReviewOrder();
 
   const fromCamera = async () => {
     const img = await pick('camera');
@@ -30,6 +32,21 @@ export default function ReviewScreen() {
     if (remaining <= 0) return;
     const picked = await pickMany(remaining);
     if (picked.length) setImages((arr) => [...arr, ...picked].slice(0, 4));
+  };
+
+  const submit = () => {
+    if (!id || rating < 1) return;
+    reviewOrder.mutate(
+      {
+        id: String(id),
+        input: {
+          rating: rating as 1 | 2 | 3 | 4 | 5,
+          text: body.trim(),
+          photos: [],
+        },
+      },
+      { onSuccess: () => router.back() },
+    );
   };
 
   return (
@@ -86,7 +103,12 @@ export default function ReviewScreen() {
       </ScrollView>
 
       <View style={styles.actions}>
-        <PrimaryButton label="Submit review" disabled={rating === 0} onPress={() => router.back()} />
+        <PrimaryButton
+          label="Submit review"
+          loading={reviewOrder.isPending}
+          disabled={rating === 0 || reviewOrder.isPending}
+          onPress={submit}
+        />
       </View>
 
       <UploadSheet

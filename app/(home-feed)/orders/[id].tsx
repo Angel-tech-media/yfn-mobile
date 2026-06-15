@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -6,85 +6,17 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import {
-  PLATFORM_FEE_LABEL,
-  computePlatformFee,
-} from '@/src/config/fees';
-import { useOrders } from '@/src/store/orders';
-import { useWallet } from '@/src/store/wallet';
+import { PLATFORM_FEE_LABEL } from '@/src/config/fees';
+import { useConfirmOrder, useOrder } from '@/src/api/orders/hooks';
+import type { OrderStatus } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
 const PRODUCT = require('@/assets/figma/product-sample.png');
-const STORE = require('@/assets/figma/store-avatar.png');
 
-type Stage = 'paid' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'released';
-type Status = 'paid' | 'confirmed' | 'shipped' | 'delivered' | 'released';
-
-type OrderData = {
-  id: string;
-  vendor: string;
-  vendorHandle: string;
-  items: Array<{ name: string; qty: number; unit: number; image: any }>;
-  status: Status;
-  placedAt: string;
-  estimatedDelivery: string;
-  shipTo: string;
-  shipPhone: string;
-  referrerHandle?: string;
-};
-
-const ORDERS: Record<string, OrderData> = {
-  'ord-1': {
-    id: 'ord-1',
-    vendor: 'Aisha Threads',
-    vendorHandle: 'aishathreads',
-    items: [
-      { name: 'Ankara A-line Dress', qty: 1, unit: 18500, image: PRODUCT },
-    ],
-    status: 'shipped',
-    placedAt: 'May 6 · 9:42 AM',
-    estimatedDelivery: 'Today by 6:00 PM',
-    shipTo: '12 Adeola Odeku, Victoria Island, Lagos',
-    shipPhone: '+234 803 555 0142',
-  },
-  'ord-2': {
-    id: 'ord-2',
-    vendor: 'GadgetFix Hub',
-    vendorHandle: 'gadgetfix',
-    items: [{ name: 'iPhone screen replacement', qty: 1, unit: 9200, image: PRODUCT }],
-    status: 'released',
-    placedAt: 'May 4 · 2:14 PM',
-    estimatedDelivery: 'Delivered May 5',
-    shipTo: 'Walk-in · VI repair studio',
-    shipPhone: '+234 802 555 0801',
-  },
-  'ord-3': {
-    id: 'ord-3',
-    vendor: 'Zara Cakes',
-    vendorHandle: 'zaracakes',
-    items: [{ name: 'Three-tier celebration cake', qty: 1, unit: 4500, image: PRODUCT }],
-    status: 'delivered',
-    placedAt: 'May 1 · 11:02 AM',
-    estimatedDelivery: 'Delivered May 3',
-    shipTo: '8 Marwa Rd, Lekki Phase 1',
-    shipPhone: '+234 815 555 0140',
-  },
-};
-
-const FALLBACK: OrderData = {
-  id: 'ord-x',
-  vendor: 'Vendor',
-  vendorHandle: 'vendor',
-  items: [{ name: 'Product', qty: 1, unit: 0, image: PRODUCT }],
-  status: 'paid',
-  placedAt: 'just now',
-  estimatedDelivery: 'TBC',
-  shipTo: 'Lagos',
-  shipPhone: '',
-};
-
-const STAGES: Array<{ key: Stage; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const STAGES: Array<{ key: OrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { key: 'paid', label: 'Paid · held in escrow', icon: 'lock-closed' },
   { key: 'confirmed', label: 'Vendor confirmed', icon: 'checkmark-circle' },
   { key: 'packed', label: 'Packed', icon: 'cube' },
@@ -93,58 +25,27 @@ const STAGES: Array<{ key: Stage; label: string; icon: keyof typeof Ionicons.gly
   { key: 'released', label: 'Released to vendor', icon: 'checkmark-done' },
 ];
 
-const STATUS_TO_STAGE_INDEX: Record<Status, number> = {
+const STATUS_TO_STAGE_INDEX: Partial<Record<OrderStatus, number>> = {
   paid: 0,
   confirmed: 1,
+  packed: 2,
   shipped: 3,
   delivered: 4,
   released: 5,
 };
 
-const fmt = (n: number) => '₦' + n.toLocaleString('en-NG');
-
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const placedOrder = useOrders((s) => s.orders.find((o) => o.id === String(id)));
-  const order: OrderData = placedOrder
-    ? {
-        id: placedOrder.id,
-        vendor: placedOrder.vendor,
-        vendorHandle: placedOrder.vendorHandle,
-        items: placedOrder.items.map((it) => ({ ...it, image: PRODUCT })),
-        status: placedOrder.status === 'confirmed' ? 'confirmed' : placedOrder.status,
-        placedAt: new Date(placedOrder.placedAt).toLocaleString('en-NG', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-        estimatedDelivery: 'Today by 6:00 PM',
-        shipTo: '12 Adeola Odeku, Victoria Island, Lagos',
-        shipPhone: '+234 803 555 0142',
-        referrerHandle: placedOrder.referrerHandle,
-      }
-    : ORDERS[String(id ?? 'ord-1')] ?? { ...FALLBACK, id: String(id) };
-  const [status, setStatus] = useState<Status>(order.status);
-  const releaseFromEscrow = useWallet((s) => s.releaseFromEscrow);
-
-  const subtotal = order.items.reduce((a, i) => a + i.qty * i.unit, 0);
-  const deliveryFee = order.status === 'released' ? 0 : 1500;
-  const platformFee = computePlatformFee(subtotal);
-  const total = subtotal + deliveryFee + platformFee;
-
-  const currentIdx = STATUS_TO_STAGE_INDEX[status];
+  const orderId = String(id ?? '');
+  const { data: order, isLoading, isError, refetch, isFetching } = useOrder(orderId);
+  const confirmOrder = useConfirmOrder();
+  const currentIdx = STATUS_TO_STAGE_INDEX[order?.status ?? 'paid'] ?? 0;
+  const shipTo = useMemo(() => (order ? formatShipTo(order.shipTo) : ''), [order]);
+  const shipPhone = useMemo(() => (order ? formatShipPhone(order.shipTo, order.shipPhone) : ''), [order]);
 
   const confirmDelivery = () => {
-    setStatus('delivered');
-    setTimeout(() => {
-      releaseFromEscrow({
-        amount: subtotal,
-        orderId: order.id,
-        vendor: order.vendor,
-      });
-      setStatus('released');
-    }, 600);
+    if (!order) return;
+    confirmOrder.mutate(order.id);
   };
 
   return (
@@ -154,7 +55,7 @@ export default function OrderDetailScreen() {
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
             <Ionicons name="chevron-back" size={20} color={palette.ink.onLightStrong} />
           </Pressable>
-          <Text style={styles.title}>Order #{order.id}</Text>
+          <Text style={styles.title}>Order #{orderId}</Text>
           <Pressable hitSlop={8} accessibilityLabel="More">
             <Ionicons
               name="ellipsis-horizontal"
@@ -167,21 +68,26 @@ export default function OrderDetailScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}>
+          {isLoading ? (
+            <View style={styles.center}>
+              <Text style={styles.centerText}>Loading order…</Text>
+            </View>
+          ) : isError || !order ? (
+            <View style={styles.center}>
+              <Text style={styles.centerText}>Couldn&apos;t load this order.</Text>
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              </Pressable>
+            </View>
+          ) : (
+          <>
           {/* Status hero */}
           <View style={styles.statusCard}>
             <View style={styles.statusHeader}>
               <Text style={styles.statusKicker}>
-                {status === 'released'
-                  ? 'Order complete'
-                  : status === 'delivered'
-                  ? 'Awaiting payout'
-                  : status === 'shipped'
-                  ? 'On its way'
-                  : status === 'confirmed'
-                  ? 'Vendor confirmed'
-                  : 'Paid · held in escrow'}
+                {statusHeadline(order.status)}
               </Text>
-              <Text style={styles.statusEta}>{order.estimatedDelivery}</Text>
+              <Text style={styles.statusEta}>{order.estimatedDelivery ?? statusLabel(order.status)}</Text>
             </View>
             <Pressable
               onPress={() => router.push(`/orders/${order.id}/track` as never)}
@@ -231,10 +137,10 @@ export default function OrderDetailScreen() {
           <Pressable
             onPress={() => router.push(`/u/${order.vendorHandle}` as never)}
             style={styles.vendorCard}>
-            <Image source={STORE} style={styles.vendorAvatar} />
+            <Avatar size={44} initials={order.vendor[0]} />
             <View style={{ flex: 1 }}>
               <Text style={styles.vendorName}>{order.vendor}</Text>
-              <Text style={styles.vendorMeta}>NIN-verified · DM open</Text>
+              <Text style={styles.vendorMeta}>@{order.vendorHandle}</Text>
             </View>
             <Pressable
               onPress={() => router.push(`/messages/${order.vendorHandle}` as never)}
@@ -256,7 +162,7 @@ export default function OrderDetailScreen() {
               <Text style={styles.referrerText}>
                 Reached via{' '}
                 <Text style={styles.referrerHandle}>@{order.referrerHandle}</Text>
-                's repost — they earn ₦50 on this order.
+                &apos;s repost.
               </Text>
               <Ionicons name="chevron-forward" size={14} color={palette.ink.onLightSubtle} />
             </Pressable>
@@ -266,14 +172,17 @@ export default function OrderDetailScreen() {
           <Text style={styles.sectionTitle}>Items</Text>
           {order.items.map((it, i) => (
             <View key={i} style={styles.itemRow}>
-              <Image source={it.image} style={styles.itemImage} />
+              <Image
+                source={it.imageUrl ? { uri: it.imageUrl } : PRODUCT}
+                style={styles.itemImage}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName} numberOfLines={2}>
                   {it.name}
                 </Text>
                 <Text style={styles.itemMeta}>Qty {it.qty}</Text>
               </View>
-              <Text style={styles.itemPrice}>{fmt(it.qty * it.unit)}</Text>
+              <Text style={styles.itemPrice}>{formatKobo(it.qty * it.unit)}</Text>
             </View>
           ))}
 
@@ -281,22 +190,22 @@ export default function OrderDetailScreen() {
           <View style={styles.totals}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotal</Text>
-              <Text style={styles.totalValue}>{fmt(subtotal)}</Text>
+              <Text style={styles.totalValue}>{formatKobo(order.goodsTotal)}</Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Delivery fee</Text>
               <Text style={styles.totalValue}>
-                {deliveryFee === 0 ? 'Free' : fmt(deliveryFee)}
+                {order.deliveryFee === 0 ? 'Free' : formatKobo(order.deliveryFee)}
               </Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>{PLATFORM_FEE_LABEL}</Text>
-              <Text style={styles.totalValue}>{fmt(platformFee)}</Text>
+              <Text style={styles.totalValue}>{formatKobo(order.platformFee)}</Text>
             </View>
             <View style={styles.totalDivider} />
             <View style={styles.totalRow}>
               <Text style={styles.totalLabelStrong}>Total · in escrow</Text>
-              <Text style={styles.totalValueStrong}>{fmt(total)}</Text>
+              <Text style={styles.totalValueStrong}>{formatKobo(order.grandTotal)}</Text>
             </View>
           </View>
 
@@ -305,33 +214,34 @@ export default function OrderDetailScreen() {
           <View style={styles.shipCard}>
             <View style={styles.shipRow}>
               <Ionicons name="location-outline" size={16} color={palette.brand.orange} />
-              <Text style={styles.shipText}>{order.shipTo}</Text>
+              <Text style={styles.shipText}>{shipTo || 'No shipping address on this order'}</Text>
             </View>
             <View style={styles.shipRow}>
               <Ionicons name="call-outline" size={16} color={palette.brand.orange} />
-              <Text style={styles.shipText}>{order.shipPhone || '—'}</Text>
+              <Text style={styles.shipText}>{shipPhone || '—'}</Text>
             </View>
             <View style={styles.shipRow}>
               <Ionicons name="time-outline" size={16} color={palette.brand.orange} />
-              <Text style={styles.shipText}>Placed {order.placedAt}</Text>
+              <Text style={styles.shipText}>Placed {formatWhen(order.placedAt)}</Text>
             </View>
           </View>
 
           {/* Actions */}
-          {status === 'released' ? (
+          {order.status === 'released' ? (
             <Pressable
               onPress={() => router.push(`/orders/${order.id}/review` as never)}
               style={[styles.primaryBtn, { backgroundColor: palette.brand.orange }]}>
               <Ionicons name="star-outline" size={16} color="#fff" />
               <Text style={styles.primaryLabel}>Leave a review</Text>
             </Pressable>
-          ) : status === 'shipped' || status === 'delivered' ? (
+          ) : order.status === 'shipped' || order.status === 'delivered' ? (
             <Pressable
               onPress={confirmDelivery}
+              disabled={confirmOrder.isPending}
               style={[styles.primaryBtn, { backgroundColor: palette.status.success }]}>
               <Ionicons name="checkmark" size={16} color="#fff" />
               <Text style={styles.primaryLabel}>
-                {status === 'delivered'
+                {confirmOrder.isPending
                   ? 'Releasing to vendor…'
                   : 'Confirm delivery (releases escrow)'}
               </Text>
@@ -353,10 +263,54 @@ export default function OrderDetailScreen() {
           </Pressable>
 
           <View style={{ height: 40 }} />
+          </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function statusHeadline(status: OrderStatus) {
+  if (status === 'released') return 'Order complete';
+  if (status === 'delivered') return 'Awaiting payout';
+  if (status === 'shipped') return 'On its way';
+  if (status === 'confirmed') return 'Vendor confirmed';
+  if (status === 'packed') return 'Packed';
+  if (status === 'disputed') return 'Disputed';
+  if (status === 'refunded') return 'Refunded';
+  return 'Paid · held in escrow';
+}
+
+function statusLabel(status: OrderStatus) {
+  const stage = STAGES.find((item) => item.key === status);
+  return stage?.label ?? statusHeadline(status);
+}
+
+function formatShipTo(shipTo: unknown) {
+  if (!shipTo) return '';
+  if (typeof shipTo === 'string') return shipTo;
+  const address = shipTo as { street?: string; city?: string; state?: string };
+  return [address.street, address.city, address.state].filter(Boolean).join(', ');
+}
+
+function formatShipPhone(shipTo: unknown, shipPhone?: string) {
+  if (shipPhone) return shipPhone;
+  if (shipTo && typeof shipTo === 'object' && 'phone' in shipTo) {
+    return String((shipTo as { phone?: string }).phone ?? '');
+  }
+  return '';
+}
+
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('en-NG', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 const styles = StyleSheet.create({
@@ -382,6 +336,21 @@ const styles = StyleSheet.create({
     color: palette.ink.onLightStrong,
   },
   scroll: { paddingHorizontal: spacing['4'], paddingBottom: 40 },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing['8'],
+    gap: spacing['2'],
+  },
+  centerText: {
+    ...typography.body,
+    color: palette.ink.onLightStrong,
+    textAlign: 'center',
+  },
+  retryText: {
+    ...typography.bodyEmphasis,
+    color: palette.brand.orange,
+  },
   statusCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,

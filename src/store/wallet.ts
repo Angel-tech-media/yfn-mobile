@@ -24,7 +24,7 @@ type WalletState = {
     | { ok: true }
     | { ok: false; reason: 'insufficient' };
 
-  /** Top up the eWallet (mock — real impl hits Paystack virtual account webhook). */
+  /** Top up the eWallet in local-only fallback contexts. */
   topUp: (amount: number, source?: string) => void;
 
   /** Vendor side: release funds from escrow after delivery confirmation. */
@@ -37,24 +37,11 @@ type WalletState = {
 };
 
 export const useWallet = create<WalletState>((set) => ({
-  balance: 125400,
-  inEscrow: 32200,
-  accountNumber: '8126045320',
-  bankName: 'Vibe / Paystack',
-  recent: [
-    { id: 't1', kind: 'escrow_in', label: 'Escrow • Aisha Threads', amount: 18500, when: 'Today · 14:02', orderId: 'ord-1' },
-    { id: 't2', kind: 'referral', label: 'Referral earn • @sarahsboutique repost', amount: 50, when: 'Today · 11:28' },
-    { id: 't3', kind: 'release', label: 'Released • GadgetFix', amount: 9200, when: 'Yesterday', orderId: 'ord-2' },
-    { id: 't4', kind: 'topup', label: 'Wallet top-up • Paystack', amount: 25000, when: '2 days ago' },
-    { id: 't5', kind: 'referral', label: 'Referral earn • @tolathreads repost', amount: 50, when: '2 days ago' },
-    { id: 't6', kind: 'release', label: 'Released • Tola Threads', amount: 14500, when: '3 days ago', orderId: 'ord-5' },
-    { id: 't7', kind: 'refund', label: 'Refund • Zara Cakes', amount: 4500, when: '1 week ago', orderId: 'ord-3' },
-    { id: 't8', kind: 'topup', label: 'Wallet top-up • Bank transfer', amount: 50000, when: '1 week ago' },
-    { id: 't9', kind: 'release', label: 'Released • Beauty by Femi', amount: 18990, when: '2 weeks ago', orderId: 'ord-6' },
-    { id: 't10', kind: 'escrow_in', label: 'Escrow • Naija Kitchen', amount: 35000, when: '2 weeks ago', orderId: 'ord-7' },
-    { id: 't11', kind: 'referral', label: 'Referral earn • @aishathreads repost', amount: 50, when: '3 weeks ago' },
-    { id: 't12', kind: 'release', label: 'Released • Mide Studios', amount: 65000, when: '3 weeks ago', orderId: 'ord-8' },
-  ],
+  balance: 0,
+  inEscrow: 0,
+  accountNumber: '',
+  bankName: '',
+  recent: [],
 
   payFromWallet: ({ amount, orderId, vendor }) => {
     let result: { ok: true } | { ok: false; reason: 'insufficient' } = { ok: true };

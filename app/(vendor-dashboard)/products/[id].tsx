@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -8,22 +8,27 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useDeleteProduct, useProduct, useUpdateProduct } from '@/src/api/products/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { koboToNaira, nairaToKobo } from '@/src/utils/money';
 
 const MAX_IMAGES = 6;
-const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
 export default function EditProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [name, setName] = useState('Ankara high shoulder fitted gown');
-  const [desc, setDesc] = useState('Premium African wax fabric with high-shoulder silhouette and a fitted waist.');
-  const [salePrice, setSalePrice] = useState('24990');
-  const [discountPrice, setDiscountPrice] = useState('26250');
+  const productId = String(id ?? '');
+  const { data: product, isLoading, isError, refetch, isFetching } = useProduct(productId);
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [category, setCategory] = useState('');
+  const [salePrice, setSalePrice] = useState('');
+  const [discountPrice, setDiscountPrice] = useState('');
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -41,6 +46,39 @@ export default function EditProductScreen() {
     if (picked.length) setImages((arr) => [...arr, ...picked].slice(0, MAX_IMAGES));
   };
   const removeAt = (i: number) => setImages((arr) => arr.filter((_, j) => j !== i));
+  const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
+  const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+
+  useEffect(() => {
+    if (!product) return;
+    setName(product.title);
+    setDesc(product.description ?? '');
+    setCategory(product.category);
+    setSalePrice(String(koboToNaira(product.price)));
+    setOutOfStock(product.stock <= 0);
+  }, [product]);
+
+  const save = () => {
+    if (!canSave) return;
+    updateProduct.mutate(
+      {
+        id: productId,
+        input: {
+          title: name.trim(),
+          description: desc.trim(),
+          price: nairaToKobo(numericPrice),
+          category: category.trim(),
+          stock: outOfStock ? 0 : product?.stock ?? 1,
+          active: !outOfStock,
+        },
+      },
+      { onSuccess: () => router.replace('/products/saved') },
+    );
+  };
+
+  const removeProduct = () => {
+    deleteProduct.mutate(productId, { onSuccess: () => router.back() });
+  };
 
   return (
     <ScreenContainer variant="espresso">
@@ -48,13 +86,27 @@ export default function EditProductScreen() {
         title="Edit product"
         showBack
         rightAction={
-          <Pressable hitSlop={8} onPress={() => router.back()}>
+          <Pressable hitSlop={8} disabled={deleteProduct.isPending} onPress={removeProduct}>
             <Ionicons name="trash-outline" size={20} color={palette.status.danger} />
           </Pressable>
         }
       />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {isLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator color={palette.brand.orange} />
+            <Text style={styles.emptyText}>Loading product…</Text>
+          </View>
+        ) : isError || !product ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Couldn&apos;t load product.</Text>
+            <Pressable onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+            </Pressable>
+          </View>
+        ) : (
+        <>
         <View style={styles.idChip}>
           <Text style={styles.idText}>SKU · {String(id).toUpperCase()}</Text>
         </View>
@@ -69,7 +121,7 @@ export default function EditProductScreen() {
             numberOfLines={3}
             style={styles.descInput}
           />
-          <SelectField placeholder="Select or add category tag" value="Fashion · Wears" onPress={() => {}} />
+          <TextField placeholder="Category tag" value={category} onChangeText={setCategory} />
 
           <PriceField label="Sale Price" value={salePrice} onChangeText={setSalePrice} />
           <PriceField label="Discounted Price" value={discountPrice} onChangeText={setDiscountPrice} />
@@ -84,7 +136,9 @@ export default function EditProductScreen() {
               </Text>
             </Pressable>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbsRow}>
-              <Image source={PRODUCT_IMAGE} style={styles.thumbCell} contentFit="cover" />
+              {(product.images ?? product.media?.map((asset) => asset.url) ?? []).map((url) => (
+                <Image key={url} source={{ uri: url }} style={styles.thumbCell} contentFit="cover" />
+              ))}
               {images.map((img, i) => (
                 <View key={img.uri + i} style={styles.thumbCell}>
                   <Image source={{ uri: img.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
@@ -113,10 +167,17 @@ export default function EditProductScreen() {
             />
           </View>
         </View>
+        </>
+        )}
       </ScrollView>
 
       <View style={styles.actions}>
-        <PrimaryButton label="Save changes" onPress={() => router.replace('/products/saved')} />
+        <PrimaryButton
+          label="Save changes"
+          loading={updateProduct.isPending}
+          disabled={!canSave || updateProduct.isPending || !product}
+          onPress={save}
+        />
       </View>
 
       <UploadSheet
@@ -145,6 +206,17 @@ function PriceField({ label, value, onChangeText }: { label: string; value: stri
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing['8'] },
+  empty: { alignItems: 'center', paddingVertical: spacing['8'], gap: spacing['2'] },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.orange,
+  },
   idChip: {
     alignSelf: 'flex-start',
     paddingHorizontal: spacing['3'],

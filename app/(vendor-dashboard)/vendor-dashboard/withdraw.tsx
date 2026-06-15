@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -9,36 +9,39 @@ import { RadioRow } from '@/components/ui/RadioRow';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
-import { useAccount } from '@/src/store/account';
-import { useWallet } from '@/src/store/wallet';
+import { usePaymentMethods } from '@/src/api/account/hooks';
+import { useWallet, useWithdrawWallet } from '@/src/api/wallet/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo, formatNaira, koboToNaira, nairaToKobo } from '@/src/utils/money';
 
 export default function WithdrawScreen() {
-  const methods = useAccount((s) => s.paymentMethods);
-  const balance = useWallet((s) => s.balance);
-  const withdraw = useWallet((s) => s.withdraw);
-  const AVAILABLE_BALANCE = balance;
-  const QUICK = [10000, 25000, 100000, AVAILABLE_BALANCE];
+  const { data: methods = [], isLoading: methodsLoading } = usePaymentMethods();
+  const { data: wallet, isLoading: walletLoading } = useWallet();
+  const withdraw = useWithdrawWallet();
+  const availableKobo = wallet?.balance ?? 0;
+  const availableNaira = koboToNaira(availableKobo);
+  const QUICK = [10000, 25000, 100000, availableNaira].filter((value, index, arr) =>
+    value > 0 && arr.indexOf(value) === index,
+  );
   const [amount, setAmount] = useState('');
   const [methodId, setMethodId] = useState<string | null>(methods.find((m) => m.isDefault)?.id ?? methods[0]?.id ?? null);
-  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!methodId && methods.length > 0) {
+      setMethodId(methods.find((m) => m.isDefault)?.id ?? methods[0].id);
+    }
+  }, [methodId, methods]);
 
   const numeric = useMemo(() => Number(amount.replace(/[^0-9]/g, '')) || 0, [amount]);
-  const overLimit = numeric > AVAILABLE_BALANCE;
+  const overLimit = numeric > availableNaira;
   const canSubmit = numeric > 0 && !overLimit && !!methodId;
 
   const submit = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      const method = methods.find((m) => m.id === methodId);
-      const result = withdraw({
-        amount: numeric,
-        bank: method?.label ?? 'Bank',
-      });
-      setSubmitting(false);
-      if (!result.ok) return;
-      router.replace('/vendor-dashboard/withdraw-confirmed');
-    }, 600);
+    if (!methodId) return;
+    withdraw.mutate(
+      { amount: nairaToKobo(numeric), bankAccountId: methodId },
+      { onSuccess: () => router.replace('/vendor-dashboard/withdraw-confirmed') },
+    );
   };
 
   return (
@@ -48,7 +51,11 @@ export default function WithdrawScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceValue}>₦{AVAILABLE_BALANCE.toLocaleString()}</Text>
+          {walletLoading ? (
+            <ActivityIndicator color={palette.brand.orange} />
+          ) : (
+            <Text style={styles.balanceValue}>{formatKobo(availableKobo)}</Text>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>Amount</Text>
@@ -73,7 +80,7 @@ export default function WithdrawScreen() {
               onPress={() => setAmount(String(q))}
               style={({ pressed }) => [styles.quickChip, pressed && { opacity: 0.85 }]}>
               <Text style={styles.quickChipText}>
-                {q === AVAILABLE_BALANCE ? 'Max' : `₦${(q / 1000).toFixed(0)}K`}
+                {q === availableNaira ? 'Max' : `₦${(q / 1000).toFixed(0)}K`}
               </Text>
             </Pressable>
           ))}
@@ -81,7 +88,12 @@ export default function WithdrawScreen() {
 
         <Text style={styles.sectionTitle}>Send to</Text>
         <View style={styles.list}>
-          {methods.length === 0 ? (
+          {methodsLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={palette.brand.orange} />
+              <Text style={styles.emptyText}>Loading payment methods…</Text>
+            </View>
+          ) : methods.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="card-outline" size={28} color={palette.ink.onDarkMuted} />
               <Text style={styles.emptyText}>No payment methods saved</Text>
@@ -104,7 +116,7 @@ export default function WithdrawScreen() {
         <View style={styles.summary}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Withdrawal fee</Text>
-            <Text style={styles.summaryValue}>₦150</Text>
+            <Text style={styles.summaryValue}>{formatNaira(150)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Arrives in</Text>
@@ -116,7 +128,7 @@ export default function WithdrawScreen() {
       <View style={styles.actions}>
         <PrimaryButton
           label={canSubmit ? `Withdraw ₦${numeric.toLocaleString()}` : 'Withdraw'}
-          loading={submitting}
+          loading={withdraw.isPending}
           disabled={!canSubmit}
           onPress={submit}
         />

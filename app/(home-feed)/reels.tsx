@@ -8,7 +8,6 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type ImageSourcePropType,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -20,91 +19,105 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { useFeedReels } from '@/src/api/feed/hooks';
+import type { Reel } from '@/src/api/types';
 import { useEngagement, useIsLiked, useIsSaved } from '@/src/store/engagement';
 import { palette, spacing, typography } from '@/src/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const REELS_DATA: Array<{
-  id: string;
-  author: string;
-  handle: string;
-  avatar: ImageSourcePropType;
-  caption: string;
-  audio: string;
-  background: ImageSourcePropType;
-  likes: number;
-  comments: string;
-}> = [
-  {
-    id: 'r1',
-    author: 'Oludayo Oduk',
-    handle: 'odeekay',
-    avatar: require('@/assets/figma/store-avatar.png'),
-    caption: 'When confidence speaks louder than words. It reveals more than just a portrait.',
-    audio: 'original sound · odeekay',
-    background: require('@/assets/figma/reel-snowboarder.png'),
-    likes: 20100,
-    comments: '3.0K',
-  },
-  {
-    id: 'r2',
-    author: "Sarah's Boutique",
-    handle: 'sarahsboutique',
-    avatar: require('@/assets/figma/story-1.png'),
-    caption: 'New Ankara collection drops Friday. Tap to shop the look 🛍️',
-    audio: 'original sound · sarahsboutique',
-    background: require('@/assets/figma/product-sample.png'),
-    likes: 8420,
-    comments: '512',
-  },
-  {
-    id: 'r3',
-    author: 'Janet Ogborini',
-    handle: 'janetogb',
-    avatar: require('@/assets/figma/story-2.png'),
-    caption: 'Behind the scenes from this week’s shoot.',
-    audio: 'sunset glow · alt-j',
-    background: require('@/assets/figma/welcome-hero.png'),
-    likes: 14200,
-    comments: '780',
-  },
-];
-
 export default function ReelsFeedScreen() {
   const [activeIdx, setActiveIdx] = useState(0);
-  const listRef = useRef<FlatList>(null);
+  const listRef = useRef<FlatList<Reel>>(null);
+  const { data: reels = [], isError, isLoading, refetch } = useFeedReels({ limit: 30 });
 
-  const onMomentum = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.y / SCREEN_HEIGHT);
+  const onMomentum = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(event.nativeEvent.contentOffset.y / SCREEN_HEIGHT);
     setActiveIdx(idx);
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <TopBar />
+          <View style={styles.center}>
+            <Text style={styles.stateText}>Loading reels...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <TopBar />
+          <View style={styles.center}>
+            <Text style={styles.stateText}>Could not load reels.</Text>
+            <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
-      <FlatList
-        ref={listRef}
-        data={REELS_DATA}
-        keyExtractor={(r) => r.id}
-        snapToInterval={SCREEN_HEIGHT}
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        onMomentumScrollEnd={onMomentum}
-        renderItem={({ item, index }) => <ReelCard reel={item} active={index === activeIdx} />}
-      />
+      {reels.length ? (
+        <FlatList
+          ref={listRef}
+          data={reels}
+          keyExtractor={(reel) => reel.id}
+          snapToInterval={SCREEN_HEIGHT}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
+          onMomentumScrollEnd={onMomentum}
+          renderItem={({ item, index }) => (
+            <ReelCard reel={item} active={index === activeIdx} />
+          )}
+        />
+      ) : (
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <TopBar />
+          <View style={styles.center}>
+            <Text style={styles.stateText}>No reels published yet.</Text>
+          </View>
+        </SafeAreaView>
+      )}
     </View>
   );
 }
 
-function ReelCard({ reel, active }: { reel: typeof REELS_DATA[number]; active: boolean }) {
+function TopBar() {
+  return (
+    <View style={styles.topRow}>
+      <Text style={styles.title}>Reels</Text>
+      <Pressable onPress={() => router.push('/create/reel' as never)} style={styles.iconBtn} hitSlop={8}>
+        <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+}
+
+function ReelCard({ reel }: { reel: Reel; active: boolean }) {
   const liked = useIsLiked(reel.id);
   const saved = useIsSaved(reel.id);
-  const toggleLike = useEngagement((s) => s.toggleLike);
-  const toggleSave = useEngagement((s) => s.toggleSave);
+  const toggleLike = useEngagement((state) => state.toggleLike);
+  const toggleSave = useEngagement((state) => state.toggleSave);
 
   return (
     <View style={[styles.card, { height: SCREEN_HEIGHT }]}>
-      <Image source={reel.background} style={StyleSheet.absoluteFill} contentFit="cover" />
+      {reel.coverUrl ? (
+        <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : (
+        <View style={styles.coverPlaceholder}>
+          <Ionicons name="play-circle-outline" size={56} color="rgba(255,255,255,0.5)" />
+        </View>
+      )}
       <LinearGradient
         colors={['rgba(0,0,0,0.45)', 'transparent', 'rgba(0,0,0,0.92)']}
         locations={[0, 0.45, 1]}
@@ -112,23 +125,17 @@ function ReelCard({ reel, active }: { reel: typeof REELS_DATA[number]; active: b
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.topRow}>
-          <Text style={styles.title}>Reels</Text>
-          <Pressable onPress={() => router.push('/create/reel' as never)} style={styles.iconBtn} hitSlop={8}>
-            <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
-          </Pressable>
-        </View>
+        <TopBar />
 
         <View style={{ flex: 1 }} />
 
         <View style={styles.actionRail}>
-          <HeartButton liked={liked} count={reel.likes + (liked ? 1 : 0)} onToggle={() => toggleLike(reel.id)} size={28} />
+          <HeartButton liked={liked} onToggle={() => toggleLike(reel.id)} size={28} />
           <Pressable
             onPress={() => router.push(`/post/${reel.id}/comments` as never)}
             hitSlop={6}
             style={styles.rail}>
             <Ionicons name="chatbubble-outline" size={26} color="#FFFFFF" />
-            <Text style={styles.railCount}>{reel.comments}</Text>
           </Pressable>
           <Pressable hitSlop={6} style={styles.rail}>
             <Ionicons name="paper-plane-outline" size={26} color="#FFFFFF" />
@@ -140,36 +147,85 @@ function ReelCard({ reel, active }: { reel: typeof REELS_DATA[number]; active: b
               color={saved ? palette.brand.orange : '#FFFFFF'}
             />
           </Pressable>
+          <View style={styles.rail}>
+            <Ionicons name="eye-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.railCount}>{formatCompact(reel.views)}</Text>
+          </View>
         </View>
 
         <View style={styles.bottom}>
           <Pressable
-            onPress={() => router.push(`/u/${reel.handle}` as never)}
+            onPress={() => router.push(`/u/${reel.author.handle}` as never)}
             style={styles.authorRow}>
-            <Avatar size={36} source={reel.avatar} />
+            <Avatar
+              size={36}
+              source={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
+              initials={initialsFor(reel.author.name)}
+            />
             <View style={styles.authorBlock}>
               <View style={styles.nameRow}>
-                <Text style={styles.author}>{reel.author}</Text>
-                <VerifiedCheck tone="success" size={13} />
+                <Text style={styles.author}>{reel.author.name}</Text>
+                {reel.author.verified ? <VerifiedCheck tone="success" size={13} /> : null}
               </View>
-              <Text style={styles.handle}>@{reel.handle}</Text>
+              <Text style={styles.handle}>@{reel.author.handle}</Text>
             </View>
           </Pressable>
           <Text style={styles.caption} numberOfLines={2}>{reel.caption}</Text>
-          <View style={styles.audioRow}>
-            <Ionicons name="musical-notes" size={12} color="#FFFFFF" />
-            <Text style={styles.audioText} numberOfLines={1}>{reel.audio}</Text>
-          </View>
+          {reel.audio ? (
+            <View style={styles.audioRow}>
+              <Ionicons name="musical-notes" size={12} color="#FFFFFF" />
+              <Text style={styles.audioText} numberOfLines={1}>{reel.audio}</Text>
+            </View>
+          ) : null}
         </View>
       </SafeAreaView>
     </View>
   );
 }
 
+function initialsFor(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'Y';
+}
+
+function formatCompact(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
   card: { width: '100%' },
   safe: { flex: 1, paddingHorizontal: spacing['4'] },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing['3'] },
+  stateText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  retryBtn: {
+    height: 38,
+    paddingHorizontal: spacing['4'],
+    borderRadius: 999,
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  coverPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A0B05',
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',

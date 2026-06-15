@@ -32,21 +32,8 @@ type AccountState = {
 };
 
 export const useAccount = create<AccountState>((set) => ({
-  addresses: [
-    {
-      id: 'a1',
-      label: 'Home',
-      recipient: 'David Okpo',
-      street: '15 Admiralty Way',
-      city: 'Lekki Phase 1',
-      state: 'Lagos',
-      phone: '+234 800 000 0000',
-      isDefault: true,
-    },
-  ],
-  paymentMethods: [
-    { id: 'p1', type: 'card', brand: 'visa', last4: '4242', label: 'Personal · Visa', isDefault: true },
-  ],
+  addresses: [],
+  paymentMethods: [],
   addAddress: (a) =>
     set((s) => {
       const id = `a-${Date.now()}`;

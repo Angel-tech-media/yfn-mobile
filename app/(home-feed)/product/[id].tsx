@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -14,93 +14,85 @@ import {
   PLATFORM_FEE_LABEL,
   computePlatformFee,
 } from '@/src/config/fees';
+import { useAddresses } from '@/src/api/account/hooks';
+import { useCreateOrder } from '@/src/api/orders/hooks';
+import { useProduct } from '@/src/api/products/hooks';
+import { useMyReposts } from '@/src/api/reposts/hooks';
+import { usePayFromWallet, useWallet } from '@/src/api/wallet/hooks';
 import { useCart } from '@/src/store/cart';
-import {
-  REFERRAL_FEE_NGN,
-  useEngagement,
-  useIsReposted,
-} from '@/src/store/engagement';
-import { useOrders } from '@/src/store/orders';
-import { useWallet } from '@/src/store/wallet';
 import { useIsWishlisted, useWishlist } from '@/src/store/wishlist';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo, formatNaira, koboToNaira } from '@/src/utils/money';
 
 const HERO = require('@/assets/figma/product-sample.png');
-const STORY_1 = require('@/assets/figma/story-1.png');
-const STORY_2 = require('@/assets/figma/story-2.png');
-const STORY_3 = require('@/assets/figma/story-3.png');
-
-const PRICE = 24990;
-const COLORS = [
-  { key: 'cream', hex: '#E8DDC8', label: 'Cream' },
-  { key: 'navy', hex: '#1A2C44', label: 'Navy' },
-  { key: 'forest', hex: '#284E3A', label: 'Forest' },
-  { key: 'orange', hex: '#D89544', label: 'Honey' },
-];
-const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
-
-const REVIEWS = [
-  { author: 'Bisi A.', initial: 'B', rating: 5, age: '3 days ago', text: 'Fit me like it was custom. Worth every naira.' },
-  { author: 'Tunde O.', initial: 'T', rating: 5, age: '1 week ago', text: 'Quality fabric, fast delivery. Will reorder.' },
-  { author: 'Chioma I.', initial: 'C', rating: 4, age: '3 weeks ago', text: 'Great gown, a day late but vendor was responsive.' },
-];
-
-const fmt = (n: number) => '₦' + n.toLocaleString('en-NG');
 
 export default function ProductDetailScreen() {
   const { id, via } = useLocalSearchParams<{ id: string; via?: string }>();
-  const [activeColor, setActiveColor] = useState('cream');
-  const [activeSize, setActiveSize] = useState('M');
+  const productId = String(id ?? '');
+  const { data: product, isLoading, isError, refetch, isFetching } = useProduct(productId);
+  const { data: wallet } = useWallet();
+  const { data: addresses = [] } = useAddresses();
+  const { data: reposts = [] } = useMyReposts();
+  const createOrder = useCreateOrder();
+  const payFromWallet = usePayFromWallet();
+  const [activeColor, setActiveColor] = useState('');
+  const [activeSize, setActiveSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const liked = useIsWishlisted(String(id));
   const toggleWishlist = useWishlist((s) => s.toggle);
   const [repostOpen, setRepostOpen] = useState(false);
-  const [payState, setPayState] = useState<'idle' | 'paying' | 'paid' | 'low'>('idle');
-
-  const reposted = useIsReposted(String(id));
-  const balance = useWallet((s) => s.balance);
-  const payFromWallet = useWallet((s) => s.payFromWallet);
+  const [payState, setPayState] = useState<'idle' | 'paid' | 'low' | 'address'>('idle');
+  const reposted = reposts.some((repost) => repost.productId === productId);
   const addToCart = useCart((s) => s.add);
-  const addOrder = useOrders((s) => s.add);
-  const recordRepostSale = useEngagement((s) => s.recordRepostSale);
-
-  const total = PRICE * quantity;
-  const referralSurcharge = via ? REFERRAL_FEE_NGN : 0;
+  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+  const colors = product?.variants?.colors ?? [];
+  const sizes = product?.variants?.sizes ?? [];
+  const priceNaira = koboToNaira(product?.price ?? 0);
+  const total = priceNaira * quantity;
   const platformFee = computePlatformFee(total);
-  const grandTotal = total + referralSurcharge + platformFee;
+  const grandTotal = total + platformFee;
+  const imageSource = productImageSource(product);
+
+  useEffect(() => {
+    if (!activeColor && colors[0]) setActiveColor(colors[0].key);
+    if (!activeSize && sizes[0]) setActiveSize(sizes[0]);
+  }, [activeColor, activeSize, colors, sizes]);
 
   const handlePay = () => {
-    setPayState('paying');
-    setTimeout(() => {
-      const orderId = `ord-${Date.now().toString().slice(-6)}`;
-      const result = payFromWallet({
-        amount: grandTotal,
-        orderId,
-        vendor: "Sarah's Boutique",
-      });
-      if (!result.ok) {
-        setPayState('low');
-        return;
-      }
-      addOrder({
-        id: orderId,
-        vendor: "Sarah's Boutique",
-        vendorHandle: 'sarahsboutique',
-        items: [
-          {
-            name: 'Ankara high shoulder fitted gown',
-            qty: quantity,
-            unit: PRICE,
-          },
-        ],
+    if (!product) return;
+    if (!defaultAddress) {
+      setPayState('address');
+      return;
+    }
+    createOrder.mutate(
+      {
+        vendorId: product.vendorId,
+        items: [{ productId: product.id, qty: quantity, unit: product.price }],
+        shipTo: {
+          recipient: defaultAddress.recipient,
+          street: defaultAddress.street,
+          city: defaultAddress.city,
+          state: defaultAddress.state,
+          phone: defaultAddress.phone,
+        },
         referrerHandle: via,
-      });
-      if (via) {
-        recordRepostSale({ productId: String(id), feeNgn: REFERRAL_FEE_NGN });
-      }
-      setPayState('paid');
-      setTimeout(() => router.replace('/order-confirmed' as never), 800);
-    }, 700);
+      },
+      {
+        onSuccess: (order) => {
+          payFromWallet.mutate(
+            { amount: order.grandTotal, orderId: order.id, vendor: order.vendor },
+            {
+              onSuccess: () => {
+                setPayState('paid');
+                router.replace('/order-confirmed' as never);
+              },
+              onError: () => setPayState('low'),
+            },
+          );
+        },
+        onError: () => setPayState('low'),
+      },
+    );
   };
 
   return (
@@ -112,6 +104,7 @@ export default function ProductDetailScreen() {
           </Pressable>
           <View style={{ flexDirection: 'row', gap: spacing['2'] }}>
             <Pressable
+              disabled={!product}
               onPress={() => setRepostOpen(true)}
               hitSlop={8}
               style={styles.iconBtn}>
@@ -122,13 +115,14 @@ export default function ProductDetailScreen() {
               />
             </Pressable>
             <Pressable
-              onPress={() =>
+              disabled={!product}
+              onPress={() => product &&
                 toggleWishlist({
-                  id: String(id),
-                  name: 'Ankara high shoulder fitted gown',
-                  price: PRICE,
-                  image: HERO,
-                  vendor: "Sarah's Boutique",
+                  id: product.id,
+                  name: product.title,
+                  price: priceNaira,
+                  image: imageSource,
+                  vendor: product.vendor.storeName,
                 })
               }
               hitSlop={8}
@@ -148,8 +142,7 @@ export default function ProductDetailScreen() {
             style={styles.viaBanner}>
             <Ionicons name="repeat" size={14} color={palette.brand.orange} />
             <Text style={styles.viaText}>
-              You're here via <Text style={styles.viaHandle}>@{via}</Text>'s repost.
-              +₦{REFERRAL_FEE_NGN} goes to them.
+              You&apos;re here via <Text style={styles.viaHandle}>@{via}</Text>&apos;s repost.
             </Text>
             <Ionicons name="chevron-forward" size={14} color={palette.ink.onLightSubtle} />
           </Pressable>
@@ -158,28 +151,52 @@ export default function ProductDetailScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}>
+          {isLoading ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={palette.brand.orange} />
+              <Text style={styles.centerText}>Loading product…</Text>
+            </View>
+          ) : isError || !product ? (
+            <View style={styles.center}>
+              <Text style={styles.centerText}>Couldn&apos;t load this product.</Text>
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              </Pressable>
+            </View>
+          ) : (
+          <>
           <View style={styles.heroWrap}>
-            <Image source={HERO} style={styles.hero} contentFit="cover" />
+            <Image source={imageSource} style={styles.hero} contentFit="cover" />
           </View>
 
           <View style={styles.body}>
             {/* Vendor row + name + price */}
             <Pressable
-              onPress={() => router.push('/u/sarahsboutique' as never)}
+              onPress={() => router.push(`/u/${product.vendor.handle}` as never)}
               style={styles.vendorRow}>
-              <Image source={STORY_1} style={styles.vendorAvatar} />
+              <Image
+                source={product.vendor.avatarUrl ? { uri: product.vendor.avatarUrl } : HERO}
+                style={styles.vendorAvatar}
+              />
               <View style={{ flex: 1 }}>
                 <View style={styles.vendorNameRow}>
-                  <Text style={styles.vendorName}>Sarah's Boutique</Text>
-                  <View style={styles.kycBadge}>
-                    <Ionicons name="shield-checkmark" size={10} color="#fff" />
-                    <Text style={styles.kycText}>YFN</Text>
-                  </View>
+                  <Text style={styles.vendorName}>{product.vendor.storeName}</Text>
+                  {product.vendor.isYfnVerified ? (
+                    <View style={styles.kycBadge}>
+                      <Ionicons name="shield-checkmark" size={10} color="#fff" />
+                      <Text style={styles.kycText}>YFN</Text>
+                    </View>
+                  ) : null}
                 </View>
                 <View style={styles.ratingRow}>
                   <Ionicons name="star" size={12} color={palette.brand.amber} />
-                  <Text style={styles.ratingText}>4.8</Text>
-                  <Text style={styles.ratingMeta}>(64 reviews) · 0.7 km</Text>
+                  <Text style={styles.ratingText}>
+                    {(product.rating ?? product.vendor.rating).toFixed(1)}
+                  </Text>
+                  <Text style={styles.ratingMeta}>
+                    ({product.ratingCount ?? product.vendor.ratingCount} reviews)
+                    {typeof product.distanceKm === 'number' ? ` · ${product.distanceKm.toFixed(1)} km` : ''}
+                  </Text>
                 </View>
               </View>
               <View style={styles.followBtn}>
@@ -187,27 +204,21 @@ export default function ProductDetailScreen() {
               </View>
             </Pressable>
 
-            <Text style={styles.title}>Ankara high shoulder fitted gown</Text>
+            <Text style={styles.title}>{product.title}</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.price}>{fmt(PRICE)}</Text>
-              <Text style={styles.oldPrice}>₦26,250</Text>
-              <View style={styles.discountPill}>
-                <Text style={styles.discountText}>Save 5%</Text>
-              </View>
+              <Text style={styles.price}>{formatKobo(product.price)}</Text>
             </View>
 
             {/* Description */}
             <Text style={styles.sectionLabel}>Description</Text>
-            <Text style={styles.description}>
-              A statement Ankara gown with a high-shoulder silhouette and a fitted waist.
-              Hand-embroidered from premium African wax fabric. Limited Lagos run —
-              ships in 3 days from Victoria Island. Free fitting tweak within 7 days.
-            </Text>
+            <Text style={styles.description}>{product.description}</Text>
 
             {/* Colour */}
-            <Text style={styles.sectionLabel}>Colour</Text>
-            <View style={styles.swatchRow}>
-              {COLORS.map((c) => {
+            {colors.length > 0 ? (
+              <>
+              <Text style={styles.sectionLabel}>Colour</Text>
+              <View style={styles.swatchRow}>
+              {colors.map((c) => {
                 const on = activeColor === c.key;
                 return (
                   <Pressable
@@ -218,12 +229,16 @@ export default function ProductDetailScreen() {
                   </Pressable>
                 );
               })}
-            </View>
+              </View>
+              </>
+            ) : null}
 
             {/* Size */}
-            <Text style={styles.sectionLabel}>Size</Text>
-            <View style={styles.sizeRow}>
-              {SIZES.map((s) => {
+            {sizes.length > 0 ? (
+              <>
+              <Text style={styles.sectionLabel}>Size</Text>
+              <View style={styles.sizeRow}>
+              {sizes.map((s) => {
                 const on = activeSize === s;
                 return (
                   <Pressable
@@ -234,7 +249,9 @@ export default function ProductDetailScreen() {
                   </Pressable>
                 );
               })}
-            </View>
+              </View>
+              </>
+            ) : null}
 
             {/* Quantity */}
             <View style={styles.qtyRow}>
@@ -259,15 +276,17 @@ export default function ProductDetailScreen() {
               <Text style={styles.sectionLabel}>Reviews</Text>
               <Text style={styles.reviewsLink}>See all</Text>
             </View>
-            {REVIEWS.map((r) => (
-              <View key={r.author} style={styles.reviewRow}>
+            {(product.reviews ?? []).length === 0 ? (
+              <Text style={styles.emptyText}>No reviews yet.</Text>
+            ) : (product.reviews ?? []).map((r) => (
+              <View key={r.id} style={styles.reviewRow}>
                 <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewInitial}>{r.initial}</Text>
+                  <Text style={styles.reviewInitial}>{r.author[0]?.toUpperCase() ?? '?'}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.reviewMeta}>
                     <Text style={styles.reviewAuthor}>{r.author}</Text>
-                    <Text style={styles.reviewAge}>· {r.age}</Text>
+                    <Text style={styles.reviewAge}>{r.createdAt ? `· ${formatDate(r.createdAt)}` : r.age ? `· ${r.age}` : ''}</Text>
                   </View>
                   <View style={styles.reviewStars}>
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -294,7 +313,7 @@ export default function ProductDetailScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.payLabel}>Pay from your eWallet</Text>
-                    <Text style={styles.paySub}>Available · {fmt(balance)}</Text>
+                    <Text style={styles.paySub}>Available · {formatKobo(wallet?.balance ?? 0)}</Text>
                   </View>
                 </View>
                 <Text style={styles.payExplain}>
@@ -303,23 +322,23 @@ export default function ProductDetailScreen() {
                 </Text>
 
                 <View style={styles.payRow}>
-                  <Text style={styles.payRowLabel}>Subtotal · {quantity} × {fmt(PRICE)}</Text>
-                  <Text style={styles.payRowValue}>{fmt(total)}</Text>
+                  <Text style={styles.payRowLabel}>Subtotal · {quantity} × {formatNaira(priceNaira)}</Text>
+                  <Text style={styles.payRowValue}>{formatNaira(total)}</Text>
                 </View>
                 {via ? (
                   <View style={styles.payRow}>
                     <Text style={styles.payRowLabel}>Referral · @{via}</Text>
-                    <Text style={styles.payRowValue}>+₦{REFERRAL_FEE_NGN}</Text>
+                    <Text style={styles.payRowValue}>Applied by backend</Text>
                   </View>
                 ) : null}
                 <View style={styles.payRow}>
                   <Text style={styles.payRowLabel}>{PLATFORM_FEE_LABEL}</Text>
-                  <Text style={styles.payRowValue}>+₦{platformFee.toLocaleString()}</Text>
+                  <Text style={styles.payRowValue}>+{formatNaira(platformFee)}</Text>
                 </View>
                 <View style={styles.payDivider} />
                 <View style={styles.payRow}>
-                  <Text style={styles.payTotalLabel}>Total</Text>
-                  <Text style={styles.payTotalValue}>{fmt(grandTotal)}</Text>
+                  <Text style={styles.payTotalLabel}>Estimated total</Text>
+                  <Text style={styles.payTotalValue}>{formatNaira(grandTotal)}</Text>
                 </View>
 
                 {payState === 'low' ? (
@@ -330,21 +349,31 @@ export default function ProductDetailScreen() {
                     </Text>
                   </View>
                 ) : null}
+                {payState === 'address' ? (
+                  <View style={styles.payErr}>
+                    <Ionicons name="location-outline" size={14} color={palette.status.danger} />
+                    <Text style={styles.payErrText}>
+                      Add a saved delivery address before paying from this screen.
+                    </Text>
+                  </View>
+                ) : null}
 
                 <Pressable
-                  onPress={handlePay}
-                  disabled={payState === 'paying' || payState === 'paid'}
+                  onPress={defaultAddress ? handlePay : () => router.push('/account/addresses/add' as never)}
+                  disabled={createOrder.isPending || payFromWallet.isPending || payState === 'paid'}
                   style={({ pressed }) => [
                     styles.payCta,
-                    (payState === 'paying' || pressed) && { opacity: 0.85 },
+                    ((createOrder.isPending || payFromWallet.isPending) || pressed) && { opacity: 0.85 },
                     payState === 'paid' && { backgroundColor: palette.status.success },
                   ]}>
                   <Ionicons
                     name={
                       payState === 'paid'
                         ? 'checkmark-circle'
-                        : payState === 'paying'
+                        : createOrder.isPending || payFromWallet.isPending
                         ? 'hourglass'
+                        : !defaultAddress
+                        ? 'location'
                         : 'lock-closed'
                     }
                     size={18}
@@ -353,9 +382,11 @@ export default function ProductDetailScreen() {
                   <Text style={styles.payCtaLabel}>
                     {payState === 'paid'
                       ? 'Paid · awaiting delivery'
-                      : payState === 'paying'
+                      : createOrder.isPending || payFromWallet.isPending
                       ? 'Securing payment…'
-                      : `Pay ${fmt(grandTotal)} from eWallet`}
+                      : !defaultAddress
+                      ? 'Add delivery address'
+                      : `Pay ${formatNaira(grandTotal)} est. from eWallet`}
                   </Text>
                 </Pressable>
 
@@ -363,11 +394,13 @@ export default function ProductDetailScreen() {
                   onPress={() => {
                     addToCart(
                       {
-                        id: String(id),
-                        name: 'Ankara high shoulder fitted gown',
-                        price: PRICE,
-                        image: HERO,
-                        vendor: "Sarah's Boutique",
+                        id: product.id,
+                        name: product.title,
+                        price: priceNaira,
+                        priceKobo: product.price,
+                        image: imageSource,
+                        vendor: product.vendor.storeName,
+                        vendorId: product.vendorId,
                         color: activeColor,
                       },
                       quantity,
@@ -383,22 +416,40 @@ export default function ProductDetailScreen() {
 
             <View style={{ height: 40 }} />
           </View>
+          </>
+          )}
         </ScrollView>
       </SafeAreaView>
 
-      <RepostSheet
-        visible={repostOpen}
-        onClose={() => setRepostOpen(false)}
-        product={{
-          id: String(id),
-          name: 'Ankara high shoulder fitted gown',
-          price: fmt(PRICE),
-          vendor: "Sarah's Boutique",
-          vendorId: 'sarahsboutique',
-        }}
-      />
+      {product ? (
+        <RepostSheet
+          visible={repostOpen}
+          onClose={() => setRepostOpen(false)}
+          product={{
+            id: product.id,
+            name: product.title,
+            price: formatKobo(product.price),
+            vendor: product.vendor.storeName,
+            vendorId: product.vendorId,
+          }}
+        />
+      ) : null}
     </EspressoBackground>
   );
+}
+
+function productImageSource(product: {
+  images?: string[];
+  media?: { url: string; type: 'image' | 'video' }[];
+} | null | undefined) {
+  const url = product?.images?.[0] ?? product?.media?.find((asset) => asset.type === 'image')?.url;
+  return url ? { uri: url } : HERO;
+}
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' });
 }
 
 const styles = StyleSheet.create({
@@ -444,6 +495,22 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
   scroll: { paddingBottom: 40 },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['8'],
+    gap: spacing['2'],
+  },
+  centerText: {
+    ...typography.body,
+    color: palette.ink.onLightStrong,
+    textAlign: 'center',
+  },
+  retryText: {
+    ...typography.bodyEmphasis,
+    color: palette.brand.orange,
+  },
   heroWrap: {
     marginHorizontal: spacing['4'],
     marginTop: spacing['3'],
@@ -638,6 +705,10 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: palette.brand.orange,
     fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  emptyText: {
+    ...typography.body,
+    color: palette.ink.onLightSubtle,
   },
   reviewRow: {
     flexDirection: 'row',

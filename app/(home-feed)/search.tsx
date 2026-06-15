@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -7,51 +7,25 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { useSearch } from '@/src/api/search/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
-const RECENT = ['Ankara dresses', 'Sarah\'s Boutique', 'leopard sandals', 'beauty kit'];
-const TRENDING = [
-  { tag: '#vibesummerstyle', count: '12.4K posts' },
-  { tag: '#NaijaFashion', count: '34.1K posts' },
-  { tag: '#FlashSale', count: '2.8K posts' },
-  { tag: '#OOTD', count: '45.6K posts' },
-];
-
-const PEOPLE = [
-  { handle: 'sarahsboutique', name: 'Sarah\'s Boutique', avatar: require('@/assets/figma/store-avatar.png'), verified: true, followers: '12.5K' },
-  { handle: 'aisha-bello', name: 'Aisha Bello', avatar: require('@/assets/figma/story-1.png'), followers: '4.2K' },
-  { handle: 'janet-ogborini', name: 'Janet Ogborini', avatar: require('@/assets/figma/story-2.png'), verified: true, followers: '28.6K' },
-];
-
-const PRODUCTS = [
-  { id: 'p1', name: 'Ankara high shoulder fitted gown', price: '₦24,990' },
-  { id: 'p2', name: 'Birkin handbag deluxe', price: '₦149,000' },
-  { id: 'p3', name: 'Leopard heeled sandals', price: '₦38,500' },
-];
-
-const TABS = ['People', 'Tags', 'Top', 'Products'] as const;
+const TABS = ['Top', 'People', 'Products', 'Tags', 'Places'] as const;
+const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
 export default function SearchScreen() {
   const params = useLocalSearchParams<{ focus?: string }>();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<typeof TABS[number]>(
-    params.focus === 'people' ? 'People' : 'People',
+    params.focus === 'people' ? 'People' : 'Top',
   );
+  const { data, isLoading, isError } = useSearch({ q: query.trim(), limit: 20 });
 
-  const q = query.trim().toLowerCase();
-
-  const filteredPeople = useMemo(
-    () => PEOPLE.filter((p) => !q || p.name.toLowerCase().includes(q) || p.handle.includes(q)),
-    [q]
-  );
-  const filteredProducts = useMemo(
-    () => PRODUCTS.filter((p) => !q || p.name.toLowerCase().includes(q)),
-    [q]
-  );
-  const filteredTags = useMemo(
-    () => TRENDING.filter((t) => !q || t.tag.toLowerCase().includes(q)),
-    [q]
-  );
+  const people = data?.people ?? [];
+  const products = data?.products ?? [];
+  const tags = data?.tags ?? [];
+  const places = data?.places ?? [];
 
   return (
     <ScreenContainer variant="espresso" edges={['top']}>
@@ -79,42 +53,10 @@ export default function SearchScreen() {
 
       {!query ? (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Recent</Text>
-              <Pressable hitSlop={8}>
-                <Text style={styles.sectionLink}>Clear</Text>
-              </Pressable>
-            </View>
-            <View style={{ gap: spacing['2'] }}>
-              {RECENT.map((r) => (
-                <Pressable key={r} onPress={() => setQuery(r)} style={styles.recentRow}>
-                  <Ionicons name="time-outline" size={16} color={palette.ink.onDarkMuted} />
-                  <Text style={styles.recentText}>{r}</Text>
-                  <Pressable hitSlop={6}>
-                    <Ionicons name="close" size={14} color={palette.ink.onDarkMuted} />
-                  </Pressable>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Trending</Text>
-            <View style={{ gap: spacing['2'] }}>
-              {TRENDING.map((t) => (
-                <Pressable key={t.tag} onPress={() => setQuery(t.tag)} style={styles.trendingRow}>
-                  <View style={styles.tagBadge}>
-                    <Text style={styles.tagBadgeText}>#</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tagText}>{t.tag}</Text>
-                    <Text style={styles.tagCount}>{t.count}</Text>
-                  </View>
-                  <Ionicons name="trending-up" size={16} color={palette.brand.orange} />
-                </Pressable>
-              ))}
-            </View>
+          <View style={styles.empty}>
+            <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
+            <Text style={styles.emptyTitle}>Search Vibe</Text>
+            <Text style={styles.emptySub}>Type to search people, products, tags, and places.</Text>
           </View>
         </ScrollView>
       ) : (
@@ -128,18 +70,29 @@ export default function SearchScreen() {
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.results}>
-            {(tab === 'Top' || tab === 'People') && filteredPeople.length > 0 ? (
+            {isLoading ? (
+              <View style={styles.empty}>
+                <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
+                <Text style={styles.emptyTitle}>Searching…</Text>
+              </View>
+            ) : isError ? (
+              <View style={styles.empty}>
+                <Ionicons name="cloud-offline-outline" size={36} color={palette.ink.onDarkMuted} />
+                <Text style={styles.emptyTitle}>Search failed</Text>
+              </View>
+            ) : null}
+            {(tab === 'Top' || tab === 'People') && people.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>People</Text>
-                {filteredPeople.map((p) => (
+                {people.map((p) => (
                   <Pressable
                     key={p.handle}
                     onPress={() => router.push(`/u/${p.handle}` as never)}
                     style={styles.peopleRow}>
-                    <Avatar size={44} source={p.avatar} />
+                    <Avatar size={44} source={p.avatarUrl ? { uri: p.avatarUrl } : undefined} initials={p.name[0]} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.peopleName}>{p.name}{p.verified ? ' ✓' : ''}</Text>
-                      <Text style={styles.peopleHandle}>@{p.handle} · {p.followers} followers</Text>
+                      <Text style={styles.peopleName}>{p.name}{p.kycVerified ? ' ✓' : ''}</Text>
+                      <Text style={styles.peopleHandle}>@{p.handle} · {p.kind}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
                   </Pressable>
@@ -147,18 +100,18 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {(tab === 'Top' || tab === 'Products') && filteredProducts.length > 0 ? (
+            {(tab === 'Top' || tab === 'Products') && products.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Products</Text>
-                {filteredProducts.map((p) => (
+                {products.map((p) => (
                   <Pressable
                     key={p.id}
                     onPress={() => router.push(`/product/${p.id}` as never)}
                     style={styles.productRow}>
-                    <Image source={require('@/assets/figma/product-sample.png')} style={styles.productImg} contentFit="cover" />
+                    <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.productImg} contentFit="cover" />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.productName} numberOfLines={2}>{p.name}</Text>
-                      <Text style={styles.productPrice}>{p.price}</Text>
+                      <Text style={styles.productName} numberOfLines={2}>{p.title}</Text>
+                      <Text style={styles.productPrice}>{formatKobo(p.price)}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
                   </Pressable>
@@ -166,24 +119,45 @@ export default function SearchScreen() {
               </View>
             ) : null}
 
-            {(tab === 'Top' || tab === 'Tags') && filteredTags.length > 0 ? (
+            {(tab === 'Top' || tab === 'Tags') && tags.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tags</Text>
-                {filteredTags.map((t) => (
+                {tags.map((t) => (
                   <Pressable key={t.tag} style={styles.trendingRow}>
                     <View style={styles.tagBadge}>
                       <Text style={styles.tagBadgeText}>#</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.tagText}>{t.tag}</Text>
-                      <Text style={styles.tagCount}>{t.count}</Text>
+                      <Text style={styles.tagCount}>{t.count.toLocaleString()} posts</Text>
                     </View>
                   </Pressable>
                 ))}
               </View>
             ) : null}
 
-            {filteredPeople.length === 0 && filteredProducts.length === 0 && filteredTags.length === 0 ? (
+            {(tab === 'Top' || tab === 'Places') && places.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Places</Text>
+                {places.map((place) => (
+                  <Pressable
+                    key={place.id}
+                    onPress={() => router.push(`/u/${place.handle}` as never)}
+                    style={styles.peopleRow}>
+                    <Avatar size={44} source={place.avatarUrl ? { uri: place.avatarUrl } : undefined} initials={place.storeName[0]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.peopleName}>{place.storeName}</Text>
+                      <Text style={styles.peopleHandle}>
+                        @{place.handle} · {place.rating.toFixed(1)} rating
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {!isLoading && !isError && people.length === 0 && products.length === 0 && tags.length === 0 && places.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
                 <Text style={styles.emptyTitle}>No results for &quot;{query}&quot;</Text>

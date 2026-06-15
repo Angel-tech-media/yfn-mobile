@@ -1,88 +1,73 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useNewsArticle } from '@/src/api/news/hooks';
+import type { Article } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
-const ARTICLE = {
-  title: 'Super Eagles draw shocks fans, jersey demand spikes 6x in Lagos',
-  category: 'Sport',
-  cover: ['#3a2818', '#1f1108'] as [string, string],
-  author: {
-    name: 'Tobi Ade',
-    role: 'Sport correspondent',
-    initial: 'T',
-  },
-  publishedAt: 'May 9, 2026',
-  readMin: 4,
-  claps: 1248,
-  comments: 86,
-  excerpt:
-    "After the Super Eagles' 1-1 draw with Morocco at the Africa Cup of Nations qualifier, jersey orders in Ikoyi and Lekki surged six times the weekly average — and Vibe vendors who restocked early are reporting record sales.",
-  paragraphs: [
-    "The match itself was nothing to celebrate. A late equaliser from Hakim Ziyech turned what looked like a routine win into a draw that left fans across Nigeria torn between disappointment and defiance. But on Vibe's vendor dashboard, something else was happening.",
-    'Within four hours of full-time, jersey listings tagged "Super Eagles" were viewed 41,000 times. By morning, six tailors in Ikoyi had sold out of their custom embroidery slots for the next two weeks.',
-    'Aisha Threads, a Vibe-verified tailor with a small Victoria Island studio, said it was the busiest night her shop has had since the World Cup qualifiers. "I had to close orders by 1 AM. People were paying upfront, no negotiation."',
-    "What's interesting is who was buying. Vibe's internal data showed a 22% lift in first-time buyers under 24 — the demographic the platform has been working hardest to court. Many of them came in through the Map tab after searching for \"jersey\" near them.",
-    "For vendors watching the Insight tab, the signal was loud and early. Vibe's social-market AI flagged the trend as the match was still being played and pushed insight notifications to relevant vendors at the 70-minute mark, well before the wave of buyer searches arrived.",
-  ],
-  pullQuote:
-    "I had to close orders by 1 AM. People were paying upfront, no negotiation.",
-  inlineImage: ['#1f3a2c', '#0f1f17'] as [string, string],
-  tags: ['SuperEagles', 'AFCON', 'Lagos', 'VendorInsight'],
-};
-
-const RELATED = [
-  {
-    id: 'r1',
-    title: "Davido drops 'Timeless II' — merchandise pre-orders open",
-    source: 'Vibe Music',
-    age: '1h',
-    cover: ['#3a1f2c', '#1f0e17'] as [string, string],
-  },
-  {
-    id: 'r2',
-    title: 'Detty December: how Lagos vendors are pricing experiences',
-    source: 'Vibe Lifestyle',
-    age: '3h',
-    cover: ['#2c2c3a', '#15151f'] as [string, string],
-  },
-];
+const FALLBACK_COVER: [string, string] = ['#3a2818', '#1f1108'];
 
 export default function ArticleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: article, isError, isLoading, refetch } = useNewsArticle(id);
   const [clapped, setClapped] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  void id;
+  useEffect(() => {
+    setClapped(Boolean(article?.clappedByMe));
+    setSaved(Boolean(article?.savedByMe));
+  }, [article?.clappedByMe, article?.savedByMe, article?.id]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView edges={['top']} style={styles.topBar}>
+          <BackButton />
+        </SafeAreaView>
+        <Text style={styles.stateText}>Loading article...</Text>
+      </View>
+    );
+  }
+
+  if (isError || !article) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView edges={['top']} style={styles.topBar}>
+          <BackButton />
+        </SafeAreaView>
+        <View style={styles.stateBlock}>
+          <Text style={styles.stateTitle}>Article unavailable</Text>
+          <Text style={styles.stateText}>The backend could not load this story.</Text>
+          <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const authorInitial = article.author.initial ?? article.author.name.charAt(0).toUpperCase();
+  const paragraphs = article.paragraphs?.length ? article.paragraphs : [article.excerpt];
+  const claps = article.claps + (clapped && !article.clappedByMe ? 1 : 0);
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}>
-        <LinearGradient colors={ARTICLE.cover} style={styles.hero}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Hero article={article}>
           <SafeAreaView edges={['top']} style={styles.heroBar}>
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityLabel="Back"
-              style={styles.heroIconBtn}>
-              <Ionicons name="chevron-back" size={20} color="#fff" />
-            </Pressable>
-            <View style={{ flexDirection: 'row', gap: spacing['2'] }}>
+            <BackButton light />
+            <View style={styles.heroActions}>
               <Pressable
-                onPress={() => setSaved((s) => !s)}
+                onPress={() => setSaved((value) => !value)}
                 accessibilityLabel="Save"
                 style={styles.heroIconBtn}>
-                <Ionicons
-                  name={saved ? 'bookmark' : 'bookmark-outline'}
-                  size={18}
-                  color="#fff"
-                />
+                <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={18} color="#fff" />
               </Pressable>
               <Pressable accessibilityLabel="Share" style={styles.heroIconBtn}>
                 <Ionicons name="share-outline" size={18} color="#fff" />
@@ -91,24 +76,26 @@ export default function ArticleScreen() {
           </SafeAreaView>
           <View style={styles.heroFooter}>
             <View style={styles.tagPill}>
-              <Text style={styles.tagPillText}>{ARTICLE.category}</Text>
+              <Text style={styles.tagPillText}>{article.category}</Text>
             </View>
           </View>
-        </LinearGradient>
+        </Hero>
 
         <View style={styles.body}>
-          <Text style={styles.headline}>{ARTICLE.title}</Text>
+          <Text style={styles.headline}>{article.title}</Text>
 
-          {/* Author row — Medium style */}
           <View style={styles.authorRow}>
-            <View style={styles.authorAvatar}>
-              <Text style={styles.authorInitial}>{ARTICLE.author.initial}</Text>
-            </View>
+            {article.author.avatarUrl ? (
+              <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} contentFit="cover" />
+            ) : (
+              <View style={styles.authorAvatar}>
+                <Text style={styles.authorInitial}>{authorInitial}</Text>
+              </View>
+            )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.authorName}>{ARTICLE.author.name}</Text>
+              <Text style={styles.authorName}>{article.author.name}</Text>
               <Text style={styles.authorMeta}>
-                {ARTICLE.author.role} · {ARTICLE.publishedAt} ·{' '}
-                {ARTICLE.readMin} min read
+                {article.author.role ?? 'Vibe News'} · {dateLabel(article.publishedAt)} · {article.readMin} min read
               </Text>
             </View>
             <Pressable style={styles.followBtn}>
@@ -116,32 +103,21 @@ export default function ArticleScreen() {
             </Pressable>
           </View>
 
-          {/* Inline action bar — claps + comments + bookmark + share */}
           <View style={styles.actionBar}>
-            <Pressable
-              onPress={() => setClapped((s) => !s)}
-              style={styles.actionItem}>
+            <Pressable onPress={() => setClapped((value) => !value)} style={styles.actionItem}>
               <Ionicons
                 name={clapped ? 'heart' : 'heart-outline'}
                 size={18}
                 color={clapped ? palette.brand.orangeDeep : palette.ink.onLightSubtle}
               />
-              <Text style={styles.actionCount}>
-                {(ARTICLE.claps + (clapped ? 1 : 0)).toLocaleString()}
-              </Text>
+              <Text style={styles.actionCount}>{claps.toLocaleString()}</Text>
             </Pressable>
             <View style={styles.actionItem}>
-              <Ionicons
-                name="chatbubble-outline"
-                size={18}
-                color={palette.ink.onLightSubtle}
-              />
-              <Text style={styles.actionCount}>{ARTICLE.comments}</Text>
+              <Ionicons name="chatbubble-outline" size={18} color={palette.ink.onLightSubtle} />
+              <Text style={styles.actionCount}>{article.comments.toLocaleString()}</Text>
             </View>
             <View style={{ flex: 1 }} />
-            <Pressable
-              onPress={() => setSaved((s) => !s)}
-              accessibilityLabel="Save">
+            <Pressable onPress={() => setSaved((value) => !value)} accessibilityLabel="Save">
               <Ionicons
                 name={saved ? 'bookmark' : 'bookmark-outline'}
                 size={18}
@@ -149,105 +125,148 @@ export default function ArticleScreen() {
               />
             </Pressable>
             <Pressable accessibilityLabel="Share">
-              <Ionicons
-                name="share-outline"
-                size={18}
-                color={palette.ink.onLightSubtle}
-              />
+              <Ionicons name="share-outline" size={18} color={palette.ink.onLightSubtle} />
             </Pressable>
           </View>
 
-          {/* Excerpt — italic lede */}
-          <Text style={styles.excerpt}>{ARTICLE.excerpt}</Text>
+          <Text style={styles.excerpt}>{article.excerpt}</Text>
 
-          {ARTICLE.paragraphs.slice(0, 2).map((p, i) => (
-            <Text key={i} style={styles.paragraph}>
-              {p}
+          {paragraphs.map((paragraph, index) => (
+            <Text key={`${article.id}-${index}`} style={styles.paragraph}>
+              {paragraph}
             </Text>
           ))}
 
-          {/* Pull quote */}
-          <View style={styles.quote}>
-            <View style={styles.quoteBar} />
-            <Text style={styles.quoteText}>"{ARTICLE.pullQuote}"</Text>
-          </View>
-
-          {ARTICLE.paragraphs.slice(2, 4).map((p, i) => (
-            <Text key={i} style={styles.paragraph}>
-              {p}
-            </Text>
-          ))}
-
-          {/* Inline figure */}
-          <LinearGradient colors={ARTICLE.inlineImage} style={styles.inlineImage}>
-            <View style={styles.inlineImageOverlay}>
-              <Ionicons name="image" size={28} color="rgba(255,255,255,0.4)" />
+          {article.tags?.length ? (
+            <View style={styles.tagsRow}>
+              {article.tags.map((tag) => (
+                <View key={tag} style={styles.tag}>
+                  <Text style={styles.tagText}>#{tag}</Text>
+                </View>
+              ))}
             </View>
-          </LinearGradient>
-          <Text style={styles.figcaption}>
-            Lagos jersey vendors saw 6x the typical weekly demand within four hours
-            of the final whistle.
-          </Text>
+          ) : null}
 
-          {ARTICLE.paragraphs.slice(4).map((p, i) => (
-            <Text key={i} style={styles.paragraph}>
-              {p}
-            </Text>
-          ))}
-
-          {/* Tags */}
-          <View style={styles.tagsRow}>
-            {ARTICLE.tags.map((t) => (
-              <View key={t} style={styles.tag}>
-                <Text style={styles.tagText}>#{t}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Author card */}
           <View style={styles.authorCard}>
-            <View style={styles.authorAvatarLg}>
-              <Text style={styles.authorInitialLg}>{ARTICLE.author.initial}</Text>
-            </View>
-            <Text style={styles.authorCardName}>
-              Written by {ARTICLE.author.name}
-            </Text>
-            <Text style={styles.authorCardMeta}>
-              {ARTICLE.author.role} at Vibe News · 2.4K followers
-            </Text>
+            {article.author.avatarUrl ? (
+              <Image
+                source={{ uri: article.author.avatarUrl }}
+                style={styles.authorAvatarLg}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.authorAvatarLg}>
+                <Text style={styles.authorInitialLg}>{authorInitial}</Text>
+              </View>
+            )}
+            <Text style={styles.authorCardName}>Written by {article.author.name}</Text>
+            <Text style={styles.authorCardMeta}>{article.author.role ?? 'Vibe News'}</Text>
             <Pressable style={styles.authorFollow}>
               <Text style={styles.authorFollowText}>Follow</Text>
             </Pressable>
           </View>
 
-          {/* Related */}
-          <Text style={styles.sectionTitle}>More from Vibe</Text>
-          {RELATED.map((r) => (
-            <Pressable
-              key={r.id}
-              onPress={() => router.push(`/news/${r.id}` as never)}
-              style={styles.relatedCard}>
-              <LinearGradient colors={r.cover} style={styles.relatedThumb} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.relatedHeadline} numberOfLines={3}>
-                  {r.title}
-                </Text>
-                <Text style={styles.relatedMeta}>
-                  {r.source} · {r.age} ago
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+          {article.related.length ? (
+            <>
+              <Text style={styles.sectionTitle}>More from Vibe</Text>
+              {article.related.map((related) => (
+                <Pressable
+                  key={related.id}
+                  onPress={() => router.push(`/news/${related.id}` as never)}
+                  style={styles.relatedCard}>
+                  <RelatedThumb article={related} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.relatedHeadline} numberOfLines={3}>
+                      {related.title}
+                    </Text>
+                    <Text style={styles.relatedMeta}>
+                      {sourceLabel(related)} · {dateLabel(related.publishedAt)}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
         </View>
       </ScrollView>
     </View>
   );
 }
 
+function BackButton({ light = false }: { light?: boolean }) {
+  return (
+    <Pressable onPress={() => router.back()} accessibilityLabel="Back" style={styles.heroIconBtn}>
+      <Ionicons name="chevron-back" size={20} color={light ? '#fff' : palette.ink.onLightStrong} />
+    </Pressable>
+  );
+}
+
+function Hero({ article, children }: { article: Article; children: ReactNode }) {
+  if (article.coverUrl) {
+    return (
+      <View style={styles.hero}>
+        <Image source={{ uri: article.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        {children}
+      </View>
+    );
+  }
+
+  return (
+    <LinearGradient colors={FALLBACK_COVER} style={styles.hero}>
+      {children}
+    </LinearGradient>
+  );
+}
+
+function RelatedThumb({ article }: { article: Article }) {
+  if (article.coverUrl) {
+    return <Image source={{ uri: article.coverUrl }} style={styles.relatedThumb} contentFit="cover" />;
+  }
+  return <LinearGradient colors={FALLBACK_COVER} style={styles.relatedThumb} />;
+}
+
+function sourceLabel(article: Article) {
+  return article.author.role ? article.author.role : article.author.name;
+}
+
+function dateLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-NG', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
   scroll: { paddingBottom: 60 },
-  hero: { height: 280, justifyContent: 'space-between' },
+  topBar: {
+    paddingHorizontal: spacing['4'],
+    paddingTop: spacing['2'],
+  },
+  stateBlock: { padding: spacing['5'], gap: spacing['3'] },
+  stateTitle: { ...typography.h2, color: palette.ink.onLightStrong },
+  stateText: {
+    ...typography.body,
+    color: palette.ink.onLightSubtle,
+    padding: spacing['5'],
+  },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    height: 38,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing['4'],
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: { ...typography.bodyEmphasis, color: '#fff' },
+  hero: {
+    height: 280,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
   heroBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -255,6 +274,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingTop: spacing['2'],
   },
+  heroActions: { flexDirection: 'row', gap: spacing['2'] },
   heroIconBtn: {
     width: 38,
     height: 38,
@@ -304,15 +324,10 @@ const styles = StyleSheet.create({
     backgroundColor: palette.brand.orange,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  authorInitial: {
-    ...typography.bodyEmphasis,
-    color: '#fff',
-  },
-  authorName: {
-    ...typography.bodyEmphasis,
-    color: palette.ink.onLightStrong,
-  },
+  authorInitial: { ...typography.bodyEmphasis, color: '#fff' },
+  authorName: { ...typography.bodyEmphasis, color: palette.ink.onLightStrong },
   authorMeta: {
     ...typography.caption,
     color: palette.ink.onLightSubtle,
@@ -360,48 +375,6 @@ const styles = StyleSheet.create({
     color: palette.ink.onLightStrong,
     marginBottom: spacing['4'],
   },
-  quote: {
-    flexDirection: 'row',
-    gap: spacing['3'],
-    marginVertical: spacing['3'],
-    paddingVertical: spacing['2'],
-  },
-  quoteBar: {
-    width: 3,
-    backgroundColor: palette.brand.orange,
-    borderRadius: 2,
-  },
-  quoteText: {
-    flex: 1,
-    fontFamily: 'Manrope_700Bold',
-    fontSize: 22,
-    lineHeight: 32,
-    color: palette.ink.onLightStrong,
-    fontStyle: 'italic',
-  },
-  inlineImage: {
-    height: 220,
-    marginVertical: spacing['4'],
-    marginHorizontal: -spacing['5'],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inlineImageOverlay: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  figcaption: {
-    ...typography.caption,
-    color: palette.ink.onLightSubtle,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: -spacing['2'],
-    marginBottom: spacing['5'],
-  },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -416,10 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
     justifyContent: 'center',
   },
-  tagText: {
-    ...typography.caption,
-    color: palette.ink.onLightSubtle,
-  },
+  tagText: { ...typography.caption, color: palette.ink.onLightSubtle },
   authorCard: {
     paddingVertical: spacing['5'],
     paddingHorizontal: spacing['4'],
@@ -437,15 +407,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing['2'],
+    overflow: 'hidden',
   },
-  authorInitialLg: {
-    ...typography.h2,
-    color: '#fff',
-  },
-  authorCardName: {
-    ...typography.title,
-    color: palette.ink.onLightStrong,
-  },
+  authorInitialLg: { ...typography.h2, color: '#fff' },
+  authorCardName: { ...typography.title, color: palette.ink.onLightStrong },
   authorCardMeta: {
     ...typography.caption,
     color: palette.ink.onLightSubtle,
@@ -459,10 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: spacing['2'],
   },
-  authorFollowText: {
-    ...typography.bodyEmphasis,
-    color: '#fff',
-  },
+  authorFollowText: { ...typography.bodyEmphasis, color: '#fff' },
   sectionTitle: {
     ...typography.h2,
     fontSize: 20,
@@ -480,6 +442,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: radius.md,
+    overflow: 'hidden',
   },
   relatedHeadline: {
     ...typography.bodyEmphasis,

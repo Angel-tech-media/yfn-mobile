@@ -3,12 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
-import {
-  REFERRAL_FEE_NGN,
-  REFERRAL_RATE_LABEL,
-  useCanRepost,
-  useEngagement,
-} from '@/src/store/engagement';
+import { useCreateRepost, useDeleteRepost, useMyReposts } from '@/src/api/reposts/hooks';
+import { useAuth } from '@/src/store/auth';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 import { BottomSheet } from './BottomSheet';
@@ -36,19 +32,34 @@ const VISIBILITY: Array<{ key: Visibility; label: string; icon: keyof typeof Ion
 export function RepostSheet({ visible, onClose, product }: Props) {
   const [caption, setCaption] = useState('');
   const [visibilityMode, setVisibilityMode] = useState<Visibility>('public');
-  const toggleRepost = useEngagement((s) => s.toggleRepost);
-  const reposted = useEngagement((s) => !!s.reposts[product.id]);
-  const canRepost = useCanRepost(product.vendorId);
+  const userId = useAuth((s) => s.user?.id);
+  const { data: reposts = [] } = useMyReposts();
+  const createRepost = useCreateRepost();
+  const deleteRepost = useDeleteRepost();
+  const existingRepost = reposts.find((repost) => repost.productId === product.id);
+  const reposted = !!existingRepost;
+  const canRepost = product.vendorId !== userId;
+  const pending = createRepost.isPending || deleteRepost.isPending;
 
   const handleRepost = () => {
-    toggleRepost({
-      productId: product.id,
-      vendorId: product.vendorId,
-      caption: caption.trim() || undefined,
-      visibility: visibilityMode,
-    });
-    setCaption('');
-    onClose();
+    if (existingRepost) {
+      deleteRepost.mutate(existingRepost.id, { onSuccess: onClose });
+      return;
+    }
+    createRepost.mutate(
+      {
+        productId: product.id,
+        vendorId: product.vendorId,
+        caption: caption.trim() || undefined,
+        visibility: visibilityMode,
+      },
+      {
+        onSuccess: () => {
+          setCaption('');
+          onClose();
+        },
+      },
+    );
   };
 
   return (
@@ -59,7 +70,7 @@ export function RepostSheet({ visible, onClose, product }: Props) {
       </View>
 
       <Text style={styles.subtitle}>
-        Earn {`₦${REFERRAL_FEE_NGN}`} every time someone buys via your repost.
+        Share this product to your profile and track referral performance from your wallet.
       </Text>
 
       {/* Product preview card */}
@@ -121,9 +132,8 @@ export function RepostSheet({ visible, onClose, product }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={styles.earnTitle}>How earnings work</Text>
           <Text style={styles.earnText}>
-            Buyers pay an extra ₦{REFERRAL_FEE_NGN} on top of the product price when
-            they reach the vendor through your repost. {REFERRAL_RATE_LABEL}.
-            Earnings drop into your eWallet.
+            The backend records clicks, conversions, and earnings for reposts.
+            Earnings drop into your eWallet when eligible orders are completed.
           </Text>
         </View>
       </View>
@@ -132,9 +142,11 @@ export function RepostSheet({ visible, onClose, product }: Props) {
       {canRepost ? (
         <Pressable
           onPress={handleRepost}
+          disabled={pending}
           style={({ pressed }) => [
             styles.cta,
             reposted && styles.ctaUndo,
+            pending && { opacity: 0.6 },
             pressed && { opacity: 0.9 },
           ]}>
           <Ionicons
@@ -143,7 +155,7 @@ export function RepostSheet({ visible, onClose, product }: Props) {
             color="#fff"
           />
           <Text style={styles.ctaLabel}>
-            {reposted ? 'Undo repost' : 'Repost to my profile'}
+            {pending ? 'Saving…' : reposted ? 'Undo repost' : 'Repost to my profile'}
           </Text>
         </Pressable>
       ) : (

@@ -7,37 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InsightHighlightsCard } from '@/components/ui/InsightHighlightsCard';
-import { HIVE } from '@/src/data/hive';
+import { useHiveTree } from '@/src/api/hive/hooks';
+import { useNewsFeed } from '@/src/api/news/hooks';
+import type { HiveNode } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
-const NEWS_HEADLINES = [
-  {
-    id: 'n1',
-    headline: 'Super Eagles draw shocks fans, jersey demand spikes 6x in Lagos',
-    source: 'Vibe Sport',
-    age: '12m',
-    tag: 'Sport',
-    cover: ['#3a2818', '#1f1108'] as [string, string],
-  },
-  {
-    id: 'n2',
-    headline: "Davido drops 'Timeless II' — merch pre-orders open",
-    source: 'Vibe Music',
-    age: '1h',
-    tag: 'Music',
-    cover: ['#3a1f2c', '#1f0e17'] as [string, string],
-  },
-  {
-    id: 'n3',
-    headline: 'Detty December: how vendors are pricing experiences',
-    source: 'Vibe Lifestyle',
-    age: '3h',
-    tag: 'Trending',
-    cover: ['#1f3a2c', '#0f1f17'] as [string, string],
-  },
-];
-
 export default function HiveTabScreen() {
+  const { data: hive = [], isLoading: hiveLoading, isError: hiveError } = useHiveTree();
+  const { data: news } = useNewsFeed({ limit: 3 });
+
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView edges={['top']} style={styles.safe}>
@@ -61,9 +39,9 @@ export default function HiveTabScreen() {
           {/* Weekly insights highlight — chartreuse hero from NewsBot */}
           <InsightHighlightsCard
             kicker="Weekly insights"
-            title="Discover every Hive moment this week"
-            subtitle="NewsBot summarised 12 trending topics across your communities. Tap to read the recap."
-            pageOf={{ current: 0, total: 3 }}
+            title={news?.trendingTags[0] ? `#${news.trendingTags[0]}` : 'Discover every Hive moment this week'}
+            subtitle="NewsBot summarises trending topics across your communities."
+            pageOf={{ current: 0, total: Math.max(news?.trendingTags.length ?? 1, 1) }}
             onPress={() => router.push('/(tabs)/news' as never)}
           />
 
@@ -98,23 +76,23 @@ export default function HiveTabScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.newsRow}>
-            {NEWS_HEADLINES.map((n) => (
+            {(news?.articles ?? []).slice(0, 3).map((n) => (
               <Pressable
                 key={n.id}
                 onPress={() => router.push(`/news/${n.id}` as never)}
                 style={styles.newsCard}>
-                <LinearGradient colors={n.cover} style={styles.newsCover}>
+                <LinearGradient colors={coverColors(n.category)} style={styles.newsCover}>
                   <View style={styles.newsTagPill}>
-                    <Text style={styles.newsTagText}>{n.tag}</Text>
+                    <Text style={styles.newsTagText}>{n.category}</Text>
                   </View>
                 </LinearGradient>
                 <Text style={styles.newsHeadline} numberOfLines={3}>
-                  {n.headline}
+                  {n.title}
                 </Text>
                 <View style={styles.newsMeta}>
-                  <Text style={styles.newsSource}>{n.source}</Text>
+                  <Text style={styles.newsSource}>{n.author.name}</Text>
                   <View style={styles.newsDot} />
-                  <Text style={styles.newsAge}>{n.age} ago</Text>
+                  <Text style={styles.newsAge}>{formatDate(n.publishedAt)}</Text>
                 </View>
               </Pressable>
             ))}
@@ -123,7 +101,15 @@ export default function HiveTabScreen() {
           <Text style={styles.sectionTitle}>Categories</Text>
 
           <View style={styles.categoryGrid}>
-            {HIVE.map((cat) => (
+            {hiveLoading ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Loading communities…</Text>
+              </View>
+            ) : hiveError ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Couldn&apos;t load communities.</Text>
+              </View>
+            ) : hive.map((cat) => (
               <Pressable
                 key={cat.slug}
                 onPress={() => router.push(`/hive/${cat.slug}` as never)}
@@ -143,7 +129,7 @@ export default function HiveTabScreen() {
           </View>
 
           <Text style={styles.sectionTitle}>Trending now</Text>
-          {flatLeaves(HIVE)
+          {flatLeaves(hive)
             .sort((a, b) => (b.node.members ?? 0) - (a.node.members ?? 0))
             .slice(0, 5)
             .map((leaf) => (
@@ -178,16 +164,16 @@ export default function HiveTabScreen() {
   );
 }
 
-function countCommunities(node: { children?: typeof HIVE }): number {
+function countCommunities(node: HiveNode): number {
   if (!node.children) return 1;
   return node.children.reduce((acc, c) => acc + countCommunities(c), 0);
 }
 
 function flatLeaves(
-  nodes: typeof HIVE,
+  nodes: HiveNode[],
   prefix: string[] = [],
-): Array<{ node: (typeof HIVE)[number]; path: string }> {
-  const out: Array<{ node: (typeof HIVE)[number]; path: string }> = [];
+): Array<{ node: HiveNode; path: string }> {
+  const out: Array<{ node: HiveNode; path: string }> = [];
   for (const n of nodes) {
     const next = [...prefix, n.slug];
     if (!n.children) {
@@ -203,6 +189,18 @@ function formatMembers(n: number) {
   if (n >= 10_000) return `${(n / 1000).toFixed(1)}K`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
+}
+
+function coverColors(category: string): [string, string] {
+  if (category === 'Sport') return ['#3a2818', '#1f1108'];
+  if (category === 'Music') return ['#3a1f2c', '#1f0e17'];
+  return ['#1f3a2c', '#0f1f17'];
+}
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' });
 }
 
 const styles = StyleSheet.create({
@@ -362,6 +360,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: spacing['4'],
     gap: spacing['3'],
+  },
+  emptyState: {
+    width: '100%',
+    padding: spacing['4'],
+    alignItems: 'center',
+  },
+  emptyText: {
+    ...typography.body,
+    color: palette.ink.onDarkSoft,
   },
   categoryCard: {
     width: '47.5%',

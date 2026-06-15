@@ -7,6 +7,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { authApi } from '@/src/api';
+import { useMe } from '@/src/api/account/hooks';
 import { useTheme, type ThemeMode } from '@/src/store/theme';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
@@ -18,11 +19,12 @@ type Row = {
   hint?: string;
 };
 
-const SECTIONS: Array<{ title: string; rows: Row[] }> = [
+function buildSections(profileHint?: string): Array<{ title: string; rows: Row[] }> {
+  return [
   {
     title: 'Account',
     rows: [
-      { key: 'edit', label: 'Profile', icon: 'person-outline', href: '/account/edit', hint: 'David Okpo' },
+      { key: 'edit', label: 'Profile', icon: 'person-outline', href: '/account/edit', hint: profileHint },
       { key: 'addresses', label: 'Saved addresses', icon: 'location-outline', href: '/account/addresses' },
       { key: 'payments', label: 'Payment methods', icon: 'card-outline', href: '/account/payment-methods' },
       { key: 'password', label: 'Change password', icon: 'lock-closed-outline', href: '/reset-password' },
@@ -46,7 +48,8 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
       { key: 'about', label: 'About Vibe', icon: 'information-circle-outline', hint: 'v1.0.0' },
     ],
   },
-];
+  ];
+}
 
 function ThemeToggle() {
   const mode = useTheme((s) => s.mode);
@@ -83,6 +86,9 @@ function ThemeToggle() {
 }
 
 export default function SettingsScreen() {
+  const { data: me } = useMe();
+  const sections = buildSections(me?.name || me?.displayName || me?.username);
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Settings" showBack />
@@ -92,7 +98,7 @@ export default function SettingsScreen() {
           <ThemeToggle />
         </View>
 
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.list}>

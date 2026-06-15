@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -9,27 +9,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
-import { useEngagement, useIsFollowing } from '@/src/store/engagement';
+import { useMe } from '@/src/api/account/hooks';
+import { useVendor, useVendorProducts } from '@/src/api/vendors/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 const BANNER = require('@/assets/figma/store-banner.png');
-const AVATAR = require('@/assets/figma/store-avatar.png');
 
 const TABS = ['Posts', 'Following', 'Followers'] as const;
-const CHIPS = ['Shoes', "Women's fashion", 'Beauty', 'Bags'];
-
-const PRODUCTS = Array.from({ length: 6 }).map((_, i) => ({
-  id: `vp-${i}`,
-  name: i % 2 ? 'Ankara high shoulder fitted gown' : 'Little Gold and green peplum kimo gown',
-  price: i % 2 ? '₦24,990' : '₦44,990',
-  oldPrice: '₦46,990',
-}));
 
 export default function VendorStoreScreen() {
   const [tab, setTab] = useState<typeof TABS[number]>('Posts');
-  const isFollowing = useIsFollowing('sarahs-boutique');
-  const toggleFollow = useEngagement((s) => s.toggleFollow);
+  const [query, setQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const { data: me } = useMe();
+  const handle = me?.handle;
+  const { data: vendor, isLoading: vendorLoading } = useVendor(handle);
+  const { data: products = [], isLoading: productsLoading } = useVendorProducts(handle);
+  const categories = ['All', ...Array.from(new Set(products.map((product) => product.category).filter(Boolean)))];
+  const filteredProducts = products.filter((product) => {
+    if (activeCategory !== 'All' && product.category !== activeCategory) return false;
+    if (query.trim() && !product.title.toLowerCase().includes(query.trim().toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <EspressoBackground variant="espresso">
@@ -45,35 +48,29 @@ export default function VendorStoreScreen() {
         </Pressable>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <Image source={BANNER} style={styles.banner} contentFit="cover" />
+          <Image source={vendor?.photos?.[0] ? { uri: vendor.photos[0] } : BANNER} style={styles.banner} contentFit="cover" />
           <View style={styles.profileBlock}>
             <View style={styles.avatarRing}>
-              <Avatar size={84} source={AVATAR} />
+              <Avatar size={84} source={vendor?.photos?.[1] ? { uri: vendor.photos[1] } : undefined} initials={(vendor?.storeName ?? me?.name ?? 'V')[0]} />
             </View>
             <View style={styles.nameRow}>
-              <Text style={styles.storeName}>Sarah&apos;s Boutique</Text>
-              <VerifiedCheck tone="success" size={16} />
+              <Text style={styles.storeName}>{vendor?.storeName ?? me?.name ?? 'Store'}</Text>
+              {vendor?.verified ? <VerifiedCheck tone="success" size={16} /> : null}
             </View>
             <View style={styles.starRow}>
               <Ionicons name="star" size={14} color={palette.brand.amber} />
-              <Text style={styles.rating}>4.8</Text>
-              <Text style={styles.reviewsCount}>(134 Reviews)</Text>
+              <Text style={styles.rating}>{(vendor?.rating ?? 0).toFixed(1)}</Text>
+              <Text style={styles.reviewsCount}>({vendor?.reviews ?? 0} Reviews)</Text>
             </View>
             <View style={styles.followActions}>
               <Pressable
-                onPress={() => toggleFollow('sarahs-boutique')}
-                style={({ pressed }) => [
-                  styles.followBtn,
-                  isFollowing ? styles.followingBtn : styles.notFollowing,
-                  pressed && { opacity: 0.85 },
-                ]}>
-                <Text style={[styles.followLabel, isFollowing && styles.followingLabel]}>
-                  {isFollowing ? 'Following' : 'Follow'}
-                </Text>
+                onPress={() => router.push('/products/add' as never)}
+                style={({ pressed }) => [styles.followBtn, styles.notFollowing, pressed && { opacity: 0.85 }]}>
+                <Text style={styles.followLabel}>Add product</Text>
               </Pressable>
               <Pressable style={({ pressed }) => [styles.msgBtn, pressed && { opacity: 0.85 }]}>
-                <Ionicons name="chatbubble-outline" size={16} color={palette.ink.onDarkStrong} />
-                <Text style={styles.msgLabel}>Message</Text>
+                <Ionicons name="settings-outline" size={16} color={palette.ink.onDarkStrong} />
+                <Text style={styles.msgLabel}>Edit store</Text>
               </Pressable>
             </View>
           </View>
@@ -92,6 +89,8 @@ export default function VendorStoreScreen() {
             <TextInput
               placeholder="Search products"
               placeholderTextColor={palette.ink.onDarkMuted}
+              value={query}
+              onChangeText={setQuery}
               style={styles.searchInput}
             />
           </View>
@@ -100,26 +99,35 @@ export default function VendorStoreScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsRow}>
-            {CHIPS.map((c, idx) => (
+            {categories.map((c) => (
               <Pressable
                 key={c}
-                style={[styles.chip, idx === 0 && styles.chipActive]}>
-                <Text style={[styles.chipText, idx === 0 && styles.chipTextActive]}>{c}</Text>
+                onPress={() => setActiveCategory(c)}
+                style={[styles.chip, activeCategory === c && styles.chipActive]}>
+                <Text style={[styles.chipText, activeCategory === c && styles.chipTextActive]}>{c}</Text>
               </Pressable>
             ))}
           </ScrollView>
 
           <View style={styles.grid}>
-            {PRODUCTS.map((p) => (
+            {vendorLoading || productsLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator color={palette.brand.orange} />
+                <Text style={styles.emptyText}>Loading store…</Text>
+              </View>
+            ) : filteredProducts.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No products found.</Text>
+              </View>
+            ) : filteredProducts.map((p) => (
               <Pressable
                 key={p.id}
                 onPress={() => router.push(`/product/${p.id}` as never)}
                 style={styles.tile}>
-                <Image source={PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
-                <Text style={styles.tileName} numberOfLines={2}>{p.name}</Text>
+                <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
+                <Text style={styles.tileName} numberOfLines={2}>{p.title}</Text>
                 <View style={styles.priceRow}>
-                  <Text style={styles.tilePrice}>{p.price}</Text>
-                  <Text style={styles.tileOldPrice}>{p.oldPrice}</Text>
+                  <Text style={styles.tilePrice}>{formatKobo(p.price)}</Text>
                 </View>
               </Pressable>
             ))}
@@ -297,6 +305,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing['3'],
     justifyContent: 'space-between',
+  },
+  emptyState: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: spacing['8'],
+    gap: spacing['2'],
+  },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
   },
   tile: { width: '48%', gap: 4 },
   tileImage: {

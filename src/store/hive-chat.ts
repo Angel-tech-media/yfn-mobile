@@ -24,8 +24,8 @@ export const useHiveChat = create<State>((set, get) => ({
     const msg: HiveMessage = {
       id: `m-${Date.now()}`,
       community,
-      author: 'David Okpo',
-      initial: 'D',
+      author: 'You',
+      initial: 'Y',
       text,
       time: 'now',
       mine: true,

@@ -4,25 +4,62 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HeartButton } from '@/components/ui/HeartButton';
 import { PlayButton } from '@/components/ui/PlayButton';
 import { StoryAuthorInfo } from '@/components/ui/StoryAuthorInfo';
+import { useFeedReels } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function ReelScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const [playing, setPlaying] = useState(true);
   const [liked, setLiked] = useState(false);
+  const { data: reels = [], isError, isLoading, refetch } = useFeedReels({ limit: 30 });
+  const reel = id ? reels.find((item) => item.id === id) : reels[0];
+
+  if (isLoading) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <TopRow />
+          <View style={styles.centerWrap}>
+            <Text style={styles.stateText}>Loading reel...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (isError || !reel) {
+    return (
+      <View style={styles.root}>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <TopRow />
+          <View style={styles.centerWrap}>
+            <Text style={styles.stateText}>{isError ? 'Could not load reel.' : 'No reel found.'}</Text>
+            {isError ? (
+              <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+                <Text style={styles.retryText}>Retry</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
-      <Image
-        source={require('@/assets/figma/reel-snowboarder.png')}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-      />
+      {reel.coverUrl ? (
+        <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <Ionicons name="play-circle-outline" size={56} color="rgba(255,255,255,0.5)" />
+        </View>
+      )}
 
       <LinearGradient
         colors={['rgba(0,0,0,0.55)', 'transparent']}
@@ -34,58 +71,68 @@ export default function ReelScreen() {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
-            <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-          </Pressable>
-          <Pressable hitSlop={8} style={styles.iconBtn}>
-            <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
-          </Pressable>
-        </View>
+        <TopRow />
 
         <View style={styles.centerWrap}>
-          <PlayButton playing={playing} onToggle={() => setPlaying((p) => !p)} />
+          <PlayButton playing={playing} onToggle={() => setPlaying((value) => !value)} />
         </View>
 
         <View style={styles.actionRail}>
-          <HeartButton liked={liked} count={20100} onToggle={() => setLiked((l) => !l)} />
-          <RailIcon icon="chatbubble-outline" count="3.0K" />
-          <RailIcon icon="paper-plane-outline" count="1.5K" />
-          <RailIcon icon="bookmark-outline" count="22" />
+          <HeartButton liked={liked} onToggle={() => setLiked((value) => !value)} />
+          <RailIcon icon="chatbubble-outline" />
+          <RailIcon icon="paper-plane-outline" />
+          <RailIcon icon="bookmark-outline" />
+          <RailIcon icon="eye-outline" count={formatCompact(reel.views)} />
         </View>
 
         <View style={styles.bottom}>
           <StoryAuthorInfo
-            name="Oludayo Oduk"
-            meta="2m ago"
-            audioLabel="original sound · odeekay"
-            verified
+            avatar={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
+            name={reel.author.name}
+            meta={`@${reel.author.handle}`}
+            audioLabel={reel.audio}
+            verified={reel.author.verified}
             rightAction={
               <Pressable style={styles.followBtn}>
-                <Text style={styles.followText}>Following</Text>
+                <Text style={styles.followText}>Follow</Text>
               </Pressable>
             }
           />
           <Text style={styles.caption} numberOfLines={2}>
-            When confidence speaks louder than words. It reveals more than just a portrait. It offers a vivid glimpse into the journey.
+            {reel.caption}
           </Text>
-          <Pressable style={styles.productCTA}>
-            <Text style={styles.productLabel}>Product page</Text>
-            <Ionicons name="arrow-forward" size={16} color={palette.ink.onLightStrong} />
-          </Pressable>
         </View>
       </SafeAreaView>
     </View>
   );
 }
 
-function RailIcon({ icon, count }: { icon: keyof typeof Ionicons.glyphMap; count: string }) {
+function TopRow() {
+  return (
+    <View style={styles.topRow}>
+      <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
+        <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+      </Pressable>
+      <Pressable onPress={() => router.push('/create/reel' as never)} hitSlop={8} style={styles.iconBtn}>
+        <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+}
+
+function RailIcon({ icon, count }: { icon: keyof typeof Ionicons.glyphMap; count?: string }) {
   return (
     <Pressable hitSlop={8} style={styles.rail}>
       <Ionicons name={icon} size={26} color="#FFFFFF" />
-      <Text style={styles.railCount}>{count}</Text>
+      {count ? <Text style={styles.railCount}>{count}</Text> : null}
     </Pressable>
   );
+}
+
+function formatCompact(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
 }
 
 const styles = StyleSheet.create({
@@ -110,7 +157,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing['3'] },
+  stateText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  retryBtn: {
+    height: 38,
+    paddingHorizontal: spacing['4'],
+    borderRadius: 999,
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
   actionRail: {
     position: 'absolute',
     right: spacing['4'],
@@ -147,20 +211,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: palette.ink.onDarkSoft,
-  },
-  productCTA: {
-    height: 52,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing['2'],
-    backgroundColor: '#FFFFFF',
-  },
-  productLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette.ink.onLightStrong,
   },
 });

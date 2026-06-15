@@ -1,27 +1,30 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 
 import { Avatar } from '@/components/ui/Avatar';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useMe } from '@/src/api/account/hooks';
+import { useCreatePost } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
-import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { uploadLocalAsset } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
 
 export default function CreatePostScreen() {
   const [text, setText] = useState('');
   const [images, setImages] = useState<PickedImage[]>([]);
-  const [taggedProduct, setTaggedProduct] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { pick, pickMany } = useImagePicker();
+  const { data: me } = useMe();
+  const createPost = useCreatePost();
 
   const fromCamera = async () => {
     const img = await pick('camera');
@@ -35,17 +38,22 @@ export default function CreatePostScreen() {
   };
 
   const canPost = text.trim().length > 0 || images.length > 0;
-  const addPost = useUserContent((s) => s.addPost);
 
-  const handlePost = () => {
-    if (!canPost) return;
-    addPost({
-      caption: text.trim(),
-      image: images[0]
-        ? { uri: images[0].uri }
-        : require('@/assets/figma/product-sample.png'),
-    });
-    router.back();
+  const handlePost = async () => {
+    if (!canPost || createPost.isPending) return;
+    setError(null);
+    try {
+      const mediaIds = await Promise.all(images.map((image) => uploadLocalAsset(image, 'post')));
+      createPost.mutate(
+        {
+          caption: text.trim(),
+          mediaIds,
+        },
+        { onSuccess: () => router.back(), onError: () => setError('Could not publish post.') },
+      );
+    } catch {
+      setError('Could not upload media.');
+    }
   };
 
   return (
@@ -54,16 +62,22 @@ export default function CreatePostScreen() {
         title="New post"
         showBack
         rightAction={
-          <Pressable disabled={!canPost} hitSlop={8} onPress={handlePost}>
-            <Text style={[styles.postBtn, !canPost && { opacity: 0.5 }]}>Post</Text>
+          <Pressable disabled={!canPost || createPost.isPending} hitSlop={8} onPress={handlePost}>
+            <Text style={[styles.postBtn, (!canPost || createPost.isPending) && { opacity: 0.5 }]}>
+              {createPost.isPending ? 'Posting' : 'Post'}
+            </Text>
           </Pressable>
         }
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.headerRow}>
-          <Avatar size={40} initials="DO" />
+          <Avatar
+            size={40}
+            source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
+            initials={initialsFor(me?.name || me?.displayName || me?.username || 'Me')}
+          />
           <View style={{ flex: 1 }}>
-            <Text style={styles.author}>David Okpo</Text>
+            <Text style={styles.author}>{me?.name || me?.displayName || me?.username || 'Me'}</Text>
             <View style={styles.audienceRow}>
               <Ionicons name="earth" size={12} color={palette.ink.onDarkSoft} />
               <Text style={styles.audience}>Public</Text>
@@ -100,20 +114,11 @@ export default function CreatePostScreen() {
           </ScrollView>
         ) : null}
 
-        {taggedProduct ? (
-          <View style={styles.tagPill}>
-            <Ionicons name="pricetag" size={14} color={palette.brand.orange} />
-            <Text style={styles.tagText}>Tagged · Ankara high shoulder fitted gown</Text>
-            <Pressable onPress={() => setTaggedProduct(null)} hitSlop={6}>
-              <Ionicons name="close" size={14} color={palette.ink.onDarkSoft} />
-            </Pressable>
-          </View>
-        ) : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
       <View style={styles.toolRow}>
         <ToolBtn icon="image-outline" label="Photo" onPress={() => setSheetOpen(true)} />
-        <ToolBtn icon="pricetag-outline" label="Tag product" onPress={() => setTaggedProduct('p1')} />
         <ToolBtn icon="happy-outline" label="Feeling" onPress={() => {}} />
         <ToolBtn icon="location-outline" label="Location" onPress={() => {}} />
       </View>
@@ -130,8 +135,6 @@ export default function CreatePostScreen() {
 }
 
 function PostTextInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  // We render an actual TextInput offset/scrolled with the screen
-  const { TextInput } = require('react-native');
   return (
     <TextInput
       placeholder="What's on your mind?"
@@ -142,6 +145,15 @@ function PostTextInput({ value, onChange }: { value: string; onChange: (v: strin
       style={styles.realInput}
     />
   );
+}
+
+function initialsFor(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'Y';
 }
 
 function ToolBtn({
@@ -242,6 +254,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 12,
     color: palette.brand.orange,
+  },
+  errorText: {
+    ...typography.caption,
+    color: palette.status.danger,
   },
   toolRow: {
     flexDirection: 'row',

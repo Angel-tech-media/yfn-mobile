@@ -1,54 +1,34 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Image } from 'expo-image';
-
 import { Avatar } from '@/components/ui/Avatar';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
-import { useOrders } from '@/src/store/orders';
+import { useOrders, useSetOrderStatus } from '@/src/api/orders/hooks';
+import type { Order } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
-const FILTERS = ['All', 'Pending', 'Confirmed', 'Shipped', 'Completed'];
-
-const fmtNgn = (n: number) => '₦' + n.toLocaleString('en-NG');
-
-const PRODUCT = require('@/assets/figma/product-sample.png');
-const AVATAR1 = require('@/assets/figma/story-1.png');
-const AVATAR2 = require('@/assets/figma/story-2.png');
-
-const ORDERS = [
-  {
-    id: '#8814564',
-    state: 'pending' as const,
-    statusKey: 'pending' as const,
-    items: ['Maxi Sky Blue Gown', 'Gucci Hip-toe Shoes', '3pcs Panties Collection'],
-    total: '₦67,550',
-    customer: 'Aisha Bello',
-    avatar: AVATAR1,
-  },
-  {
-    id: '#8814566',
-    state: 'in_progress' as const,
-    statusKey: 'shipped' as const,
-    items: ["Men's Joriexx Kaftan", 'VOOON jacket skirt'],
-    total: '₦87,550',
-    customer: 'Joshua Olamilekan-Ayan',
-    avatar: AVATAR2,
-  },
-];
+const FILTERS = ['All', 'Pending', 'Confirmed', 'Shipped', 'Completed'] as const;
+type Filter = (typeof FILTERS)[number];
 
 export default function OrdersScreen() {
-  const liveOrders = useOrders((s) => s.orders);
+  const [activeFilter, setActiveFilter] = useState<Filter>('All');
+  const { data: orders = [], refetch, isFetching, isLoading, isError } = useOrders({ limit: 50 });
+  const setStatus = useSetOrderStatus();
+  const filteredOrders = useMemo(
+    () => orders.filter((order) => matchesFilter(order, activeFilter)),
+    [activeFilter, orders],
+  );
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }, []);
+    refetch().finally(() => setRefreshing(false));
+  }, [refetch]);
 
   return (
     <ScreenContainer variant="espresso">
@@ -67,9 +47,12 @@ export default function OrdersScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsRow}>
-          {FILTERS.map((f, idx) => (
-            <Pressable key={f} style={[styles.chip, idx === 0 && styles.chipActive]}>
-              <Text style={[styles.chipText, idx === 0 && styles.chipTextActive]}>
+          {FILTERS.map((f) => (
+            <Pressable
+              key={f}
+              onPress={() => setActiveFilter(f)}
+              style={[styles.chip, activeFilter === f && styles.chipActive]}>
+              <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
                 {f}
               </Text>
             </Pressable>
@@ -88,8 +71,20 @@ export default function OrdersScreen() {
             colors={[palette.brand.orange]}
           />
         }>
-        {liveOrders.map((o) => {
-          const total = o.items.reduce((a, i) => a + i.qty * i.unit, 0);
+        {isError ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={32} color={palette.ink.onLightSubtle} />
+            <Text style={styles.emptyTitle}>Couldn&apos;t load orders</Text>
+            <Pressable onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+            </Pressable>
+          </View>
+        ) : isLoading ? (
+          <View style={styles.empty}>
+            <Ionicons name="cube-outline" size={32} color={palette.ink.onLightSubtle} />
+            <Text style={styles.emptyTitle}>Loading orders…</Text>
+          </View>
+        ) : filteredOrders.map((o) => {
           return (
             <Pressable
               key={o.id}
@@ -116,71 +111,54 @@ export default function OrdersScreen() {
               </Text>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total · in escrow</Text>
-                <Text style={styles.totalValue}>{fmtNgn(total)}</Text>
+                <Text style={styles.totalValue}>{formatKobo(o.grandTotal)}</Text>
               </View>
               <View style={styles.customerRow}>
                 <Avatar size={28} initials={o.vendor[0]} />
                 <Text style={styles.customerName}>{o.vendor}</Text>
               </View>
+              {o.status === 'paid' ? (
+                <View style={styles.actions}>
+                  <View style={styles.acceptWrap}>
+                    <PrimaryButton
+                      label="Accept Order"
+                      loading={setStatus.isPending}
+                      onPress={() =>
+                        setStatus.mutate({
+                          id: o.id,
+                          input: { status: 'confirmed' },
+                        })
+                      }
+                      style={styles.acceptBtn}
+                    />
+                  </View>
+                </View>
+              ) : null}
             </Pressable>
           );
         })}
-        {liveOrders.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
+        {!isLoading && !isError && filteredOrders.length === 0 ? (
+          <View style={styles.empty}>
             <Ionicons name="cube-outline" size={32} color={palette.ink.onLightSubtle} />
-            <Text style={{ ...typography.title, color: palette.ink.onLightStrong }}>
+            <Text style={styles.emptyTitle}>
               No orders yet
             </Text>
-            <Text style={{ ...typography.body, color: palette.ink.onLightSubtle, textAlign: 'center' }}>
-              Buy something from a product page and it'll show up here.
+            <Text style={styles.emptySubtitle}>
+              Orders from the backend will appear here once created.
             </Text>
           </View>
         ) : null}
-        {ORDERS.map((o) => (
-          <Pressable
-            key={o.id}
-            onPress={() => router.push(`/orders/${o.id.replace('#', '')}?state=${o.statusKey}` as never)}
-            style={styles.card}>
-            <Text style={styles.orderId}>{o.id}</Text>
-
-            <View style={styles.thumbRow}>
-              {o.items.map((it, i) => (
-                <View key={i} style={styles.thumbItem}>
-                  <Image source={PRODUCT} style={styles.thumb} contentFit="cover" />
-                  <Text style={styles.thumbName} numberOfLines={1}>{it}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>{o.total}</Text>
-            </View>
-
-            <View style={styles.customerRow}>
-              <Avatar size={28} source={o.avatar} />
-              <Text style={styles.customerName}>{o.customer}</Text>
-            </View>
-
-            {o.state === 'pending' ? (
-              <View style={styles.actions}>
-                <Pressable style={styles.rejectBtn}>
-                  <Text style={styles.rejectLabel}>Reject</Text>
-                </Pressable>
-                <View style={styles.acceptWrap}>
-                  <PrimaryButton label="Accept Order" onPress={() => {}} style={styles.acceptBtn} />
-                </View>
-              </View>
-            ) : (
-              <Pressable style={styles.trackBtn}>
-                <Text style={styles.trackLabel}>Track shipment</Text>
-              </Pressable>
-            )}
-          </Pressable>
-        ))}
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+function matchesFilter(order: Order, filter: Filter) {
+  if (filter === 'All') return true;
+  if (filter === 'Pending') return order.status === 'paid';
+  if (filter === 'Confirmed') return order.status === 'confirmed' || order.status === 'packed';
+  if (filter === 'Shipped') return order.status === 'shipped';
+  return ['delivered', 'released'].includes(order.status);
 }
 
 const styles = StyleSheet.create({
@@ -221,6 +199,24 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: 40,
     gap: spacing['3'],
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyTitle: {
+    ...typography.title,
+    color: palette.ink.onLightStrong,
+  },
+  emptySubtitle: {
+    ...typography.body,
+    color: palette.ink.onLightSubtle,
+    textAlign: 'center',
+  },
+  retryText: {
+    ...typography.bodyEmphasis,
+    color: palette.brand.orange,
   },
   card: {
     padding: spacing['4'],

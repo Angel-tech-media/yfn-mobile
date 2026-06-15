@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type ImageSourcePropType,
-} from 'react-native';
+import { Animated, Dimensions, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -17,240 +8,124 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { useStoriesInbox } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
-
-const STORY_IMAGES = [
-  require('@/assets/figma/story-1.png'),
-  require('@/assets/figma/story-2.png'),
-  require('@/assets/figma/story-3.png'),
-  require('@/assets/figma/story-4.png'),
-  require('@/assets/figma/story-5.png'),
-  require('@/assets/figma/story-6.png'),
-];
-
-type StorySlide = {
-  image: ImageSourcePropType;
-  caption?: string;
-  duration?: number; // ms
-};
-
-type StoryData = {
-  handle: string;
-  name: string;
-  age: string;
-  avatar: ImageSourcePropType;
-  slides: StorySlide[];
-};
-
-const STORIES: Record<string, StoryData> = {
-  s1: {
-    handle: 'olufemia',
-    name: 'Olufemi',
-    age: '2h',
-    avatar: STORY_IMAGES[0],
-    slides: [
-      { image: STORY_IMAGES[0], caption: 'Rooftop golden hour 🌅' },
-      { image: STORY_IMAGES[1], caption: 'New camera test shots' },
-      { image: STORY_IMAGES[2] },
-    ],
-  },
-  s2: {
-    handle: 'adaeze',
-    name: 'Adaeze',
-    age: '3h',
-    avatar: STORY_IMAGES[1],
-    slides: [
-      { image: STORY_IMAGES[1], caption: 'Friday market run · so much pepper' },
-      { image: STORY_IMAGES[3] },
-    ],
-  },
-  s3: {
-    handle: 'midemoji',
-    name: 'Mide',
-    age: '4h',
-    avatar: STORY_IMAGES[2],
-    slides: [
-      { image: STORY_IMAGES[2], caption: 'Behind the scenes of the shoot' },
-      { image: STORY_IMAGES[4], caption: 'wrapped 🎬' },
-    ],
-  },
-  s4: {
-    handle: 'doyinojo',
-    name: 'Doyin',
-    age: '5h',
-    avatar: STORY_IMAGES[3],
-    slides: [{ image: STORY_IMAGES[3], caption: 'Saturday slots open — DM' }],
-  },
-  s5: {
-    handle: 'tolathreads',
-    name: 'Tola',
-    age: '6h',
-    avatar: STORY_IMAGES[4],
-    slides: [
-      { image: STORY_IMAGES[4], caption: 'Jersey restock unboxing' },
-      { image: STORY_IMAGES[5] },
-    ],
-  },
-  s6: {
-    handle: 'bisia',
-    name: 'Bisi',
-    age: '7h',
-    avatar: STORY_IMAGES[5],
-    slides: [{ image: STORY_IMAGES[5], caption: 'New book club pick this month' }],
-  },
-};
-
-function makeFallbackStory(id: string): StoryData {
-  /** Use the id string to deterministically pick a photo from the pool. */
-  const hash = Array.from(id).reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const img = STORY_IMAGES[hash % STORY_IMAGES.length];
-  // Pretty-format the handle: "olufemia" → "Olufemi A.", "naijakitchen" → "Naija Kitchen"
-  const name = id
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .trim();
-  return {
-    handle: id,
-    name: name || 'Vibe user',
-    age: 'now',
-    avatar: img,
-    slides: [{ image: img, caption: `@${id}` }],
-  };
-}
 
 const SLIDE_DURATION = 5000;
 const { width: SW } = Dimensions.get('window');
 
 export default function StoryViewerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const story = STORIES[String(id)] ?? makeFallbackStory(String(id ?? 'unknown'));
-  const [index, setIndex] = useState(0);
+  const { data: stories = [], isError, isLoading, refetch } = useStoriesInbox();
+  const story = stories.find((item) => item.id === id);
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
-  const slide = story.slides[index];
 
   useEffect(() => {
+    if (!story || paused) return;
     progress.setValue(0);
-    if (paused) return;
     const anim = Animated.timing(progress, {
       toValue: 1,
-      duration: slide?.duration ?? SLIDE_DURATION,
+      duration: SLIDE_DURATION,
       useNativeDriver: false,
     });
     anim.start(({ finished }) => {
-      if (!finished) return;
-      if (index < story.slides.length - 1) {
-        setIndex(index + 1);
-      } else {
-        router.back();
-      }
+      if (finished) router.back();
     });
     return () => anim.stop();
-  }, [index, paused, progress, slide, story.slides.length]);
+  }, [paused, progress, story?.id]);
 
-  const advance = () => {
-    if (index < story.slides.length - 1) setIndex(index + 1);
-    else router.back();
-  };
-  const back = () => {
-    if (index > 0) setIndex(index - 1);
-    else router.back();
-  };
+  if (isLoading) {
+    return <StateView label="Loading story..." />;
+  }
+
+  if (isError) {
+    return <StateView label="Could not load story." onRetry={() => refetch()} />;
+  }
+
+  if (!story) {
+    return <StateView label="Story not found." />;
+  }
 
   return (
     <View style={styles.root}>
-      <Image source={slide.image} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={{ uri: story.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
       <LinearGradient
         colors={['rgba(0, 0, 0, 0.55)', 'transparent', 'transparent', 'rgba(0, 0, 0, 0.65)']}
         locations={[0, 0.18, 0.65, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Tap zones */}
       <Pressable
         style={styles.tapLeft}
-        onPress={back}
+        onPress={() => router.back()}
         onLongPress={() => setPaused(true)}
         onPressOut={() => setPaused(false)}
       />
       <Pressable
         style={styles.tapRight}
-        onPress={advance}
+        onPress={() => router.back()}
         onLongPress={() => setPaused(true)}
         onPressOut={() => setPaused(false)}
       />
 
       <SafeAreaView edges={['top']} style={styles.topBar}>
-        {/* Progress segments */}
         <View style={styles.segments}>
-          {story.slides.map((_, i) => (
-            <View key={i} style={styles.segmentTrack}>
-              <Animated.View
-                style={[
-                  styles.segmentFill,
-                  i < index && { width: '100%' },
-                  i === index && {
-                    width: progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            </View>
-          ))}
+          <View style={styles.segmentTrack}>
+            <Animated.View
+              style={[
+                styles.segmentFill,
+                {
+                  width: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
         </View>
 
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.push(`/u/${story.handle}` as never)}
+            onPress={() => router.push(`/u/${story.author.handle}` as never)}
             style={styles.authorRow}
             hitSlop={6}>
-            <Avatar size={32} source={story.avatar} />
-            <Text style={styles.author}>{story.name}</Text>
-            <Text style={styles.age}>{story.age}</Text>
+            <Avatar
+              size={32}
+              source={story.author.avatarUrl ? { uri: story.author.avatarUrl } : undefined}
+              initials={initialsFor(story.author.name)}
+            />
+            <Text style={styles.author}>{story.author.name}</Text>
+            <Text style={styles.age}>{ageLabel(story.createdAt)}</Text>
           </Pressable>
           <View style={{ flex: 1 }} />
-          <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="Pause/play">
-            <Ionicons
-              name={paused ? 'play' : 'volume-mute'}
-              size={16}
-              color="#fff"
-            />
-          </Pressable>
-          <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="More">
-            <Ionicons name="ellipsis-horizontal" size={18} color="#fff" />
-          </Pressable>
           <Pressable
+            onPress={() => setPaused((value) => !value)}
             hitSlop={8}
-            onPress={() => router.back()}
             style={styles.iconBtn}
-            accessibilityLabel="Close">
+            accessibilityLabel="Pause/play">
+            <Ionicons name={paused ? 'play' : 'pause'} size={16} color="#fff" />
+          </Pressable>
+          <Pressable hitSlop={8} onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel="Close">
             <Ionicons name="close" size={18} color="#fff" />
           </Pressable>
         </View>
       </SafeAreaView>
 
-      {slide.caption ? (
+      {story.caption ? (
         <View style={styles.captionWrap}>
-          <Text style={styles.caption}>{slide.caption}</Text>
+          <Text style={styles.caption}>{story.caption}</Text>
         </View>
       ) : null}
 
       <SafeAreaView edges={['bottom']} style={styles.footer}>
         <View style={styles.composer}>
           <TextInput
-            placeholder={`Reply to ${story.name}…`}
+            placeholder={`Reply to ${story.author.name}...`}
             placeholderTextColor="rgba(255,255,255,0.65)"
             style={styles.composerInput}
           />
-          <View style={styles.reactionsRow}>
-            {['❤️', '🔥', '😂', '👏', '🙌', '😮'].map((r) => (
-              <Pressable key={r} hitSlop={6} style={styles.reactionBtn}>
-                <Text style={styles.reactionGlyph}>{r}</Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
         <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM">
           <Ionicons name="paper-plane-outline" size={20} color="#fff" />
@@ -260,8 +135,60 @@ export default function StoryViewerScreen() {
   );
 }
 
+function StateView({ label, onRetry }: { label: string; onRetry?: () => void }) {
+  return (
+    <View style={styles.root}>
+      <SafeAreaView edges={['top']} style={styles.stateHeader}>
+        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.iconBtn}>
+          <Ionicons name="close" size={18} color="#fff" />
+        </Pressable>
+      </SafeAreaView>
+      <View style={styles.stateCenter}>
+        <Text style={styles.stateText}>{label}</Text>
+        {onRetry ? (
+          <Pressable onPress={onRetry} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function initialsFor(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'Y';
+}
+
+function ageLabel(value: string) {
+  const then = new Date(value).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diff = Math.max(0, Date.now() - then);
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
+  stateHeader: { alignItems: 'flex-end', paddingHorizontal: spacing['3'], paddingTop: 6 },
+  stateCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing['3'] },
+  stateText: { ...typography.body, color: '#fff' },
+  retryBtn: {
+    height: 36,
+    borderRadius: 999,
+    paddingHorizontal: spacing['4'],
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: { ...typography.bodyEmphasis, color: '#fff' },
   tapLeft: {
     position: 'absolute',
     top: 0,
@@ -353,7 +280,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     backgroundColor: 'rgba(0,0,0,0.35)',
-    gap: 6,
   },
   composerInput: {
     color: '#fff',
@@ -361,17 +287,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 4,
   },
-  reactionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  reactionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reactionGlyph: { fontSize: 18 },
 });

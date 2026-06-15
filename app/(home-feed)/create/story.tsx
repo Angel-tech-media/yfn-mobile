@@ -7,14 +7,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useCreateStory } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
-import { useUserContent } from '@/src/store/user-content';
 import { palette, spacing, typography } from '@/src/theme';
+import { uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateStoryScreen() {
   const [photo, setPhoto] = useState<PickedImage | null>(null);
-  const [caption, setCaption] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { pick } = useImagePicker();
+  const createStory = useCreateStory();
 
   useEffect(() => {
     // Auto-launch camera on mount
@@ -85,25 +87,32 @@ export default function CreateStoryScreen() {
           </View>
         </View>
 
-        <View style={styles.captionWrap}>
-          {caption ? <Text style={styles.captionText}>{caption}</Text> : null}
-        </View>
+        <View style={styles.captionWrap} />
 
         <View style={styles.actions}>
           <Pressable
-            onPress={() => {
-              if (photo) {
-                useUserContent.getState().addStory({
-                  image: { uri: photo.uri },
-                  caption: caption.trim() || undefined,
-                });
+            disabled={createStory.isPending}
+            onPress={async () => {
+              if (!photo || createStory.isPending) return;
+              setError(null);
+              try {
+                const mediaId = await uploadLocalAsset(photo, 'story');
+                createStory.mutate(
+                  { mediaId },
+                  {
+                    onSuccess: () => router.back(),
+                    onError: () => setError('Could not share story.'),
+                  },
+                );
+              } catch {
+                setError('Could not upload story.');
               }
-              router.back();
             }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
             <Ionicons name="paper-plane" size={18} color={palette.ink.onLightStrong} />
-            <Text style={styles.shareLabel}>Share to Story</Text>
+            <Text style={styles.shareLabel}>{createStory.isPending ? 'Sharing' : 'Share to Story'}</Text>
           </Pressable>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </SafeAreaView>
     </View>
@@ -160,11 +169,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   captionWrap: { flex: 1 },
-  captionText: {
-    fontFamily: typography.h2.fontFamily,
-    fontSize: 22,
-    color: '#FFFFFF',
-  },
   actions: { paddingBottom: spacing['4'] },
   shareBtn: {
     flexDirection: 'row',
@@ -179,5 +183,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
     color: palette.ink.onLightStrong,
+  },
+  errorText: {
+    ...typography.caption,
+    color: palette.status.danger,
+    textAlign: 'center',
+    marginTop: spacing['2'],
   },
 });

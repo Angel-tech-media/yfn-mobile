@@ -17,9 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { LiveScoreCard } from '@/components/ui/LiveScoreCard';
-import { findHiveNode, type HiveNode } from '@/src/data/hive';
-import { useCommunityMessages, useHiveChat } from '@/src/store/hive-chat';
+import { useHiveDetail, useHiveMessages, useHiveTree, useJoinHive, useSendHiveMessage } from '@/src/api/hive/hooks';
+import type { HiveMessage, HiveNode } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
+type TrailNode = Pick<HiveNode, 'slug' | 'name'>;
 
 export default function HivePathScreen() {
   const params = useLocalSearchParams<{ slug?: string | string[] }>();
@@ -28,16 +30,38 @@ export default function HivePathScreen() {
     if (!raw) return [];
     return Array.isArray(raw) ? raw : [raw];
   }, [params.slug]);
+  const slugPathKey = slugPath.length ? slugPath.join('/') : undefined;
+  const { data: tree = [] } = useHiveTree();
+  const { data: detail, isError, isLoading, refetch } = useHiveDetail(slugPathKey);
+  const node = detail?.node ?? null;
+  const trail = useMemo(
+    () => buildTrail(slugPath, tree, node),
+    [node, slugPath, tree],
+  );
 
-  const { node, trail } = findHiveNode(slugPath);
+  if (isLoading) {
+    return (
+      <EspressoBackground variant="espresso">
+        <SafeAreaView edges={['top']} style={styles.safe}>
+          <Header trail={trail} onBack={() => router.back()} />
+          <View style={styles.center}>
+            <Text style={styles.notFound}>Loading community...</Text>
+          </View>
+        </SafeAreaView>
+      </EspressoBackground>
+    );
+  }
 
-  if (!node) {
+  if (isError || !node || !slugPathKey) {
     return (
       <EspressoBackground variant="espresso">
         <SafeAreaView edges={['top']} style={styles.safe}>
           <Header trail={trail} onBack={() => router.back()} />
           <View style={styles.center}>
             <Text style={styles.notFound}>That community doesn't exist.</Text>
+            <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
           </View>
         </SafeAreaView>
       </EspressoBackground>
@@ -51,7 +75,13 @@ export default function HivePathScreen() {
       <SafeAreaView edges={['top']} style={styles.safe}>
         <Header trail={trail} onBack={() => router.back()} />
         {isCommunity ? (
-          <CommunityView node={node} />
+          <CommunityView
+            initialMessages={detail?.messages ?? []}
+            joined={detail?.joined ?? false}
+            node={node}
+            slugPath={slugPathKey}
+            topic={detail?.topic}
+          />
         ) : (
           <FolderView node={node} basePath={slugPath} />
         )}
@@ -61,7 +91,7 @@ export default function HivePathScreen() {
 }
 
 /** Windows-Explorer-style breadcrumb header. Each segment is tappable. */
-function Header({ trail, onBack }: { trail: HiveNode[]; onBack: () => void }) {
+function Header({ trail, onBack }: { trail: TrailNode[]; onBack: () => void }) {
   return (
     <View style={styles.header}>
       <Pressable onPress={onBack} hitSlop={8} style={styles.backBtn}>
@@ -158,25 +188,42 @@ function FolderView({ node, basePath }: { node: HiveNode; basePath: string[] }) 
 }
 
 /** Leaf community = pinned topic + AI bot + chat thread + composer. */
-function CommunityView({ node }: { node: HiveNode }) {
+function CommunityView({
+  initialMessages,
+  joined,
+  node,
+  slugPath,
+  topic,
+}: {
+  initialMessages: HiveMessage[];
+  joined: boolean;
+  node: HiveNode;
+  slugPath: string;
+  topic?: string;
+}) {
   const [composer, setComposer] = useState('');
-  const [joined, setJoined] = useState(false);
   const botName = (node.bot ?? 'vibebot').replace(/bot$/, '') + 'Bot';
-  const liveMessages = useCommunityMessages(node.slug);
-  const sendChat = useHiveChat((s) => s.send);
+  const { data: messagesData, isLoading: messagesLoading } = useHiveMessages(slugPath, { limit: 80 });
+  const joinHive = useJoinHive();
+  const sendMessage = useSendHiveMessage(slugPath);
+  const messages = messagesData?.messages ?? initialMessages;
   const scrollRef = useRef<ScrollView>(null);
 
   // Auto-scroll to the newest message when one arrives so the sender sees it.
   useEffect(() => {
-    if (liveMessages.length === 0) return;
+    if (messages.length === 0) return;
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  }, [liveMessages.length]);
+  }, [messages.length]);
 
   const submit = () => {
     const text = composer.trim();
-    if (!text) return;
-    sendChat(node.slug, text);
-    setComposer('');
+    if (!text || sendMessage.isPending) return;
+    sendMessage.mutate(
+      { text },
+      {
+        onSuccess: () => setComposer(''),
+      },
+    );
   };
 
   return (
@@ -208,7 +255,10 @@ function CommunityView({ node }: { node: HiveNode }) {
           ) : null}
           <View style={styles.communityActions}>
             <Pressable
-              onPress={() => setJoined((s) => !s)}
+              onPress={() => {
+                if (!joined) joinHive.mutate(slugPath);
+              }}
+              disabled={joined || joinHive.isPending}
               style={[styles.joinBtn, joined && styles.joinedBtn]}>
               <Ionicons
                 name={joined ? 'checkmark' : 'add'}
@@ -220,7 +270,7 @@ function CommunityView({ node }: { node: HiveNode }) {
                   styles.joinLabel,
                   joined && { color: palette.ink.onLightStrong },
                 ]}>
-                {joined ? 'Joined' : 'Join community'}
+                {joined ? 'Joined' : joinHive.isPending ? 'Joining' : 'Join community'}
               </Text>
             </Pressable>
             <Pressable style={styles.iconAction}>
@@ -245,77 +295,32 @@ function CommunityView({ node }: { node: HiveNode }) {
         ) : null}
 
         {/* Pinned topic */}
-        {node.pinnedTopic ? (
+        {(topic ?? node.pinnedTopic) ? (
           <View style={styles.topicCard}>
             <View style={styles.topicHeader}>
               <Ionicons name="trending-up" size={14} color={palette.brand.accentLime} />
               <Text style={styles.topicLabel}>Trending topic · weighed by {botName}</Text>
             </View>
-            <Text style={styles.topicText}>📌 {node.pinnedTopic}</Text>
+            <Text style={styles.topicText}>📌 {topic ?? node.pinnedTopic}</Text>
             <View style={styles.topicStats}>
-              <Stat icon="chatbubbles" value="1.2K msgs" />
-              <Stat icon="people" value="48 voices" />
-              <Stat icon="time" value="3h trending" />
+              <Stat icon="chatbubbles" value={`${messages.length} msgs`} />
+              <Stat icon="people" value={`${formatMembers(node.members ?? 0)} members`} />
             </View>
           </View>
         ) : null}
 
-        {/* Bot welcome */}
         <BotMessage
           botName={botName}
-          message={`Welcome to ${node.name}! Tap the topic above to jump into the live thread, or drop a message and I'll keep things moving.`}
+          message={`Welcome to ${node.name}. Messages here are synced with the backend.`}
         />
 
-        {/* Sample chat thread */}
-        <UserMessage
-          author="Bisi A."
-          initial="B"
-          time="2m"
-          text="Anyone reading the latest chapter? The plot twist had me speechless 😭"
-        />
-        <UserMessage
-          author="Tunde O."
-          initial="T"
-          time="1m"
-          text="Same! Can't believe what happened with the lead character."
-          mine
-        />
-
-        {/* Bot poll */}
-        <BotPoll
-          botName={botName}
-          question="Quick poll — what should we read next month?"
-          options={[
-            { label: 'A Court of Mist and Fury', votes: 312 },
-            { label: 'Half of a Yellow Sun', votes: 481 },
-            { label: 'The Fishermen', votes: 189 },
-          ]}
-        />
-
-        <UserMessage
-          author="Chidera N."
-          initial="C"
-          time="just now"
-          text="Voted! Curious what wins."
-        />
-
-        {/* Bot prompt when chat is dry */}
-        <BotMessage
-          botName={botName}
-          message="Things are quiet — quick prompt: which character would you swap into a different book? 👇"
-        />
-
-        {/* Live (user-typed) messages persist across navigation */}
-        {liveMessages.map((m) => (
-          <UserMessage
-            key={m.id}
-            author={m.author}
-            initial={m.initial}
-            time={m.time}
-            text={m.text}
-            mine={m.mine}
-          />
-        ))}
+        {messagesLoading && !messages.length ? (
+          <Text style={styles.chatState}>Loading messages...</Text>
+        ) : messages.length ? (
+          messages.map((message) => <MessageBubble key={message.id} message={message} />)
+        ) : (
+          <Text style={styles.chatState}>No messages yet.</Text>
+        )}
       </ScrollView>
 
       {/* Composer */}
@@ -326,12 +331,16 @@ function CommunityView({ node }: { node: HiveNode }) {
         <TextInput
           value={composer}
           onChangeText={setComposer}
-          placeholder={`Message ${node.name}…`}
+          placeholder={`Message ${node.name}...`}
           placeholderTextColor={palette.ink.onDarkMuted}
           style={styles.composerInput}
           multiline
         />
-        <Pressable onPress={submit} hitSlop={8} style={styles.composerSend}>
+        <Pressable
+          onPress={submit}
+          disabled={!composer.trim() || sendMessage.isPending}
+          hitSlop={8}
+          style={[styles.composerSend, !composer.trim() || sendMessage.isPending ? { opacity: 0.5 } : null]}>
           <Ionicons name="send" size={16} color="#fff" />
         </Pressable>
       </View>
@@ -350,6 +359,27 @@ function BotMessage({ botName, message }: { botName: string; message: string }) 
         <Text style={styles.botBubbleText}>{message}</Text>
       </View>
     </View>
+  );
+}
+
+function MessageBubble({ message }: { message: HiveMessage }) {
+  if (message.bot) {
+    return (
+      <BotMessage
+        botName={message.author}
+        message={message.text}
+      />
+    );
+  }
+
+  return (
+    <UserMessage
+      author={message.author}
+      initial={message.initial}
+      time={message.time || ageLabel(message.createdAt)}
+      text={message.text}
+      mine={message.mine}
+    />
   );
 }
 
@@ -447,12 +477,62 @@ function formatMembers(n: number) {
   return String(n);
 }
 
+function ageLabel(value?: string) {
+  if (!value) return '';
+  const then = new Date(value).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diff = Math.max(0, Date.now() - then);
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+function buildTrail(slugPath: string[], tree: HiveNode[], current: HiveNode | null): TrailNode[] {
+  const fromTree: TrailNode[] = [];
+  let level = tree;
+
+  for (const slug of slugPath) {
+    const found = level.find((node) => node.slug === slug);
+    if (!found) break;
+    fromTree.push({ slug: found.slug, name: found.name });
+    level = found.children ?? [];
+  }
+
+  if (fromTree.length === slugPath.length) return fromTree;
+
+  return slugPath.map((slug, index) => ({
+    slug,
+    name:
+      index === slugPath.length - 1 && current
+        ? current.name
+        : slug
+            .split('-')
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' '),
+  }));
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing['3'] },
   notFound: {
     ...typography.body,
     color: palette.ink.onDarkSoft,
+  },
+  retryBtn: {
+    height: 36,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing['4'],
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: {
+    ...typography.bodyEmphasis,
+    color: '#fff',
   },
   header: {
     paddingHorizontal: spacing['3'],
@@ -662,6 +742,12 @@ const styles = StyleSheet.create({
   statText: {
     ...typography.small,
     color: palette.ink.onDarkSoft,
+  },
+  chatState: {
+    ...typography.body,
+    color: palette.ink.onDarkSoft,
+    marginHorizontal: spacing['4'],
+    marginTop: spacing['4'],
   },
 
   // Bot

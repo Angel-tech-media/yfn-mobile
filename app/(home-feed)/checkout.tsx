@@ -14,16 +14,11 @@ import {
   PLATFORM_FEE_LABEL,
   computePlatformFee,
 } from '@/src/config/fees';
+import { useCreateOrder } from '@/src/api/orders/hooks';
+import { usePayFromWallet, useWallet } from '@/src/api/wallet/hooks';
 import { useCart, useCartTotal } from '@/src/store/cart';
-import { useOrders } from '@/src/store/orders';
-import { useWallet } from '@/src/store/wallet';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const PROMOS: Record<string, number> = {
-  VIBE10: 0.1,
-  WELCOME: 0.05,
-  FREESHIP: 0,
-};
+import { formatKobo, formatNaira, koboToNaira, nairaToKobo } from '@/src/utils/money';
 
 const fmt = (n: number) => '₦' + n.toLocaleString('en-NG');
 
@@ -31,71 +26,66 @@ export default function CheckoutScreen() {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [promo, setPromo] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
-  const [promoError, setPromoError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
   const total = useCartTotal();
   const clear = useCart((s) => s.clear);
-  const balance = useWallet((s) => s.balance);
-  const payFromWallet = useWallet((s) => s.payFromWallet);
   const lines = useCart((s) => s.lines);
+  const { data: wallet } = useWallet();
+  const createOrder = useCreateOrder();
+  const payFromWallet = usePayFromWallet();
 
-  const subtotal = total > 0 ? total : 175000; // demo fallback when cart empty
-  const deliveryFee = appliedPromo === 'FREESHIP' ? 0 : 4300;
-  const promoDiscount = appliedPromo
-    ? Math.round((PROMOS[appliedPromo] ?? 0) * subtotal)
-    : 0;
+  const subtotal = total;
   const platformFee = useMemo(
-    () => computePlatformFee(subtotal - promoDiscount),
-    [subtotal, promoDiscount],
+    () => computePlatformFee(subtotal),
+    [subtotal],
   );
-  const finalTotal = subtotal - promoDiscount + deliveryFee + platformFee;
+  const estimatedTotal = subtotal + platformFee;
+  const balanceNaira = koboToNaira(wallet?.balance ?? 0);
 
-  const applyPromo = () => {
-    const code = promo.trim().toUpperCase();
-    if (!code) return;
-    if (code in PROMOS) {
-      setAppliedPromo(code);
-      setPromoError(null);
-    } else {
-      setAppliedPromo(null);
-      setPromoError('Invalid promo code');
-    }
-  };
-
-  const removePromo = () => {
-    setAppliedPromo(null);
-    setPromo('');
-    setPromoError(null);
-  };
-
-  const addOrder = useOrders((s) => s.add);
-
-  const placeOrder = () => {
-    setSubmitting(true);
+  const placeOrder = async () => {
     setPayError(null);
-    setTimeout(() => {
-      const vendor = lines[0]?.vendor ?? 'Vendor';
-      const orderId = `ord-${Date.now().toString().slice(-6)}`;
-      const result = payFromWallet({ amount: finalTotal, orderId, vendor });
-      setSubmitting(false);
-      if (!result.ok) {
-        setPayError(
-          `Not enough in your eWallet. You need ${fmt(finalTotal - balance)} more — top up to continue.`,
-        );
-        return;
+    const vendorId = lines[0]?.vendorId;
+    if (!vendorId) {
+      setPayError('Cart items are missing vendor data. Add the product again from the backend product page.');
+      return;
+    }
+    if (lines.some((line) => line.vendorId !== vendorId)) {
+      setPayError('Checkout currently supports one vendor per order. Please check out one vendor at a time.');
+      return;
+    }
+
+    createOrder.mutate(
+      {
+        vendorId,
+        items: lines.map((line) => ({
+          productId: line.id,
+          qty: line.quantity,
+          unit: line.priceKobo ?? nairaToKobo(line.price),
+        })),
+        shipTo: { street: address.trim(), phone: phone.trim() },
+        promoCode: promo.trim() || undefined,
+      },
+      {
+        onSuccess: (order) => {
+          payFromWallet.mutate(
+            { amount: order.grandTotal, orderId: order.id, vendor: order.vendor },
+            {
+              onSuccess: () => {
+                clear();
+                router.replace('/order-confirmed');
+              },
+              onError: (error) => {
+                setPayError(error instanceof Error ? error.message : 'Wallet payment failed.');
+              },
+            },
+          );
+        },
+        onError: (error) => {
+          setPayError(error instanceof Error ? error.message : 'Order creation failed.');
+        },
       }
-      addOrder({
-        id: orderId,
-        vendor,
-        vendorHandle: vendor.toLowerCase().replace(/['\s]+/g, ''),
-        items: lines.map((l) => ({ name: l.name, qty: l.quantity, unit: l.price })),
-      });
-      clear();
-      router.replace('/order-confirmed');
-    }, 600);
+    );
   };
 
   return (
@@ -121,10 +111,10 @@ export default function CheckoutScreen() {
             <View style={styles.walletPayIcon}>
               <Ionicons name="wallet" size={20} color="#fff" />
             </View>
-            <View style={{ flex: 1 }}>
+          <View style={{ flex: 1 }}>
               <Text style={styles.walletPayLabel}>Pay from eWallet</Text>
               <Text style={styles.walletPayAvail}>
-                Available · {fmt(balance)}
+                Available · {formatKobo(wallet?.balance ?? 0)}
               </Text>
             </View>
             <View style={styles.walletPayCheck}>
@@ -135,13 +125,13 @@ export default function CheckoutScreen() {
             Funds leave your eWallet into Vibe escrow. The vendor is notified but
             the money only releases to them when you confirm delivery.
           </Text>
-          {balance < finalTotal ? (
+          {balanceNaira < estimatedTotal ? (
             <Pressable
               onPress={() => router.push('/(tabs)/wallet' as never)}
               style={styles.walletPayTopUp}>
               <Ionicons name="add-circle" size={14} color="#fff" />
               <Text style={styles.walletPayTopUpLabel}>
-                Top up — need {fmt(finalTotal - balance)} more
+                Top up — estimate needs {formatNaira(estimatedTotal - balanceNaira)} more
               </Text>
             </Pressable>
           ) : null}
@@ -154,67 +144,38 @@ export default function CheckoutScreen() {
         ) : null}
 
         <Text style={styles.sectionTitle}>Promo code</Text>
-        {appliedPromo ? (
-          <View style={styles.promoApplied}>
-            <View style={styles.promoTagWrap}>
-              <Ionicons name="pricetag" size={14} color={palette.brand.orange} />
-              <Text style={styles.promoTagText}>{appliedPromo}</Text>
-              <Text style={styles.promoTagSub}>
-                {appliedPromo === 'FREESHIP' ? 'Free delivery' : `${(PROMOS[appliedPromo] * 100).toFixed(0)}% off`}
-              </Text>
-            </View>
-            <Pressable onPress={removePromo} hitSlop={8}>
-              <Ionicons name="close" size={18} color={palette.ink.onDarkSoft} />
-            </Pressable>
+        <View style={styles.promoRow}>
+          <View style={{ flex: 1 }}>
+            <TextField
+              placeholder="Enter promo code"
+              value={promo}
+              onChangeText={(t) => setPromo(t.toUpperCase())}
+              autoCapitalize="characters"
+            />
           </View>
-        ) : (
-          <View style={styles.promoRow}>
-            <View style={{ flex: 1 }}>
-              <TextField
-                placeholder="Enter promo code"
-                value={promo}
-                onChangeText={(t) => {
-                  setPromo(t.toUpperCase());
-                  setPromoError(null);
-                }}
-                autoCapitalize="characters"
-                error={promoError ?? undefined}
-              />
-            </View>
-            <Pressable
-              onPress={applyPromo}
-              disabled={!promo.trim()}
-              style={({ pressed }) => [
-                styles.applyBtn,
-                !promo.trim() && { opacity: 0.5 },
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={styles.applyLabel}>Apply</Text>
-            </Pressable>
-          </View>
-        )}
+        </View>
 
         <View style={styles.summary}>
           <SummaryRow label="Subtotal" value={`₦${subtotal.toLocaleString()}`} />
-          {promoDiscount > 0 ? (
-            <SummaryRow label={`Promo (${appliedPromo})`} value={`-₦${promoDiscount.toLocaleString()}`} tone="negative" />
+          {promo.trim() ? (
+            <SummaryRow label="Promo code" value={promo.trim().toUpperCase()} tone="negative" />
           ) : null}
-          <SummaryRow label="Delivery fee" value={deliveryFee === 0 ? 'Free' : `₦${deliveryFee.toLocaleString()}`} />
+          <SummaryRow label="Delivery fee" value="Calculated by backend" />
           <SummaryRow
             label={PLATFORM_FEE_LABEL}
             value={`₦${platformFee.toLocaleString()}`}
           />
           <Text style={styles.feeFootnote}>{PLATFORM_FEE_EXPLAINER}</Text>
           <View style={styles.divider} />
-          <SummaryRow label="Total" value={`₦${finalTotal.toLocaleString()}`} emphasized />
+          <SummaryRow label="Estimated total" value={`₦${estimatedTotal.toLocaleString()}`} emphasized />
         </View>
       </ScrollView>
 
       <View style={styles.actions}>
         <PrimaryButton
-          label={`Place order — ₦${finalTotal.toLocaleString()}`}
-          loading={submitting}
-          disabled={!address || !phone}
+          label={estimatedTotal > 0 ? `Place order — ${fmt(estimatedTotal)} est.` : 'Place order'}
+          loading={createOrder.isPending || payFromWallet.isPending}
+          disabled={!address || !phone || lines.length === 0}
           onPress={placeOrder}
         />
       </View>

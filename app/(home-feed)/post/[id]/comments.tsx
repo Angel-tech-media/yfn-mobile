@@ -16,62 +16,32 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { palette, spacing, typography } from '@/src/theme';
-
-const STORY_1 = require('@/assets/figma/story-1.png');
-const STORY_2 = require('@/assets/figma/story-2.png');
-const STORY_3 = require('@/assets/figma/story-3.png');
-const STORY_4 = require('@/assets/figma/story-4.png');
-const STORY_5 = require('@/assets/figma/story-5.png');
-const STORE_AVATAR = require('@/assets/figma/store-avatar.png');
-
-type Comment = {
-  id: string;
-  author: string;
-  handle: string;
-  avatar: any;
-  text: string;
-  time: string;
-  likes: number;
-  verified?: boolean;
-};
-
-const SEED: Comment[] = [
-  { id: 'c1', author: 'Aisha Bello', handle: 'aishabello', avatar: STORY_1, text: 'This drop is fire 🔥 Reserving size M.', time: '12m', likes: 24 },
-  { id: 'c2', author: 'Olufemi A.', handle: 'olufemia', avatar: STORY_2, text: 'Reposted to my profile — buyers, the fit is real.', time: '23m', likes: 41 },
-  { id: 'c3', author: 'Bisi A.', handle: 'bisia', avatar: STORY_3, text: 'Do you ship to Abuja? Need by Friday for a wedding.', time: '34m', likes: 9 },
-  { id: 'c4', author: "Sarah's Boutique", handle: 'sarahsboutique', avatar: STORE_AVATAR, text: 'Yes 🇳🇬 same-day dispatch if you order before 2pm. DM your address.', time: '28m', likes: 32, verified: true },
-  { id: 'c5', author: 'Tunde Otun', handle: 'tundeotun', avatar: STORY_4, text: 'The embroidery! Who did this for you?', time: '41m', likes: 18 },
-  { id: 'c6', author: 'Doyin Ojo', handle: 'doyinojo', avatar: STORY_5, text: 'Saved this one. Birthday gift sorted 🎁', time: '1h', likes: 12 },
-  { id: 'c7', author: 'Mide', handle: 'midemoji', avatar: STORY_2, text: 'Can I get a photo of the back? Considering for my Saturday shoot.', time: '2h', likes: 7 },
-];
+import { useMe } from '@/src/api/account/hooks';
+import { useCreateComment, usePostComments } from '@/src/api/feed/hooks';
+import type { Comment, FeedAuthor } from '@/src/api/types';
+import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function CommentsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [composer, setComposer] = useState('');
-  const [comments, setComments] = useState(SEED);
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
-  void id;
+  const { data, isError, isLoading, refetch } = usePostComments(id, { limit: 80 });
+  const createComment = useCreateComment(id);
+  const { data: me } = useMe();
+  const comments = data?.comments ?? [];
 
-  const toggleLike = (cId: string) =>
-    setLikedIds((s) => ({ ...s, [cId]: !s[cId] }));
+  const toggleLike = (commentId: string) =>
+    setLikedIds((state) => ({ ...state, [commentId]: !state[commentId] }));
 
   const post = () => {
-    const text = composer.trim();
-    if (!text) return;
-    setComments((s) => [
+    const body = composer.trim();
+    if (!body || createComment.isPending) return;
+    createComment.mutate(
+      { body },
       {
-        id: `c-${Date.now()}`,
-        author: 'David Okpo',
-        handle: 'davidokpo',
-        avatar: STORY_1,
-        text,
-        time: 'now',
-        likes: 0,
+        onSuccess: () => setComposer(''),
       },
-      ...s,
-    ]);
-    setComposer('');
+    );
   };
 
   return (
@@ -83,81 +53,51 @@ export default function CommentsScreen() {
           </Pressable>
           <Text style={styles.title}>Comments</Text>
           <Pressable hitSlop={8} accessibilityLabel="Share">
-            <Ionicons
-              name="paper-plane-outline"
-              size={20}
-              color={palette.ink.onLightStrong}
-            />
+            <Ionicons name="paper-plane-outline" size={20} color={palette.ink.onLightStrong} />
           </Pressable>
         </View>
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.list}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
             <Text style={styles.counter}>
               {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
             </Text>
 
-            {comments.map((c) => {
-              const liked = !!likedIds[c.id];
-              return (
-                <View key={c.id} style={styles.row}>
-                  <Pressable onPress={() => router.push(`/u/${c.handle}` as never)}>
-                    <Image source={c.avatar} style={styles.avatar} />
-                  </Pressable>
-                  <View style={styles.bubbleWrap}>
-                    <View style={styles.headerRow}>
-                      <Pressable
-                        onPress={() => router.push(`/u/${c.handle}` as never)}>
-                        <Text style={styles.author}>{c.author}</Text>
-                      </Pressable>
-                      {c.verified ? (
-                        <View style={styles.verifyDot}>
-                          <Ionicons name="shield-checkmark" size={9} color="#fff" />
-                        </View>
-                      ) : null}
-                      <Text style={styles.time}>· {c.time}</Text>
-                    </View>
-                    <Text style={styles.text}>{c.text}</Text>
-                    <View style={styles.actionsRow}>
-                      <Pressable hitSlop={6} onPress={() => toggleLike(c.id)}>
-                        <Text style={styles.actionText}>{liked ? 'Liked' : 'Like'}</Text>
-                      </Pressable>
-                      <Text style={styles.actionDot}>·</Text>
-                      <Pressable hitSlop={6}>
-                        <Text style={styles.actionText}>Reply</Text>
-                      </Pressable>
-                      {c.likes + (liked ? 1 : 0) > 0 ? (
-                        <>
-                          <Text style={styles.actionDot}>·</Text>
-                          <Text style={styles.actionLikes}>
-                            {c.likes + (liked ? 1 : 0)} likes
-                          </Text>
-                        </>
-                      ) : null}
-                    </View>
-                  </View>
-                  <Pressable hitSlop={6} onPress={() => toggleLike(c.id)}>
-                    <Ionicons
-                      name={liked ? 'heart' : 'heart-outline'}
-                      size={14}
-                      color={liked ? palette.status.danger : palette.ink.onLightSubtle}
-                    />
-                  </Pressable>
-                </View>
-              );
-            })}
+            {isLoading ? (
+              <Text style={styles.stateText}>Loading comments...</Text>
+            ) : isError ? (
+              <View style={styles.stateBlock}>
+                <Text style={styles.stateTitle}>Comments unavailable</Text>
+                <Text style={styles.stateText}>The backend could not load comments.</Text>
+                <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : comments.length ? (
+              comments.map((comment) => (
+                <CommentRow
+                  key={comment.id}
+                  comment={comment}
+                  liked={Boolean(likedIds[comment.id])}
+                  onLike={() => toggleLike(comment.id)}
+                />
+              ))
+            ) : (
+              <Text style={styles.stateText}>No comments yet.</Text>
+            )}
           </ScrollView>
 
           <View style={styles.composer}>
-            <Image source={STORY_1} style={styles.composerAvatar} />
+            <ComposerAvatar
+              name={me?.displayName ?? me?.username ?? 'Me'}
+              imageUrl={me?.avatarUrl ?? undefined}
+            />
             <TextInput
               value={composer}
               onChangeText={setComposer}
-              placeholder="Add a comment…"
+              placeholder="Add a comment..."
               placeholderTextColor={palette.ink.onLightSubtle}
               style={styles.composerInput}
               multiline
@@ -165,14 +105,114 @@ export default function CommentsScreen() {
             <Pressable
               onPress={post}
               hitSlop={6}
-              style={[styles.postBtn, composer.trim() ? null : { opacity: 0.4 }]}>
-              <Text style={styles.postLabel}>Post</Text>
+              disabled={!composer.trim() || createComment.isPending}
+              style={[
+                styles.postBtn,
+                !composer.trim() || createComment.isPending ? { opacity: 0.4 } : null,
+              ]}>
+              <Text style={styles.postLabel}>{createComment.isPending ? 'Posting' : 'Post'}</Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function CommentRow({
+  comment,
+  liked,
+  onLike,
+}: {
+  comment: Comment;
+  liked: boolean;
+  onLike: () => void;
+}) {
+  const likes = comment.likes + (liked ? 1 : 0);
+
+  return (
+    <View style={styles.row}>
+      <Pressable onPress={() => router.push(`/u/${comment.author.handle}` as never)}>
+        <AuthorAvatar author={comment.author} />
+      </Pressable>
+      <View style={styles.bubbleWrap}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => router.push(`/u/${comment.author.handle}` as never)}>
+            <Text style={styles.author}>{comment.author.name}</Text>
+          </Pressable>
+          {comment.author.verified ? (
+            <View style={styles.verifyDot}>
+              <Ionicons name="shield-checkmark" size={9} color="#fff" />
+            </View>
+          ) : null}
+          <Text style={styles.time}>· {ageLabel(comment.createdAt)}</Text>
+        </View>
+        <Text style={styles.text}>{comment.body}</Text>
+        <View style={styles.actionsRow}>
+          <Pressable hitSlop={6} onPress={onLike}>
+            <Text style={styles.actionText}>{liked ? 'Liked' : 'Like'}</Text>
+          </Pressable>
+          <Text style={styles.actionDot}>·</Text>
+          <Pressable hitSlop={6}>
+            <Text style={styles.actionText}>Reply</Text>
+          </Pressable>
+          {likes > 0 ? (
+            <>
+              <Text style={styles.actionDot}>·</Text>
+              <Text style={styles.actionLikes}>
+                {likes} {likes === 1 ? 'like' : 'likes'}
+              </Text>
+            </>
+          ) : null}
+        </View>
+      </View>
+      <Pressable hitSlop={6} onPress={onLike}>
+        <Ionicons
+          name={liked ? 'heart' : 'heart-outline'}
+          size={14}
+          color={liked ? palette.status.danger : palette.ink.onLightSubtle}
+        />
+      </Pressable>
+    </View>
+  );
+}
+
+function AuthorAvatar({ author }: { author: FeedAuthor }) {
+  if (author.avatarUrl) {
+    return <Image source={{ uri: author.avatarUrl }} style={styles.avatar} contentFit="cover" />;
+  }
+  return (
+    <View style={styles.avatarFallback}>
+      <Text style={styles.avatarInitial}>{initialFor(author.name)}</Text>
+    </View>
+  );
+}
+
+function ComposerAvatar({ imageUrl, name }: { imageUrl?: string; name: string }) {
+  if (imageUrl) {
+    return <Image source={{ uri: imageUrl }} style={styles.composerAvatar} contentFit="cover" />;
+  }
+  return (
+    <View style={styles.composerAvatarFallback}>
+      <Text style={styles.avatarInitial}>{initialFor(name)}</Text>
+    </View>
+  );
+}
+
+function initialFor(name: string) {
+  return name.trim().charAt(0).toUpperCase() || 'Y';
+}
+
+function ageLabel(value: string) {
+  const then = new Date(value).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diff = Math.max(0, Date.now() - then);
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
 
 const styles = StyleSheet.create({
@@ -205,6 +245,18 @@ const styles = StyleSheet.create({
     color: palette.ink.onLightSubtle,
     marginBottom: spacing['3'],
   },
+  stateBlock: { gap: spacing['2'], paddingVertical: spacing['2'] },
+  stateTitle: { ...typography.bodyEmphasis, color: palette.ink.onLightStrong },
+  stateText: { ...typography.body, color: palette.ink.onLightSubtle },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    height: 34,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing['4'],
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: { ...typography.bodyEmphasis, color: '#fff' },
   row: {
     flexDirection: 'row',
     gap: spacing['3'],
@@ -212,6 +264,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   avatar: { width: 32, height: 32, borderRadius: 16 },
+  avatarFallback: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.brand.orange,
+  },
+  avatarInitial: { ...typography.caption, color: '#fff', fontFamily: typography.bodyEmphasis.fontFamily },
   bubbleWrap: { flex: 1, gap: 2 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   author: {
@@ -259,6 +320,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   composerAvatar: { width: 32, height: 32, borderRadius: 16, marginBottom: 4 },
+  composerAvatarFallback: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.brand.orange,
+  },
   composerInput: {
     flex: 1,
     minHeight: 40,

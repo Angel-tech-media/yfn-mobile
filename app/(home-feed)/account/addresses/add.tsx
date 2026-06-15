@@ -9,10 +9,11 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
-import { useAccount } from '@/src/store/account';
+import { useCreateAddress } from '@/src/api/account/hooks';
 import { spacing } from '@/src/theme';
 
 const addressSchema = z.object({
+  label: z.string().min(1, 'Label required'),
   recipient: z.string().min(2, 'Recipient name too short'),
   street: z.string().min(4, 'Street address required'),
   city: z.string().min(2, 'City required'),
@@ -24,27 +25,28 @@ const addressSchema = z.object({
 });
 
 export default function AddAddressScreen() {
-  const [label, setLabel] = useState('Home');
-  const [recipient, setRecipient] = useState('David Okpo');
+  const [label, setLabel] = useState('');
+  const [recipient, setRecipient] = useState('');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [phone, setPhone] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
-  const add = useAccount((s) => s.addAddress);
+  const createAddress = useCreateAddress();
 
   const validation = useMemo(
-    () => addressSchema.safeParse({ recipient, street, city, state, phone }),
-    [recipient, street, city, state, phone],
+    () => addressSchema.safeParse({ label, recipient, street, city, state, phone }),
+    [label, recipient, street, city, state, phone],
   );
 
   const errors = useMemo(() => {
-    const errs: Partial<Record<'recipient' | 'street' | 'city' | 'state' | 'phone', string>> = {};
+    const errs: Partial<Record<'label' | 'recipient' | 'street' | 'city' | 'state' | 'phone', string>> = {};
     if (validation.success) return errs;
     for (const issue of validation.error.issues) {
       const key = issue.path[0] as keyof typeof errs;
       const value =
+        key === 'label' ? label :
         key === 'recipient' ? recipient :
         key === 'street' ? street :
         key === 'city' ? city :
@@ -52,22 +54,24 @@ export default function AddAddressScreen() {
       if (value) errs[key] = issue.message;
     }
     return errs;
-  }, [validation, recipient, street, city, state, phone]);
+  }, [validation, label, recipient, street, city, state, phone]);
 
   const save = () => {
     if (!validation.success) return;
-    add({ label, recipient, street, city, state, phone, isDefault });
-    router.back();
+    createAddress.mutate(
+      { label, recipient, street, city, state, phone, isDefault },
+      { onSuccess: () => router.back() },
+    );
   };
 
-  const canSave = validation.success;
+  const canSave = validation.success && !createAddress.isPending;
 
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Add address" showBack />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
-          <TextField label="Label" placeholder="Home, Work, …" value={label} onChangeText={setLabel} />
+          <TextField label="Label" placeholder="Home, Work, …" value={label} onChangeText={setLabel} error={errors.label} />
           <TextField label="Recipient" placeholder="Full name" value={recipient} onChangeText={setRecipient} error={errors.recipient} />
           <TextField label="Street address" placeholder="Street, building" value={street} onChangeText={setStreet} error={errors.street} />
           <TextField label="City" placeholder="City" value={city} onChangeText={setCity} error={errors.city} />
@@ -86,7 +90,12 @@ export default function AddAddressScreen() {
         </View>
       </ScrollView>
       <View style={styles.actions}>
-        <PrimaryButton label="Save address" disabled={!canSave} onPress={save} />
+        <PrimaryButton
+          label="Save address"
+          loading={createAddress.isPending}
+          disabled={!canSave}
+          onPress={save}
+        />
       </View>
     </ScreenContainer>
   );

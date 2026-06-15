@@ -9,23 +9,26 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { LinkText } from '@/components/ui/LinkText';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useCreateProduct } from '@/src/api/products/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { nairaToKobo } from '@/src/utils/money';
 
 const MAX_IMAGES = 6;
 
 export default function FirstListingScreen() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
+  const [category, setCategory] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const createProduct = useCreateProduct();
 
   const { pick, pickMany } = useImagePicker();
 
@@ -40,6 +43,38 @@ export default function FirstListingScreen() {
     if (picked.length) setImages((arr) => [...arr, ...picked].slice(0, MAX_IMAGES));
   };
   const removeAt = (i: number) => setImages((arr) => arr.filter((_, j) => j !== i));
+  const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
+  const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+
+  const save = (continueToLive: boolean) => {
+    if (!canSave) return;
+    createProduct.mutate(
+      {
+        title: name.trim(),
+        description: desc.trim(),
+        price: nairaToKobo(numericPrice),
+        category: category.trim(),
+        stock: outOfStock ? 0 : 1,
+        mediaIds: [],
+        active: !outOfStock,
+      },
+      {
+        onSuccess: () => {
+          if (continueToLive) {
+            router.replace('/vendor-store-setup/live');
+            return;
+          }
+          setName('');
+          setDesc('');
+          setCategory('');
+          setSalePrice('');
+          setDiscountPrice('');
+          setOutOfStock(false);
+          setImages([]);
+        },
+      },
+    );
+  };
 
   return (
     <ScreenContainer variant="espresso">
@@ -61,7 +96,7 @@ export default function FirstListingScreen() {
             numberOfLines={3}
             style={styles.descInput}
           />
-          <SelectField placeholder="Select or add category tag" onPress={() => {}} />
+          <TextField placeholder="Category tag" value={category} onChangeText={setCategory} />
 
           <PriceField label="Sale Price" value={salePrice} onChangeText={setSalePrice} />
           <PriceField label="Discounted Price" value={discountPrice} onChangeText={setDiscountPrice} />
@@ -111,10 +146,18 @@ export default function FirstListingScreen() {
       </ScrollView>
 
       <View style={styles.actions}>
-        <PrimaryButton label="Add another" variant="ghost" onPress={() => {}} />
+        <PrimaryButton
+          label="Add another"
+          variant="ghost"
+          loading={createProduct.isPending}
+          disabled={!canSave || createProduct.isPending}
+          onPress={() => save(false)}
+        />
         <PrimaryButton
           label="Save and Continue"
-          onPress={() => router.replace('/vendor-store-setup/live')}
+          loading={createProduct.isPending}
+          disabled={!canSave || createProduct.isPending}
+          onPress={() => save(true)}
         />
       </View>
 

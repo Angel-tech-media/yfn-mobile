@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -11,33 +11,68 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useMe, useUpdateMe } from '@/src/api/account/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function EditProfileScreen() {
-  const [name, setName] = useState('David Okpo');
-  const [handle, setHandle] = useState('davidokpo');
+  const { data: me, isLoading } = useMe();
+  const updateMe = useUpdateMe();
+  const [name, setName] = useState('');
+  const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
   const [photo, setPhoto] = useState<PickedImage | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const { pick } = useImagePicker();
+
+  useEffect(() => {
+    if (!me) return;
+    setName(me.name || me.displayName || '');
+    setHandle(me.handle || me.username || '');
+    setBio(me.bio ?? '');
+  }, [me]);
 
   const handlePick = async (source: 'camera' | 'library') => {
     const img = await pick(source);
     if (img) setPhoto(img);
   };
 
+  const save = () => {
+    updateMe.mutate(
+      {
+        displayName: name.trim(),
+        username: handle.trim(),
+        bio: bio.trim(),
+      },
+      { onSuccess: () => router.back() },
+    );
+  };
+
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'ME';
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Edit profile" showBack />
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={palette.brand.orange} />
+        </View>
+      ) : (
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarBlock}>
           {photo ? (
             <View style={styles.avatarFrame}>
               <Image source={{ uri: photo.uri }} style={styles.avatarImage} contentFit="cover" />
             </View>
+          ) : me?.avatarUrl ? (
+            <Avatar size={108} source={{ uri: me.avatarUrl }} initials={initials} />
           ) : (
-            <Avatar size={108} initials="DO" />
+            <Avatar size={108} initials={initials} />
           )}
           <Pressable
             onPress={() => setSheetOpen(true)}
@@ -66,9 +101,15 @@ export default function EditProfileScreen() {
           />
         </View>
       </ScrollView>
+      )}
 
       <View style={styles.actions}>
-        <PrimaryButton label="Save changes" onPress={() => router.back()} />
+        <PrimaryButton
+          label="Save changes"
+          loading={updateMe.isPending}
+          disabled={!name.trim() || !handle.trim() || updateMe.isPending}
+          onPress={save}
+        />
       </View>
 
       <UploadSheet
@@ -83,6 +124,7 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingVertical: spacing['3'], paddingBottom: 40 },
   avatarBlock: {
     alignItems: 'center',

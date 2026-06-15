@@ -8,15 +8,20 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TextField } from '@/components/ui/TextField';
+import { useMe } from '@/src/api/account/hooks';
+import { useCreateReel } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
-import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateReelScreen() {
   const [video, setVideo] = useState<PickedImage | null>(null);
   const [caption, setCaption] = useState('');
-  const [audio] = useState<string>('original sound · davidokpo');
+  const [error, setError] = useState<string | null>(null);
+  const { data: me } = useMe();
+  const audio = `original sound · ${me?.username ?? 'me'}`;
   const { pick } = useImagePicker();
+  const createReel = useCreateReel();
 
   if (!video) {
     return (
@@ -94,19 +99,31 @@ export default function CreateReelScreen() {
 
         <View style={styles.actionsBottom}>
           <Pressable
-            onPress={() => {
-              if (video) {
-                useUserContent.getState().addReel({
-                  cover: { uri: video.uri },
-                  caption: caption.trim(),
-                  audio,
-                });
+            disabled={!video || createReel.isPending}
+            onPress={async () => {
+              if (!video || createReel.isPending) return;
+              setError(null);
+              try {
+                const videoMediaId = await uploadLocalAsset(video, 'reel');
+                createReel.mutate(
+                  {
+                    videoMediaId,
+                    caption: caption.trim(),
+                    audio,
+                  },
+                  {
+                    onSuccess: () => router.back(),
+                    onError: () => setError('Could not post reel.'),
+                  },
+                );
+              } catch {
+                setError('Could not upload reel.');
               }
-              router.back();
             }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.shareLabel}>Post reel</Text>
+            <Text style={styles.shareLabel}>{createReel.isPending ? 'Posting' : 'Post reel'}</Text>
           </Pressable>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </SafeAreaView>
     </View>
@@ -197,5 +214,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
     color: '#FFFFFF',
+  },
+  errorText: {
+    ...typography.caption,
+    color: palette.status.danger,
+    textAlign: 'center',
+    marginTop: spacing['2'],
   },
 });

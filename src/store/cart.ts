@@ -6,9 +6,11 @@ export type CartLine = {
   id: string;
   name: string;
   price: number;
+  priceKobo?: number;
   quantity: number;
   image: ImageSourcePropType;
   vendor: string;
+  vendorId?: string;
   color?: string;
 };
 

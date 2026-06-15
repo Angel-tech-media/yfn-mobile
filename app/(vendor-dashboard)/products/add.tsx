@@ -8,24 +8,26 @@ import { router } from 'expo-router';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
+import { useCreateProduct } from '@/src/api/products/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
-import { useUserContent } from '@/src/store/user-content';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { nairaToKobo } from '@/src/utils/money';
 
 const MAX_IMAGES = 6;
 
 export default function AddProductScreen() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
+  const [category, setCategory] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const createProduct = useCreateProduct();
 
   const { pick, pickMany } = useImagePicker();
 
@@ -42,6 +44,24 @@ export default function AddProductScreen() {
   };
 
   const removeAt = (idx: number) => setImages((arr) => arr.filter((_, i) => i !== idx));
+  const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
+  const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+
+  const save = () => {
+    if (!canSave) return;
+    createProduct.mutate(
+      {
+        title: name.trim(),
+        description: desc.trim(),
+        price: nairaToKobo(numericPrice),
+        category: category.trim(),
+        stock: outOfStock ? 0 : 1,
+        mediaIds: [],
+        active: !outOfStock,
+      },
+      { onSuccess: () => router.replace('/products/saved') },
+    );
+  };
 
   return (
     <ScreenContainer variant="espresso">
@@ -66,7 +86,7 @@ export default function AddProductScreen() {
             numberOfLines={3}
             style={styles.descInput}
           />
-          <SelectField placeholder="Select or add category tag" onPress={() => {}} />
+          <TextField placeholder="Category tag" value={category} onChangeText={setCategory} />
 
           <PriceField label="Sale Price" value={salePrice} onChangeText={setSalePrice} />
           <PriceField label="Discounted Price" value={discountPrice} onChangeText={setDiscountPrice} />
@@ -122,17 +142,9 @@ export default function AddProductScreen() {
       <View style={styles.actions}>
         <PrimaryButton
           label="Save Product"
-          onPress={() => {
-            useUserContent.getState().addProduct({
-              name: name || 'Untitled product',
-              price: Number(salePrice.replace(/[^0-9]/g, '')) || 0,
-              category: 'Uncategorised',
-              image: images[0]
-                ? { uri: images[0].uri }
-                : require('@/assets/figma/product-sample.png'),
-            });
-            router.replace('/products/saved');
-          }}
+          loading={createProduct.isPending}
+          disabled={!canSave || createProduct.isPending}
+          onPress={save}
         />
       </View>
 

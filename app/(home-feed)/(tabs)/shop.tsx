@@ -7,8 +7,10 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { useMarketplaceHome } from '@/src/api/marketplace/hooks';
 import { useCartCount } from '@/src/store/cart';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { formatKobo } from '@/src/utils/money';
 
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
@@ -47,27 +49,23 @@ const cartIconStyles = StyleSheet.create({
   },
 });
 
-const CATEGORIES = ['All', 'Fashion', 'Beauty', 'Food', 'Electronics', 'Art', 'Home'];
-
-const PRODUCTS = Array.from({ length: 12 }).map((_, i) => ({
-  id: `prod-${i}`,
-  name: i % 2 ? 'Ankara high shoulder fitted gown' : 'Birkin handbag deluxe edition',
-  price: i % 2 ? '₦24,990' : '₦149,000',
-  category: ['Fashion', 'Fashion', 'Beauty', 'Food', 'Electronics', 'Art'][i % 6],
-}));
-
 export default function ShopScreen() {
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState('All');
+  const { data, isLoading, isError } = useMarketplaceHome({
+    category: activeCat === 'All' ? undefined : activeCat,
+    limit: 50,
+  });
+  const products = data?.products ?? [];
+  const categories = ['All', ...(data?.categories ?? [])];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return PRODUCTS.filter((p) => {
-      if (activeCat !== 'All' && p.category !== activeCat) return false;
-      if (q && !p.name.toLowerCase().includes(q)) return false;
+    return products.filter((p) => {
+      if (q && !p.title.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [query, activeCat]);
+  }, [products, query]);
 
   return (
     <EspressoBackground variant="espresso">
@@ -99,7 +97,7 @@ export default function ShopScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsRow}>
-          {CATEGORIES.map((c) => {
+          {categories.map((c) => {
             const isActive = activeCat === c;
             return (
               <Pressable
@@ -113,7 +111,17 @@ export default function ShopScreen() {
         </ScrollView>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="bag-outline" size={40} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyTitle}>Loading products…</Text>
+            </View>
+          ) : isError ? (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="cloud-offline-outline" size={40} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyTitle}>Couldn&apos;t load products</Text>
+            </View>
+          ) : filtered.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Ionicons name="search" size={40} color={palette.ink.onDarkMuted} />
               <Text style={styles.emptyTitle}>No matches</Text>
@@ -125,9 +133,9 @@ export default function ShopScreen() {
                 key={p.id}
                 onPress={() => router.push(`/product/${p.id}` as never)}
                 style={styles.tile}>
-                <Image source={PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
-                <Text style={styles.tileName} numberOfLines={2}>{p.name}</Text>
-                <Text style={styles.tilePrice}>{p.price}</Text>
+                <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
+                <Text style={styles.tileName} numberOfLines={2}>{p.title}</Text>
+                <Text style={styles.tilePrice}>{formatKobo(p.price)}</Text>
               </Pressable>
             ))
           )}

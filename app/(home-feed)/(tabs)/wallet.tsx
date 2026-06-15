@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,25 +7,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DeliveryTrackCard } from '@/components/ui/DeliveryTrackCard';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { useWallet } from '@/src/store/wallet';
+import { useOrders } from '@/src/api/orders/hooks';
+import { useTopUpWallet, useWallet } from '@/src/api/wallet/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const ESCROW_ORDERS = [
-  { id: 'ord-1', vendor: 'Aisha Threads', stage: 'In escrow', amount: 18500 },
-  { id: 'ord-2', vendor: 'GadgetFix Hub', stage: 'Out for delivery', amount: 9200 },
-  { id: 'ord-3', vendor: 'Zara Cakes', stage: 'Confirm receipt', amount: 4500 },
-  { id: 'ord-4', vendor: "Sarah's Boutique", stage: 'In escrow', amount: 27000 },
-  { id: 'ord-7', vendor: 'Naija Kitchen', stage: 'Preparing', amount: 35000 },
-  { id: 'ord-9', vendor: 'Doyin Beauty', stage: 'Scheduled · 24 May', amount: 95000 },
-];
-
-const fmt = (n: number) =>
-  '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 0 });
+import { formatKobo, nairaToKobo } from '@/src/utils/money';
 
 export default function WalletScreen() {
-  const balance = useWallet((s) => s.balance);
-  const inEscrow = useWallet((s) => s.inEscrow);
-  const TX = useWallet((s) => s.recent);
+  const { data: wallet, isLoading, isError, refetch, isFetching } = useWallet();
+  const { data: orders = [] } = useOrders({ limit: 20 });
+  const topUp = useTopUpWallet();
+  const activeOrders = orders.filter(
+    (order) => !['released', 'refunded'].includes(order.status),
+  );
+  const firstActive = activeOrders[0];
+
+  const handleTopUp = () => {
+    topUp.mutate(
+      { amount: nairaToKobo(10000), source: 'Paystack' },
+      {
+        onSuccess: (result) => {
+          if (result.authorizationUrl) void Linking.openURL(result.authorizationUrl);
+        },
+      },
+    );
+  };
 
   return (
     <EspressoBackground variant="espresso">
@@ -38,27 +43,42 @@ export default function WalletScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          {isLoading ? (
+            <View style={styles.stateBlock}>
+              <ActivityIndicator color={palette.brand.orange} />
+              <Text style={styles.stateText}>Loading wallet…</Text>
+            </View>
+          ) : isError || !wallet ? (
+            <View style={styles.stateBlock}>
+              <Ionicons name="cloud-offline-outline" size={32} color={palette.ink.onDarkMuted} />
+              <Text style={styles.stateTitle}>Couldn&apos;t load wallet</Text>
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.sectionLink}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              </Pressable>
+            </View>
+          ) : (
+          <>
           <LinearGradient
             colors={[palette.brand.orange, palette.brand.orangeDeep]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>Available balance</Text>
-            <Text style={styles.balanceAmount}>{fmt(balance)}</Text>
+            <Text style={styles.balanceAmount}>{formatKobo(wallet.balance)}</Text>
             <View style={styles.balanceRow}>
               <View style={styles.balanceChip}>
                 <Ionicons name="lock-closed" size={12} color="#fff" />
-                <Text style={styles.balanceChipText}>{fmt(inEscrow)} in escrow</Text>
+                <Text style={styles.balanceChipText}>{formatKobo(wallet.inEscrow)} in escrow</Text>
               </View>
-              <Text style={styles.balanceMeta}>{ESCROW_ORDERS.length} active orders</Text>
+              <Text style={styles.balanceMeta}>{activeOrders.length} active orders</Text>
             </View>
           </LinearGradient>
 
           <View style={styles.actionRow}>
             <ActionBtn
               icon="add-circle"
-              label="Top up"
-              onPress={() => useWallet.getState().topUp(10000, 'Paystack')}
+              label={topUp.isPending ? 'Opening' : 'Top up'}
+              onPress={handleTopUp}
             />
             <ActionBtn
               icon="arrow-up-circle"
@@ -81,41 +101,56 @@ export default function WalletScreen() {
               <Text style={styles.sectionLink}>All orders</Text>
             </Pressable>
           </View>
-          <DeliveryTrackCard
-            vendor="Aisha Threads"
-            product="Ankara A-line Dress"
-            status="Courier 0.4 km away"
-            etaMin={12}
-            progress={0.62}
-            onTrack={() => router.push('/orders/ord-1/track' as never)}
-            onCall={() => {}}
-          />
+          {firstActive ? (
+            <DeliveryTrackCard
+              vendor={firstActive.vendor}
+              product={firstActive.items[0]?.name ?? 'Order items'}
+              status={statusLabel(firstActive.status)}
+              etaMin={12}
+              progress={progressFor(firstActive.status)}
+              onTrack={() => router.push(`/orders/${firstActive.id}/track` as never)}
+              onCall={() => {}}
+            />
+          ) : (
+            <View style={styles.emptyCard}>
+              <Ionicons name="cube-outline" size={24} color={palette.ink.onDarkMuted} />
+              <Text style={styles.stateText}>No active deliveries</Text>
+            </View>
+          )}
 
           <Text style={styles.sectionTitle}>In escrow</Text>
           <View style={styles.list}>
-            {ESCROW_ORDERS.map((o, i) => (
+            {activeOrders.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.stateText}>No orders currently held in escrow.</Text>
+              </View>
+            ) : activeOrders.map((o, i) => (
               <Pressable
                 key={o.id}
                 onPress={() => router.push(`/orders/${o.id}/track` as never)}
-                style={[styles.row, i < ESCROW_ORDERS.length - 1 && styles.rowDivider]}>
+                style={[styles.row, i < activeOrders.length - 1 && styles.rowDivider]}>
                 <View style={styles.rowIcon}>
                   <Ionicons name="lock-closed" size={16} color={palette.brand.orange} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle}>{o.vendor}</Text>
-                  <Text style={styles.rowMeta}>{o.stage}</Text>
+                  <Text style={styles.rowMeta}>{statusLabel(o.status)}</Text>
                 </View>
-                <Text style={styles.rowAmount}>{fmt(o.amount)}</Text>
+                <Text style={styles.rowAmount}>{formatKobo(o.grandTotal)}</Text>
               </Pressable>
             ))}
           </View>
 
           <Text style={styles.sectionTitle}>Recent activity</Text>
           <View style={styles.list}>
-            {TX.map((t, i) => (
+            {wallet.recent.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.stateText}>No wallet activity yet.</Text>
+              </View>
+            ) : wallet.recent.map((t, i) => (
               <View
                 key={t.id}
-                style={[styles.row, i < TX.length - 1 && styles.rowDivider]}>
+                style={[styles.row, i < wallet.recent.length - 1 && styles.rowDivider]}>
                 <View
                   style={[
                     styles.rowIcon,
@@ -147,7 +182,7 @@ export default function WalletScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle}>{t.label}</Text>
-                  <Text style={styles.rowMeta}>{t.when}</Text>
+                  <Text style={styles.rowMeta}>{formatWhen(t.when)}</Text>
                 </View>
                 <Text
                   style={[
@@ -164,15 +199,47 @@ export default function WalletScreen() {
                   t.kind === 'referral'
                     ? '+'
                     : '-'}
-                  {fmt(t.amount)}
+                  {formatKobo(t.amount)}
                 </Text>
               </View>
             ))}
           </View>
+          </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function statusLabel(status: string) {
+  if (status === 'paid') return 'Paid · held in escrow';
+  if (status === 'confirmed') return 'Vendor confirmed';
+  if (status === 'packed') return 'Packed';
+  if (status === 'shipped') return 'In transit';
+  if (status === 'delivered') return 'Confirm receipt';
+  if (status === 'disputed') return 'Disputed';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function progressFor(status: string) {
+  if (status === 'paid') return 0.18;
+  if (status === 'confirmed') return 0.35;
+  if (status === 'packed') return 0.5;
+  if (status === 'shipped') return 0.72;
+  if (status === 'delivered') return 0.9;
+  return 0.1;
+}
+
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('en-NG', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function ActionBtn({
@@ -206,6 +273,31 @@ const styles = StyleSheet.create({
   },
   title: { ...typography.h2, color: palette.ink.onDarkStrong },
   scroll: { paddingBottom: 120 },
+  stateBlock: {
+    alignItems: 'center',
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['8'],
+    gap: spacing['2'],
+  },
+  stateTitle: {
+    ...typography.title,
+    color: palette.ink.onDarkStrong,
+  },
+  stateText: {
+    ...typography.body,
+    color: palette.ink.onDarkSoft,
+    textAlign: 'center',
+  },
+  emptyCard: {
+    marginHorizontal: spacing['4'],
+    padding: spacing['4'],
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    gap: spacing['2'],
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
   balanceCard: {
     marginHorizontal: spacing['4'],
     padding: spacing['5'],

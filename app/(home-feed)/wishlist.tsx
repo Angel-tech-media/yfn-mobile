@@ -8,23 +8,14 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { useCart } from '@/src/store/cart';
-import { useWishlist } from '@/src/store/wishlist';
+import { useWishlist, type WishlistItem } from '@/src/store/wishlist';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
-
-const SEED = [
-  { id: 'w1', name: 'Ankara high shoulder fitted gown', price: 24990, image: PRODUCT_IMAGE, vendor: "Sarah's Boutique" },
-  { id: 'w2', name: 'Birkin handbag deluxe edition', price: 149000, image: PRODUCT_IMAGE, vendor: 'Janet Ogborini' },
-  { id: 'w3', name: 'Leopard heeled sandals', price: 38500, image: PRODUCT_IMAGE, vendor: "Sarah's Boutique" },
-];
 
 export default function WishlistScreen() {
   const items = useWishlist((s) => s.items);
   const remove = useWishlist((s) => s.remove);
   const addCart = useCart((s) => s.add);
 
-  const display = items.length ? items : SEED;
   const empty = items.length === 0;
 
   return (
@@ -32,20 +23,12 @@ export default function WishlistScreen() {
       <TopBar title="Wishlist" showBack />
 
       {empty ? (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <Text style={styles.intro}>Suggested for you</Text>
-          <View style={styles.grid}>
-            {display.map((p) => (
-              <Card
-                key={p.id}
-                product={p}
-                onTap={() => router.push(`/product/${p.id}` as never)}
-                onRemove={undefined}
-                onAddCart={() => addCart({ id: p.id, name: p.name, price: p.price, image: p.image, vendor: p.vendor })}
-              />
-            ))}
-          </View>
-        </ScrollView>
+        <View style={styles.empty}>
+          <Ionicons name="heart-outline" size={40} color={palette.ink.onDarkMuted} />
+          <Text style={styles.emptyTitle}>No saved products</Text>
+          <Text style={styles.emptyText}>Products you heart from the backend catalog will appear here.</Text>
+          <PrimaryButton label="Browse shop" onPress={() => router.replace('/(tabs)/shop' as never)} />
+        </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <View style={styles.grid}>
@@ -71,7 +54,7 @@ function Card({
   onRemove,
   onAddCart,
 }: {
-  product: typeof SEED[number];
+  product: WishlistItem;
   onTap: () => void;
   onRemove?: () => void;
   onAddCart: () => void;
@@ -100,6 +83,24 @@ function Card({
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: 40 },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing['3'],
+    paddingHorizontal: spacing['5'],
+  },
+  emptyTitle: {
+    fontFamily: typography.h2.fontFamily,
+    fontSize: 18,
+    color: palette.ink.onDarkStrong,
+  },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkSoft,
+    textAlign: 'center',
+  },
   intro: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 14,

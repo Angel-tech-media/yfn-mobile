@@ -2,76 +2,48 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InputBar } from '@/components/ui/InputBar';
-import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
-import { useChat, useThreadMessages } from '@/src/store/chat';
+import { useMe } from '@/src/api/account/hooks';
+import { useConversation, useMarkConversationRead, useMessages, useSendMessage } from '@/src/api/chat/hooks';
+import type { ChatMessage } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-type Msg = {
-  id: string;
-  from: 'me' | 'them';
-  body?: string;
-  image?: any;
-  product?: { name: string; price: string };
-  time: string;
-};
-
-const SEED: Msg[] = [
-  { id: 'm1', from: 'them', body: 'Hi! Saw your post — is the Ankara dress still available?', time: '10:15 AM' },
-  { id: 'm2', from: 'me', body: 'Yes! We have it in 3 colors. What size are you?', time: '10:18 AM' },
-  { id: 'm3', from: 'them', body: 'Size 12. How fast can it ship to Abuja?', time: '10:19 AM' },
-  {
-    id: 'm4',
-    from: 'me',
-    product: { name: 'Ankara high shoulder fitted gown', price: '₦24,990' },
-    time: '10:21 AM',
-  },
-  { id: 'm5', from: 'me', body: 'About 3 days! Tap to buy directly here ↑', time: '10:21 AM' },
-  { id: 'm6', from: 'them', body: 'Just paid 💖 thanks!', time: '10:24 AM' },
-];
-
-const PEERS: Record<string, { name: string; avatar: any; verified?: boolean }> = {
-  default: { name: 'Aisha Bello', avatar: require('@/assets/figma/story-1.png'), verified: true },
-  support: { name: 'Vibe Support', avatar: require('@/assets/figma/icon-sell.png') },
-};
 
 export default function MessageThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const threadId = String(id ?? 'default');
-  const peer = PEERS[threadId as keyof typeof PEERS] ?? PEERS.default;
-  const liveMessages = useThreadMessages(threadId);
-  const sendChat = useChat((s) => s.send);
+  const conversationId = String(id ?? '');
+  const { data: me } = useMe();
+  const { data: conversation, isError: conversationError, isLoading: conversationLoading, refetch } = useConversation(conversationId);
+  const { data: messages = [] } = useMessages(conversationId, { limit: 100 });
+  const sendMessage = useSendMessage(conversationId);
+  const markRead = useMarkConversationRead();
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const otherParticipant = conversation?.participants.find((participant) => participant.userId !== me?.id);
 
   useEffect(() => {
-    if (liveMessages.length === 0) return;
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  }, [liveMessages.length]);
+    if (!conversationId) return;
+    markRead.mutate(conversationId);
+  }, [conversationId]);
 
-  // Combine seeded + persisted messages so the thread feels populated and
-  // newly-sent ones stick around across navigation.
-  const messages: Msg[] = [
-    ...SEED,
-    ...liveMessages.map((m) => ({
-      id: m.id,
-      from: 'me' as const,
-      body: m.text,
-      time: 'now',
-    })),
-  ];
+  useEffect(() => {
+    if (messages.length === 0) return;
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  }, [messages.length]);
 
   const send = () => {
-    const text = draft.trim();
-    if (!text) return;
-    sendChat(threadId, text);
-    setDraft('');
+    const body = draft.trim();
+    if (!body || sendMessage.isPending) return;
+    sendMessage.mutate(
+      { kind: 'text', body },
+      {
+        onSuccess: () => setDraft(''),
+      },
+    );
   };
 
   return (
@@ -81,68 +53,121 @@ export default function MessageThreadScreen() {
           <Pressable hitSlop={8} onPress={() => router.back()} style={styles.iconBtn}>
             <Ionicons name="chevron-back" size={22} color={palette.ink.onDarkStrong} />
           </Pressable>
-          <Avatar size={36} source={peer.avatar} />
+          <Avatar size={36} initials={otherParticipant?.role === 'vendor' ? 'V' : 'U'} />
           <View style={{ flex: 1 }}>
-            <View style={styles.peerNameRow}>
-              <Text style={styles.peerName}>{peer.name}</Text>
-              {peer.verified ? <VerifiedCheck tone="success" size={12} /> : null}
-            </View>
-            <Text style={styles.peerStatus}>Active now</Text>
+            <Text style={styles.peerName}>
+              {otherParticipant ? `${capitalize(otherParticipant.role)} ${shortId(otherParticipant.userId)}` : 'Conversation'}
+            </Text>
+            <Text style={styles.peerStatus}>{conversation?.productId ? 'Product chat' : 'Messages'}</Text>
           </View>
           <Pressable hitSlop={8} style={styles.iconBtn}>
             <Ionicons name="call-outline" size={20} color={palette.ink.onDarkStrong} />
           </Pressable>
         </View>
 
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={80}>
-          <ScrollView
-            ref={scrollRef}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.list}>
-            {messages.map((m) => (
-              <View
-                key={m.id}
-                style={[styles.bubbleWrap, m.from === 'me' ? styles.bubbleMe : styles.bubbleThem]}>
-                {m.product ? (
-                  <Pressable style={styles.productCard}>
-                    <Image source={require('@/assets/figma/product-sample.png')} style={styles.productImg} contentFit="cover" />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.productName} numberOfLines={2}>{m.product.name}</Text>
-                      <Text style={styles.productPrice}>{m.product.price}</Text>
-                    </View>
-                  </Pressable>
-                ) : null}
-                {m.body ? (
-                  <View style={[styles.bubble, m.from === 'me' ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
-                    <Text style={[styles.bubbleText, m.from === 'them' && { color: palette.ink.onDarkStrong }]}>
-                      {m.body}
-                    </Text>
-                  </View>
-                ) : null}
-                <Text style={[styles.time, m.from === 'me' ? styles.timeMe : styles.timeThem]}>{m.time}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.composerWrap}>
-            <InputBar
-              placeholder="Type a message…"
-              value={draft}
-              onChangeText={setDraft}
-              onSend={send}
-            />
+        {conversationLoading ? (
+          <View style={styles.center}>
+            <Text style={styles.stateText}>Loading conversation...</Text>
           </View>
-        </KeyboardAvoidingView>
+        ) : conversationError || !conversation ? (
+          <View style={styles.center}>
+            <Text style={styles.stateText}>Could not load conversation.</Text>
+            <Pressable onPress={() => refetch()} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={80}>
+            <ScrollView
+              ref={scrollRef}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.list}>
+              {messages.length ? (
+                messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} mine={message.senderId === me?.id} />
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No messages yet.</Text>
+              )}
+            </ScrollView>
+
+            <View style={styles.composerWrap}>
+              <InputBar
+                placeholder="Type a message..."
+                value={draft}
+                onChangeText={setDraft}
+                onSend={send}
+              />
+            </View>
+          </KeyboardAvoidingView>
+        )}
       </SafeAreaView>
     </EspressoBackground>
   );
 }
 
+function MessageBubble({ message, mine }: { message: ChatMessage; mine: boolean }) {
+  const body = message.body ?? (message.kind === 'product_card' ? `Product ${message.productId}` : '');
+
+  return (
+    <View style={[styles.bubbleWrap, mine ? styles.bubbleMe : styles.bubbleThem]}>
+      {message.kind === 'image' && message.imageUrl ? (
+        <View style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
+          <Text style={[styles.bubbleText, !mine && { color: palette.ink.onDarkStrong }]}>
+            {message.imageUrl}
+          </Text>
+        </View>
+      ) : null}
+      {message.kind === 'product_card' && message.productId ? (
+        <Pressable onPress={() => router.push(`/product/${message.productId}` as never)} style={styles.productCard}>
+          <Ionicons name="cube-outline" size={20} color={palette.brand.orange} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.productName}>Product</Text>
+            <Text style={styles.productPrice}>{message.productId}</Text>
+          </View>
+        </Pressable>
+      ) : null}
+      {body && message.kind !== 'product_card' ? (
+        <View style={[styles.bubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
+          <Text style={[styles.bubbleText, !mine && { color: palette.ink.onDarkStrong }]}>
+            {body}
+          </Text>
+        </View>
+      ) : null}
+      <Text style={[styles.time, mine ? styles.timeMe : styles.timeThem]}>{timeLabel(message.createdAt)}</Text>
+    </View>
+  );
+}
+
+function timeLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function shortId(value: string) {
+  return value.length > 8 ? value.slice(0, 8) : value;
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing['3'] },
+  stateText: { ...typography.body, color: palette.ink.onDarkSoft },
+  retryBtn: {
+    height: 36,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing['4'],
+    backgroundColor: palette.brand.orange,
+    justifyContent: 'center',
+  },
+  retryText: { ...typography.bodyEmphasis, color: '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -160,7 +185,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
-  peerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   peerName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 15,
@@ -176,10 +200,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3'],
     gap: spacing['3'],
   },
+  emptyText: { ...typography.body, color: palette.ink.onDarkMuted, textAlign: 'center' },
   bubbleWrap: { gap: 4, maxWidth: '78%' },
   bubbleMe: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   bubbleThem: { alignSelf: 'flex-start', alignItems: 'flex-start' },
   bubble: {
+    paddingHorizontal: spacing['3'],
+    paddingVertical: spacing['2'],
+    borderRadius: 18,
+  },
+  mediaBubble: {
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: 18,
@@ -202,16 +232,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['2'],
-    padding: spacing['2'],
+    padding: spacing['3'],
     borderRadius: radius.md,
     backgroundColor: 'rgba(0, 0, 0, 0.06)',
     width: 240,
-  },
-  productImg: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -219,8 +243,8 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkStrong,
   },
   productPrice: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
     color: palette.brand.orange,
   },
   time: {

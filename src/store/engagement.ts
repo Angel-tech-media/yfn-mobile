@@ -8,7 +8,7 @@ export type Repost = {
   caption?: string;
   visibility: 'public' | 'mutuals' | 'close-friends';
   ts: number;
-  /** Estimated earnings to date in NGN; mock until backend wires up. */
+  /** Estimated earnings to date in NGN for local-only fallback contexts. */
   earningsNgn: number;
   /** Number of clicks the user's repost link has received. */
   clicks: number;
@@ -44,76 +44,7 @@ export const useEngagement = create<EngagementState>((set, get) => ({
   likedPosts: {},
   savedPosts: {},
   followedVendors: {},
-  reposts: {
-    p1: {
-      productId: 'p1',
-      vendorId: 'sarahsboutique',
-      caption: 'this gown is fire 🔥 had to share',
-      visibility: 'public',
-      ts: Date.now() - 1000 * 60 * 60 * 24 * 3,
-      earningsNgn: 250,
-      clicks: 86,
-      conversions: 5,
-    },
-    p2: {
-      productId: 'p2',
-      vendorId: 'aishathreads',
-      visibility: 'mutuals',
-      ts: Date.now() - 1000 * 60 * 60 * 12,
-      earningsNgn: 100,
-      clicks: 31,
-      conversions: 2,
-    },
-    r6: {
-      productId: 'r6',
-      vendorId: 'tolathreads',
-      caption: 'Super Eagles jersey drop — naija sizing finally 🇳🇬',
-      visibility: 'public',
-      ts: Date.now() - 1000 * 60 * 60 * 24 * 1,
-      earningsNgn: 400,
-      clicks: 152,
-      conversions: 8,
-    },
-    r7: {
-      productId: 'r7',
-      vendorId: 'beautybyfemi',
-      caption: 'Day 14 of the kit — my skin is glowing, no jokes',
-      visibility: 'public',
-      ts: Date.now() - 1000 * 60 * 60 * 24 * 6,
-      earningsNgn: 150,
-      clicks: 47,
-      conversions: 3,
-    },
-    r11: {
-      productId: 'r11',
-      vendorId: 'naijakitchen',
-      caption: 'Booked them for my mum\'s 60th — pure soul food',
-      visibility: 'close-friends',
-      ts: Date.now() - 1000 * 60 * 60 * 24 * 10,
-      earningsNgn: 200,
-      clicks: 64,
-      conversions: 4,
-    },
-    r14: {
-      productId: 'r14',
-      vendorId: 'kemibooks',
-      caption: 'Best gift bundle for new readers — christmas sorted',
-      visibility: 'mutuals',
-      ts: Date.now() - 1000 * 60 * 60 * 2,
-      earningsNgn: 50,
-      clicks: 18,
-      conversions: 1,
-    },
-    r10: {
-      productId: 'r10',
-      vendorId: 'tundeotun',
-      visibility: 'public',
-      ts: Date.now() - 1000 * 60 * 60 * 24 * 14,
-      earningsNgn: 0,
-      clicks: 22,
-      conversions: 0,
-    },
-  },
+  reposts: {},
   toggleLike: (postId) =>
     set((s) => {
       const next = { ...s.likedPosts };

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -6,26 +6,49 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
-import { useAccount, type PaymentMethod } from '@/src/store/account';
+import {
+  useDeletePaymentMethod,
+  usePaymentMethods,
+} from '@/src/api/account/hooks';
+import type { PaymentMethod } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function PaymentMethodsScreen() {
-  const methods = useAccount((s) => s.paymentMethods);
-  const setDefault = useAccount((s) => s.setDefaultPayment);
-  const remove = useAccount((s) => s.removePayment);
+  const { data: methods = [], isLoading, isError, refetch, isFetching } = usePaymentMethods();
+  const deletePaymentMethod = useDeletePaymentMethod();
 
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Payment methods" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-        {methods.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator color={palette.brand.orange} />
+            <Text style={styles.emptySubtitle}>Loading payment methods…</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={36} color={palette.ink.onDarkMuted} />
+            <Text style={styles.emptyTitle}>Couldn&apos;t load payment methods</Text>
+            <Pressable onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.makeDefaultText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+            </Pressable>
+          </View>
+        ) : methods.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="card-outline" size={36} color={palette.ink.onDarkMuted} />
             <Text style={styles.emptyTitle}>No saved methods</Text>
             <Text style={styles.emptySubtitle}>Add a card or wallet to speed up checkout.</Text>
           </View>
         ) : (
-          methods.map((m) => <Card key={m.id} m={m} onSetDefault={setDefault} onRemove={remove} />)
+          methods.map((m) => (
+            <Card
+              key={m.id}
+              m={m}
+              deleting={deletePaymentMethod.isPending}
+              onRemove={(id) => deletePaymentMethod.mutate(id)}
+            />
+          ))
         )}
       </ScrollView>
       <View style={styles.actions}>
@@ -35,7 +58,15 @@ export default function PaymentMethodsScreen() {
   );
 }
 
-function Card({ m, onSetDefault, onRemove }: { m: PaymentMethod; onSetDefault: (id: string) => void; onRemove: (id: string) => void }) {
+function Card({
+  m,
+  deleting,
+  onRemove,
+}: {
+  m: PaymentMethod;
+  deleting: boolean;
+  onRemove: (id: string) => void;
+}) {
   return (
     <View style={[styles.card, m.isDefault && styles.cardDefault]}>
       <View style={styles.cardHead}>
@@ -49,7 +80,7 @@ function Card({ m, onSetDefault, onRemove }: { m: PaymentMethod; onSetDefault: (
           )}
           <Text style={styles.label}>{m.label}</Text>
         </View>
-        <Pressable hitSlop={8} onPress={() => onRemove(m.id)}>
+        <Pressable hitSlop={8} disabled={deleting} onPress={() => onRemove(m.id)}>
           <Ionicons name="trash-outline" size={16} color={palette.ink.onDarkMuted} />
         </Pressable>
       </View>
@@ -62,9 +93,7 @@ function Card({ m, onSetDefault, onRemove }: { m: PaymentMethod; onSetDefault: (
             <Text style={styles.defaultText}>Default</Text>
           </View>
         ) : (
-          <Pressable onPress={() => onSetDefault(m.id)} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
-            <Text style={styles.makeDefaultText}>Make default</Text>
-          </Pressable>
+          <Text style={styles.makeDefaultText}>Saved</Text>
         )}
       </View>
     </View>

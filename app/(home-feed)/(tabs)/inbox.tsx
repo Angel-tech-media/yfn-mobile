@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -6,34 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { useConversations } from '@/src/api/chat/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
-const STORY_AVATARS = [
-  require('@/assets/figma/story-1.png'),
-  require('@/assets/figma/story-2.png'),
-  require('@/assets/figma/story-3.png'),
-  require('@/assets/figma/story-4.png'),
-  require('@/assets/figma/story-5.png'),
-];
-
-const THREADS = [
-  { id: 't1', name: 'EscrowBot · order ord-1', preview: '₦18,500 held in escrow. Vendor notified.', time: 'now', unread: 1, avatar: STORY_AVATARS[0] },
-  { id: 't2', name: 'Aisha Bello', preview: 'Thanks! When can I expect delivery?', time: '2m', unread: 2, avatar: STORY_AVATARS[0] },
-  { id: 't3', name: 'Joshua Olamilekan-Ayan', preview: 'Order confirmed ✔', time: '14m', unread: 0, avatar: STORY_AVATARS[1] },
-  { id: 't4', name: 'Olusayo Odukoya', preview: 'Loved the dress!', time: '1h', unread: 1, avatar: STORY_AVATARS[2] },
-  { id: 't5', name: 'Janet Ogborini', preview: 'Will restock next week', time: '3h', unread: 0, avatar: STORY_AVATARS[3] },
-  { id: 't6', name: "Sarah's Boutique", preview: 'Your custom fitting is ready — drop by anytime today', time: '4h', unread: 1, avatar: STORY_AVATARS[4] },
-  { id: 't7', name: 'GadgetFix Hub', preview: 'Repair complete. Pick-up code: 7Q2K', time: '5h', unread: 0, avatar: STORY_AVATARS[0] },
-  { id: 't8', name: 'MarketBot', preview: 'New tailor near you matches your saved searches.', time: '7h', unread: 0, avatar: STORY_AVATARS[1] },
-  { id: 't9', name: 'Naija Kitchen', preview: 'Confirming party platter for Saturday 6pm.', time: '9h', unread: 1, avatar: STORY_AVATARS[2] },
-  { id: 't10', name: 'Mide Studios', preview: 'Sent you the gallery preview — let me know your picks', time: '12h', unread: 0, avatar: STORY_AVATARS[3] },
-  { id: 't11', name: 'Tola Threads', preview: 'Jersey size 42 — back in stock 🇳🇬', time: '1d', unread: 0, avatar: STORY_AVATARS[4] },
-  { id: 't12', name: 'Bisi A.', preview: 'You: ok cool, see you Friday', time: '1d', unread: 0, avatar: STORY_AVATARS[0] },
-  { id: 't13', name: 'Mide', preview: 'Sent you a reel — check it out', time: '2d', unread: 0, avatar: STORY_AVATARS[1] },
-  { id: 't14', name: 'Doyin Beauty', preview: 'Confirmed: Saturday 9am, your address', time: '3d', unread: 0, avatar: STORY_AVATARS[2] },
-];
-
 export default function InboxScreen() {
+  const { data: threads = [], isLoading, isError, refetch, isFetching } = useConversations();
+
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -45,23 +23,35 @@ export default function InboxScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
-          {THREADS.map((t) => (
+          {isLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={palette.brand.orange} />
+              <Text style={styles.emptyText}>Loading conversations…</Text>
+            </View>
+          ) : isError ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>Couldn&apos;t load conversations.</Text>
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              </Pressable>
+            </View>
+          ) : threads.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="chatbubbles-outline" size={32} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyText}>No conversations yet.</Text>
+            </View>
+          ) : threads.map((t) => (
             <Pressable
               key={t.id}
-              onPress={() => router.push(`/messages/${t.id}` as never)}
+              onPress={() => router.push(`/threads/${t.id}` as never)}
               style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
-              <Avatar size={48} source={t.avatar} />
+              <Avatar size={48} initials="C" />
               <View style={styles.body}>
-                <Text style={styles.name}>{t.name}</Text>
-                <Text style={styles.preview} numberOfLines={1}>{t.preview}</Text>
+                <Text style={styles.name}>{conversationTitle(t)}</Text>
+                <Text style={styles.preview} numberOfLines={1}>{t.lastMessagePreview ?? 'No messages yet'}</Text>
               </View>
               <View style={styles.meta}>
-                <Text style={styles.time}>{t.time}</Text>
-                {t.unread > 0 ? (
-                  <View style={styles.unreadBubble}>
-                    <Text style={styles.unreadText}>{t.unread}</Text>
-                  </View>
-                ) : null}
+                <Text style={styles.time}>{formatWhen(t.updatedAt)}</Text>
               </View>
             </Pressable>
           ))}
@@ -69,6 +59,18 @@ export default function InboxScreen() {
       </SafeAreaView>
     </EspressoBackground>
   );
+}
+
+function conversationTitle(thread: { orderId?: string; productId?: string; id: string }) {
+  if (thread.orderId) return `Order ${thread.orderId}`;
+  if (thread.productId) return `Product ${thread.productId}`;
+  return `Conversation ${thread.id.slice(0, 8)}`;
+}
+
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('en-NG', { month: 'short', day: 'numeric' });
 }
 
 const styles = StyleSheet.create({
@@ -89,6 +91,17 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: spacing['5'],
     paddingBottom: 100,
+  },
+  empty: { alignItems: 'center', paddingVertical: spacing['8'], gap: spacing['2'] },
+  emptyText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkMuted,
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.orange,
   },
   row: {
     flexDirection: 'row',

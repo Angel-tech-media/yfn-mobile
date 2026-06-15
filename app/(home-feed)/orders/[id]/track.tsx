@@ -1,36 +1,17 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 
-import { DayStrip, type DayStripItem } from '@/components/ui/DayStrip';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { useOrderTrack } from '@/src/api/orders/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
-
-const DELIVERY_WEEK: DayStripItem[] = [
-  { key: 'd9', weekday: 'Sat', day: 9, badge: 'PAID' },
-  { key: 'd10', weekday: 'Sun', day: 10, badge: 'SHIP' },
-  { key: 'd11', weekday: 'Mon', day: 11, badge: 'ETA' },
-  { key: 'd12', weekday: 'Tue', day: 12 },
-  { key: 'd13', weekday: 'Wed', day: 13, disabled: true },
-  { key: 'd14', weekday: 'Thu', day: 14, disabled: true },
-  { key: 'd15', weekday: 'Fri', day: 15, disabled: true },
-];
-
-const TIMELINE = [
-  { key: 'placed', label: 'Order placed', sub: 'Vibe', date: 'May 6, 9:42 AM', icon: 'checkmark-circle' as const },
-  { key: 'confirmed', label: 'Confirmed by vendor', sub: "Sarah's Boutique", date: 'May 6, 10:20 AM', icon: 'checkmark-circle' as const },
-  { key: 'packed', label: 'Packed and ready', sub: 'Lagos hub', date: 'May 6, 4:35 PM', icon: 'checkmark-circle' as const },
-  { key: 'shipped', label: 'In transit', sub: 'Courier picked up', date: 'May 7, 8:15 AM', icon: 'navigate' as const },
-  { key: 'oop', label: 'Out for delivery', sub: 'Pending', date: '—', icon: 'ellipse-outline' as const },
-  { key: 'delivered', label: 'Delivered', sub: 'Pending', date: '—', icon: 'ellipse-outline' as const },
-];
 
 export default function TrackShipmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [activeDay, setActiveDay] = useState('d11');
+  const orderId = String(id ?? '');
+  const { data, isLoading, isError, refetch, isFetching } = useOrderTrack(orderId);
 
   return (
     <ScreenContainer variant="espresso">
@@ -39,40 +20,53 @@ export default function TrackShipmentScreen() {
         <View style={styles.summary}>
           <Text style={styles.kicker}>Order ID</Text>
           <Text style={styles.idValue}>#{id}</Text>
-          <Text style={styles.eta}>Estimated delivery · <Text style={styles.etaValue}>Today by 6:00 PM</Text></Text>
+          <Text style={styles.eta}>
+            Status · <Text style={styles.etaValue}>{data?.status ?? 'Loading'}</Text>
+          </Text>
+          {data?.eta ? (
+            <Text style={styles.eta}>Estimated delivery · <Text style={styles.etaValue}>{data.eta}</Text></Text>
+          ) : null}
         </View>
-
-        <DayStrip
-          items={DELIVERY_WEEK}
-          selectedKey={activeDay}
-          onSelect={setActiveDay}
-        />
 
         <View style={styles.mapPlaceholder}>
           <View style={styles.mapPin}>
             <Ionicons name="location" size={14} color="#FFFFFF" />
-            <Text style={styles.mapPinLabel}>Live map</Text>
+            <Text style={styles.mapPinLabel}>
+              {data?.currentLocation
+                ? `${data.currentLocation.lat.toFixed(4)}, ${data.currentLocation.lng.toFixed(4)}`
+                : 'Live map pending'}
+            </Text>
           </View>
         </View>
 
         <View style={styles.timeline}>
           <Text style={styles.timelineTitle}>Timeline</Text>
-          {TIMELINE.map((t, i) => {
-            const reached = i <= 3;
+          {isLoading ? (
+            <Text style={styles.sub}>Loading tracking events…</Text>
+          ) : isError || !data ? (
+            <View style={styles.errorBlock}>
+              <Text style={styles.sub}>Couldn&apos;t load tracking events.</Text>
+              <Pressable onPress={() => refetch()} disabled={isFetching}>
+                <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              </Pressable>
+            </View>
+          ) : data.timeline.length === 0 ? (
+            <Text style={styles.sub}>No tracking events yet.</Text>
+          ) : data.timeline.map((t, i) => {
+            const reached = t.done;
             return (
-              <View key={t.key} style={styles.row}>
+              <View key={`${t.label}-${i}`} style={styles.row}>
                 <View style={styles.rail}>
                   <View style={[styles.dot, reached && styles.dotReached]}>
                     {reached ? <Ionicons name="checkmark" size={12} color="#FFFFFF" /> : null}
                   </View>
-                  {i < TIMELINE.length - 1 ? (
+                  {i < data.timeline.length - 1 ? (
                     <View style={[styles.line, reached && styles.lineReached]} />
                   ) : null}
                 </View>
                 <View style={styles.body}>
                   <Text style={[styles.label, !reached && styles.labelMuted]}>{t.label}</Text>
-                  <Text style={styles.sub}>{t.sub}</Text>
-                  <Text style={styles.date}>{t.date}</Text>
+                  <Text style={styles.date}>{t.at ? formatWhen(t.at) : 'Pending'}</Text>
                 </View>
               </View>
             );
@@ -81,6 +75,17 @@ export default function TrackShipmentScreen() {
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('en-NG', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 const styles = StyleSheet.create({
@@ -140,6 +145,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: palette.ink.onDarkStrong,
     marginBottom: spacing['3'],
+  },
+  errorBlock: { gap: spacing['2'] },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 12,
+    color: palette.brand.orange,
   },
   row: { flexDirection: 'row', gap: spacing['3'] },
   rail: { alignItems: 'center', width: 20 },
