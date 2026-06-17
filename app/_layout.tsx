@@ -12,6 +12,7 @@ import 'react-native-reanimated';
 
 import { QueryProvider } from '@/src/providers/query-provider';
 import { ToastProvider } from '@/src/providers/toast-provider';
+import { useAuth } from '@/src/store/auth';
 import { appFonts } from '@/src/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,14 +29,20 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(appFonts);
+  const bootstrapAuth = useAuth((s) => s.bootstrap);
+  const authHydrated = useAuth((s) => s.hydrated);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    void bootstrapAuth();
+  }, [bootstrapAuth]);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && authHydrated) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [authHydrated, fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || !authHydrated) {
     return null;
   }
 

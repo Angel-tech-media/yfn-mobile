@@ -7,11 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { useAuth, useIsAuthed } from '@/src/store/auth';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function SplashScreen() {
   const fade = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(8)).current;
+  const hydrated = useAuth((s) => s.hydrated);
+  const authed = useIsAuthed();
 
   useEffect(() => {
     Animated.parallel([
@@ -29,9 +32,12 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    const t = setTimeout(() => router.replace('/welcome'), 1900);
+    const t = setTimeout(() => {
+      if (!hydrated) return;
+      router.replace((authed ? '/(tabs)' : '/welcome') as never);
+    }, 1900);
     return () => clearTimeout(t);
-  }, [fade, lift]);
+  }, [authed, fade, hydrated, lift]);
 
   return (
     <EspressoBackground variant="espresso">

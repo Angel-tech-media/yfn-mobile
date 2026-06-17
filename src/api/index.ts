@@ -60,7 +60,7 @@ export const authApi = {
   },
 
   async logout(): Promise<Result<null>> {
-    useAuth.getState().signOut();
+    await useAuth.getState().signOut();
     return { ok: true, data: null };
   },
 

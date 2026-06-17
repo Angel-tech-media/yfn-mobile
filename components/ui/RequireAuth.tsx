@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 import { router } from 'expo-router';
 
-import { useIsAuthed } from '@/src/store/auth';
+import { useAuth, useIsAuthed } from '@/src/store/auth';
 
 /**
  * Redirects to /login if the user isn't signed in. Drop this around the root
@@ -11,11 +11,15 @@ import { useIsAuthed } from '@/src/store/auth';
  */
 export function RequireAuth({ children }: PropsWithChildren) {
   const authed = useIsAuthed();
+  const bootstrapping = useAuth((s) => s.bootstrapping);
+  const hydrated = useAuth((s) => s.hydrated);
+
   useEffect(() => {
-    if (!authed) {
+    if (hydrated && !bootstrapping && !authed) {
       router.replace('/login' as never);
     }
-  }, [authed]);
-  if (!authed) return null;
+  }, [authed, bootstrapping, hydrated]);
+
+  if (!hydrated || bootstrapping || !authed) return null;
   return <>{children}</>;
 }

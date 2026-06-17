@@ -76,27 +76,10 @@ export async function request<T>(path: string, options: HttpOptions = {}): Promi
 }
 
 async function tryRefresh(): Promise<string | null> {
-  const { refreshToken } = useAuth.getState();
+  const { refresh, refreshToken } = useAuth.getState();
   if (!refreshToken) return null;
-  try {
-    const data = await request<{ accessToken: string; refreshToken: string }>(
-      '/auth/refresh',
-      {
-        method: 'POST',
-        body: { refreshToken },
-        anonymous: true,
-        skipRefresh: true,
-      },
-    );
-    useAuth.setState({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
-    return data.accessToken;
-  } catch {
-    useAuth.setState({ accessToken: null, refreshToken: null, user: null });
-    return null;
-  }
+
+  return refresh();
 }
 
 function buildUrl(path: string, query?: HttpOptions['query']): string {
