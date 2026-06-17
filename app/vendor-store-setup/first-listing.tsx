@@ -16,6 +16,7 @@ import { useCreateProduct } from '@/src/api/products/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { nairaToKobo } from '@/src/utils/money';
+import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
 
@@ -28,6 +29,8 @@ export default function FirstListingScreen() {
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
   const createProduct = useCreateProduct();
 
   const { pick, pickMany } = useImagePicker();
@@ -45,35 +48,48 @@ export default function FirstListingScreen() {
   const removeAt = (i: number) => setImages((arr) => arr.filter((_, j) => j !== i));
   const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
   const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+  const isSaving = isUploading || createProduct.isPending;
 
-  const save = (continueToLive: boolean) => {
-    if (!canSave) return;
-    createProduct.mutate(
-      {
+  const save = async (continueToLive: boolean) => {
+    if (!canSave || isSaving) return;
+    setError(null);
+    setUploading(true);
+    let mediaIds: string[];
+    try {
+      const uploaded = await uploadLocalAssets(images, 'product');
+      mediaIds = uploaded.map((asset) => asset.mediaId);
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await createProduct.mutateAsync({
         title: name.trim(),
         description: desc.trim(),
         price: nairaToKobo(numericPrice),
         category: category.trim(),
         stock: outOfStock ? 0 : 1,
-        mediaIds: [],
+        mediaIds,
         active: !outOfStock,
-      },
-      {
-        onSuccess: () => {
-          if (continueToLive) {
-            router.replace('/vendor-store-setup/live');
-            return;
-          }
-          setName('');
-          setDesc('');
-          setCategory('');
-          setSalePrice('');
-          setDiscountPrice('');
-          setOutOfStock(false);
-          setImages([]);
-        },
-      },
-    );
+      });
+      if (continueToLive) {
+        router.replace('/vendor-store-setup/live');
+        return;
+      }
+      setName('');
+      setDesc('');
+      setCategory('');
+      setSalePrice('');
+      setDiscountPrice('');
+      setOutOfStock(false);
+      setImages([]);
+    } catch {
+      setError('Could not save product.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -142,6 +158,7 @@ export default function FirstListingScreen() {
               }
             />
           </View>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </ScrollView>
 
@@ -149,14 +166,14 @@ export default function FirstListingScreen() {
         <PrimaryButton
           label="Add another"
           variant="ghost"
-          loading={createProduct.isPending}
-          disabled={!canSave || createProduct.isPending}
+          loading={isSaving}
+          disabled={!canSave || isSaving}
           onPress={() => save(false)}
         />
         <PrimaryButton
           label="Save and Continue"
-          loading={createProduct.isPending}
-          disabled={!canSave || createProduct.isPending}
+          loading={isSaving}
+          disabled={!canSave || isSaving}
           onPress={() => save(true)}
         />
       </View>
@@ -315,5 +332,10 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing['3'],
     paddingVertical: spacing['4'],
+  },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    color: palette.status.danger,
   },
 });

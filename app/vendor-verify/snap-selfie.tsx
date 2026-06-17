@@ -1,13 +1,36 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSubmitSelfie } from '@/src/api/auth/hooks';
+import { useImagePicker } from '@/src/hooks/useImagePicker';
 import { palette, spacing, typography } from '@/src/theme';
+import { assetUploadErrorMessage, createSelfieFormData } from '@/src/utils/upload-media';
 
 export default function SnapSelfieScreen() {
+  const { idDocumentId } = useLocalSearchParams<{ idDocumentId?: string }>();
+  const { pick } = useImagePicker();
+  const submitSelfie = useSubmitSelfie();
+  const [error, setError] = useState<string | null>(null);
+
+  const submitSelfieFrom = async (source: 'camera' | 'library') => {
+    if (submitSelfie.isPending) return;
+    setError(null);
+    const image = await pick(source, { mediaTypes: ['images'] });
+    if (!image) return;
+
+    try {
+      await submitSelfie.mutateAsync(createSelfieFormData(image, idDocumentId));
+      router.replace('/vendor-verify/complete');
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+    }
+  };
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -41,20 +64,26 @@ export default function SnapSelfieScreen() {
         </View>
 
         <View style={styles.controls}>
-          <Pressable style={styles.sideBtn} hitSlop={8}>
+          <Pressable
+            disabled={submitSelfie.isPending}
+            onPress={() => submitSelfieFrom('library')}
+            style={({ pressed }) => [styles.sideBtn, submitSelfie.isPending && { opacity: 0.5 }, pressed && { opacity: 0.85 }]}
+            hitSlop={8}>
             <Ionicons name="images-outline" size={22} color="#FFFFFF" />
             <Text style={styles.sideBtnLabel}>Gallery</Text>
           </Pressable>
           <Pressable
+            disabled={submitSelfie.isPending}
             style={styles.shutterOuter}
-            onPress={() => router.replace('/vendor-verify/complete')}>
-            <View style={styles.shutterInner} />
+            onPress={() => submitSelfieFrom('camera')}>
+            {submitSelfie.isPending ? <ActivityIndicator color="#FFFFFF" /> : <View style={styles.shutterInner} />}
           </Pressable>
           <Pressable style={styles.sideBtn} hitSlop={8}>
             <Ionicons name="help-circle-outline" size={22} color="#FFFFFF" />
             <Text style={styles.sideBtnLabel}>Help</Text>
           </Pressable>
         </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </SafeAreaView>
     </View>
   );
@@ -140,5 +169,13 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
+  },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    lineHeight: 16,
+    color: palette.status.danger,
+    textAlign: 'center',
+    paddingBottom: spacing['3'],
   },
 });

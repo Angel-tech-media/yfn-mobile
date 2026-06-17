@@ -15,6 +15,7 @@ import { useDeleteProduct, useProduct, useUpdateProduct } from '@/src/api/produc
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { koboToNaira, nairaToKobo } from '@/src/utils/money';
+import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
 
@@ -32,6 +33,8 @@ export default function EditProductScreen() {
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
 
   const { pick, pickMany } = useImagePicker();
 
@@ -48,6 +51,7 @@ export default function EditProductScreen() {
   const removeAt = (i: number) => setImages((arr) => arr.filter((_, j) => j !== i));
   const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
   const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+  const isSaving = isUploading || updateProduct.isPending;
 
   useEffect(() => {
     if (!product) return;
@@ -58,10 +62,22 @@ export default function EditProductScreen() {
     setOutOfStock(product.stock <= 0);
   }, [product]);
 
-  const save = () => {
-    if (!canSave) return;
-    updateProduct.mutate(
-      {
+  const save = async () => {
+    if (!canSave || isSaving || !product) return;
+    setError(null);
+    setUploading(true);
+    let mediaIds = product.mediaIds ?? [];
+    try {
+      const uploaded = await uploadLocalAssets(images, 'product');
+      mediaIds = [...mediaIds, ...uploaded.map((asset) => asset.mediaId)];
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await updateProduct.mutateAsync({
         id: productId,
         input: {
           title: name.trim(),
@@ -70,10 +86,15 @@ export default function EditProductScreen() {
           category: category.trim(),
           stock: outOfStock ? 0 : product?.stock ?? 1,
           active: !outOfStock,
+          mediaIds,
         },
-      },
-      { onSuccess: () => router.replace('/products/saved') },
-    );
+      });
+      router.replace('/products/saved');
+    } catch {
+      setError('Could not save changes.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeProduct = () => {
@@ -166,6 +187,7 @@ export default function EditProductScreen() {
               }
             />
           </View>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
         </>
         )}
@@ -174,8 +196,8 @@ export default function EditProductScreen() {
       <View style={styles.actions}>
         <PrimaryButton
           label="Save changes"
-          loading={updateProduct.isPending}
-          disabled={!canSave || updateProduct.isPending || !product}
+          loading={isSaving}
+          disabled={!canSave || isSaving || !product}
           onPress={save}
         />
       </View>
@@ -316,4 +338,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
   actions: { paddingVertical: spacing['4'] },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    color: palette.status.danger,
+  },
 });

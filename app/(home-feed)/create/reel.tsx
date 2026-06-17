@@ -12,12 +12,13 @@ import { useMe } from '@/src/api/account/hooks';
 import { useCreateReel } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
-import { uploadLocalAsset } from '@/src/utils/upload-media';
+import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateReelScreen() {
   const [video, setVideo] = useState<PickedImage | null>(null);
   const [caption, setCaption] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
   const { data: me } = useMe();
   const audio = `original sound · ${me?.username ?? 'me'}`;
   const { pick } = useImagePicker();
@@ -99,29 +100,36 @@ export default function CreateReelScreen() {
 
         <View style={styles.actionsBottom}>
           <Pressable
-            disabled={!video || createReel.isPending}
+            disabled={!video || createReel.isPending || isUploading}
             onPress={async () => {
-              if (!video || createReel.isPending) return;
+              if (!video || createReel.isPending || isUploading) return;
               setError(null);
+              setUploading(true);
+              let videoMediaId: string;
               try {
-                const videoMediaId = await uploadLocalAsset(video, 'reel');
-                createReel.mutate(
-                  {
-                    videoMediaId,
-                    caption: caption.trim(),
-                    audio,
-                  },
-                  {
-                    onSuccess: () => router.back(),
-                    onError: () => setError('Could not post reel.'),
-                  },
-                );
+                const uploaded = await uploadLocalAsset(video, 'reel');
+                videoMediaId = uploaded.mediaId;
+              } catch (err) {
+                setError(assetUploadErrorMessage(err));
+                setUploading(false);
+                return;
+              }
+
+              try {
+                await createReel.mutateAsync({
+                  videoMediaId,
+                  caption: caption.trim(),
+                  audio,
+                });
+                router.back();
               } catch {
-                setError('Could not upload reel.');
+                setError('Could not post reel.');
+              } finally {
+                setUploading(false);
               }
             }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.shareLabel}>{createReel.isPending ? 'Posting' : 'Post reel'}</Text>
+            <Text style={styles.shareLabel}>{createReel.isPending || isUploading ? 'Posting' : 'Post reel'}</Text>
           </Pressable>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>

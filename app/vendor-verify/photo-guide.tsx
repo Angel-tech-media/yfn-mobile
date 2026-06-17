@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Stepper } from '@/components/ui/Stepper';
 import { TopBar } from '@/components/ui/TopBar';
+import { useSubmitSelfie } from '@/src/api/auth/hooks';
+import { useImagePicker } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { assetUploadErrorMessage, createSelfieFormData } from '@/src/utils/upload-media';
 
 const TILES: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; ok: boolean }> = [
   { icon: 'happy-outline', label: 'Bright & visible', ok: true },
@@ -18,6 +22,25 @@ const TILES: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; ok: bo
 ];
 
 export default function PhotoGuideScreen() {
+  const { idDocumentId } = useLocalSearchParams<{ idDocumentId?: string }>();
+  const { pick } = useImagePicker();
+  const submitSelfie = useSubmitSelfie();
+  const [error, setError] = useState<string | null>(null);
+
+  const submitFromGallery = async () => {
+    if (submitSelfie.isPending) return;
+    setError(null);
+    const image = await pick('library', { mediaTypes: ['images'] });
+    if (!image) return;
+
+    try {
+      await submitSelfie.mutateAsync(createSelfieFormData(image, idDocumentId));
+      router.replace('/vendor-verify/complete');
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+    }
+  };
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="" showBack />
@@ -42,8 +65,22 @@ export default function PhotoGuideScreen() {
       <View style={styles.spacer} />
 
       <View style={styles.actions}>
-        <PrimaryButton label="Take Photo" onPress={() => router.push('/vendor-verify/snap-selfie')} />
-        <PrimaryButton label="Choose from Gallery" variant="ghost" onPress={() => {}} />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <PrimaryButton
+          label="Take Photo"
+          disabled={submitSelfie.isPending}
+          onPress={() => {
+            const query = idDocumentId ? `?idDocumentId=${idDocumentId}` : '';
+            router.push(`/vendor-verify/snap-selfie${query}` as never);
+          }}
+        />
+        <PrimaryButton
+          label="Choose from Gallery"
+          variant="ghost"
+          loading={submitSelfie.isPending}
+          disabled={submitSelfie.isPending}
+          onPress={submitFromGallery}
+        />
       </View>
     </ScreenContainer>
   );
@@ -107,5 +144,12 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing['3'],
     paddingVertical: spacing['4'],
+  },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    lineHeight: 16,
+    color: palette.status.danger,
+    textAlign: 'center',
   },
 });

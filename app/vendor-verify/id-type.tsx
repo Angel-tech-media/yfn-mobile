@@ -56,12 +56,25 @@ export default function IdTypeScreen() {
         <PrimaryButton
           label="Take Photo"
           disabled={!idType}
-          onPress={() => router.push('/vendor-verify/scan-id')}
+          onPress={() => {
+            if (idType) router.push(scanIdPath(idType, 'camera'));
+          }}
         />
-        <PrimaryButton label="Choose from Gallery" variant="ghost" onPress={() => {}} />
+        <PrimaryButton
+          label="Choose from Gallery"
+          variant="ghost"
+          disabled={!idType}
+          onPress={() => {
+            if (idType) router.push(scanIdPath(idType, 'gallery'));
+          }}
+        />
       </View>
     </ScreenContainer>
   );
+}
+
+function scanIdPath(idType: IdType, source: 'camera' | 'gallery') {
+  return `/vendor-verify/scan-id?type=${idType}&country=NG&source=${source}` as never;
 }
 
 const styles = StyleSheet.create({

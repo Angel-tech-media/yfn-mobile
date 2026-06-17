@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,7 +12,9 @@ import { InputBar } from '@/components/ui/InputBar';
 import { useMe } from '@/src/api/account/hooks';
 import { useConversation, useMarkConversationRead, useMessages, useSendMessage } from '@/src/api/chat/hooks';
 import type { ChatMessage } from '@/src/api/types';
+import { useImagePicker } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function MessageThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,8 +25,11 @@ export default function MessageThreadScreen() {
   const sendMessage = useSendMessage(conversationId);
   const markRead = useMarkConversationRead();
   const [draft, setDraft] = useState('');
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const otherParticipant = conversation?.participants.find((participant) => participant.userId !== me?.id);
+  const { pick } = useImagePicker();
 
   useEffect(() => {
     if (!conversationId) return;
@@ -44,6 +50,27 @@ export default function MessageThreadScreen() {
         onSuccess: () => setDraft(''),
       },
     );
+  };
+
+  const attachImage = async () => {
+    if (sendMessage.isPending || attachmentUploading) return;
+    setAttachmentError(null);
+    const image = await pick('library', { mediaTypes: ['images'] });
+    if (!image) return;
+
+    setAttachmentUploading(true);
+    try {
+      const uploaded = await uploadLocalAsset(image, 'chat');
+      await sendMessage.mutateAsync({
+        kind: 'image',
+        imageUrl: uploaded.publicUrl,
+        mediaId: uploaded.mediaId,
+      });
+    } catch (err) {
+      setAttachmentError(assetUploadErrorMessage(err));
+    } finally {
+      setAttachmentUploading(false);
+    }
   };
 
   return (
@@ -99,8 +126,11 @@ export default function MessageThreadScreen() {
                 placeholder="Type a message..."
                 value={draft}
                 onChangeText={setDraft}
+                onAttach={attachImage}
+                attachDisabled={attachmentUploading || sendMessage.isPending}
                 onSend={send}
               />
+              {attachmentError ? <Text style={styles.composerError}>{attachmentError}</Text> : null}
             </View>
           </KeyboardAvoidingView>
         )}
@@ -116,9 +146,7 @@ function MessageBubble({ message, mine }: { message: ChatMessage; mine: boolean 
     <View style={[styles.bubbleWrap, mine ? styles.bubbleMe : styles.bubbleThem]}>
       {message.kind === 'image' && message.imageUrl ? (
         <View style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
-          <Text style={[styles.bubbleText, !mine && { color: palette.ink.onDarkStrong }]}>
-            {message.imageUrl}
-          </Text>
+          <Image source={{ uri: message.imageUrl }} style={styles.messageImage} contentFit="cover" />
         </View>
       ) : null}
       {message.kind === 'product_card' && message.productId ? (
@@ -210,10 +238,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   mediaBubble: {
-    paddingHorizontal: spacing['3'],
-    paddingVertical: spacing['2'],
+    width: 180,
+    height: 180,
     borderRadius: 18,
+    overflow: 'hidden',
   },
+  messageImage: { width: '100%', height: '100%' },
   bubbleMeStyle: {
     backgroundColor: palette.brand.orange,
     borderBottomRightRadius: 4,
@@ -259,5 +289,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['2'],
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(0, 0, 0, 0.06)',
+    gap: spacing['1'],
   },
+  composerError: { ...typography.caption, color: palette.status.danger },
 });

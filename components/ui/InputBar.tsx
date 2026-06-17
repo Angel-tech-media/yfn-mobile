@@ -5,13 +5,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 type Props = TextInputProps & {
+  onAttach?: () => void;
   onSend?: () => void;
+  attachDisabled?: boolean;
   showEmoji?: boolean;
   showSend?: boolean;
 };
 
 export function InputBar({
+  onAttach,
   onSend,
+  attachDisabled = false,
   showEmoji = true,
   showSend = true,
   placeholder = 'Reply',
@@ -19,6 +23,21 @@ export function InputBar({
 }: Props) {
   return (
     <View style={styles.root}>
+      {onAttach ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Attach media"
+          disabled={attachDisabled}
+          hitSlop={8}
+          onPress={onAttach}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            attachDisabled && { opacity: 0.4 },
+            pressed && { opacity: 0.7 },
+          ]}>
+          <Ionicons name="image-outline" size={18} color={palette.ink.onDarkSoft} />
+        </Pressable>
+      ) : null}
       {showEmoji ? (
         <Ionicons
           name="happy-outline"
@@ -61,6 +80,13 @@ const styles = StyleSheet.create({
   },
   lead: {
     opacity: 0.9,
+  },
+  iconBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,

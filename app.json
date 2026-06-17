@@ -31,6 +31,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Vibe needs access to your photo library so you can choose media to upload.",
+          "cameraPermission": "Vibe needs access to your camera so you can capture photos and videos to upload.",
+          "microphonePermission": "Vibe needs access to your microphone when recording videos."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

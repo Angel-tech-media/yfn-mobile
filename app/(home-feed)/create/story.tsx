@@ -10,11 +10,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCreateStory } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, spacing, typography } from '@/src/theme';
-import { uploadLocalAsset } from '@/src/utils/upload-media';
+import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateStoryScreen() {
   const [photo, setPhoto] = useState<PickedImage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
   const { pick } = useImagePicker();
   const createStory = useCreateStory();
 
@@ -91,26 +92,33 @@ export default function CreateStoryScreen() {
 
         <View style={styles.actions}>
           <Pressable
-            disabled={createStory.isPending}
+            disabled={createStory.isPending || isUploading}
             onPress={async () => {
-              if (!photo || createStory.isPending) return;
+              if (!photo || createStory.isPending || isUploading) return;
               setError(null);
+              setUploading(true);
+              let mediaId: string;
               try {
-                const mediaId = await uploadLocalAsset(photo, 'story');
-                createStory.mutate(
-                  { mediaId },
-                  {
-                    onSuccess: () => router.back(),
-                    onError: () => setError('Could not share story.'),
-                  },
-                );
+                const uploaded = await uploadLocalAsset(photo, 'story');
+                mediaId = uploaded.mediaId;
+              } catch (err) {
+                setError(assetUploadErrorMessage(err));
+                setUploading(false);
+                return;
+              }
+
+              try {
+                await createStory.mutateAsync({ mediaId });
+                router.back();
               } catch {
-                setError('Could not upload story.');
+                setError('Could not share story.');
+              } finally {
+                setUploading(false);
               }
             }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
             <Ionicons name="paper-plane" size={18} color={palette.ink.onLightStrong} />
-            <Text style={styles.shareLabel}>{createStory.isPending ? 'Sharing' : 'Share to Story'}</Text>
+            <Text style={styles.shareLabel}>{createStory.isPending || isUploading ? 'Sharing' : 'Share to Story'}</Text>
           </Pressable>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>

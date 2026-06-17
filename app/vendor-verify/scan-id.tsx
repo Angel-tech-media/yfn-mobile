@@ -1,13 +1,77 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSubmitIdDocument } from '@/src/api/auth/hooks';
+import type { IdDocumentType } from '@/src/api/types';
+import { useImagePicker } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function ScanIdScreen() {
+  const { country: countryParam, source, type } = useLocalSearchParams<{
+    country?: string;
+    source?: string;
+    type?: string;
+  }>();
+  const idType = parseIdType(type);
+  const country = typeof countryParam === 'string' && countryParam ? countryParam : 'NG';
+  const { pick } = useImagePicker();
+  const submitIdDocument = useSubmitIdDocument();
+  const galleryLaunched = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
+  const isBusy = isUploading || submitIdDocument.isPending;
+
+  const submitDocument = useCallback(
+    async (pickerSource: 'camera' | 'library') => {
+      if (!idType) {
+        setError('Choose an ID type before uploading your document.');
+        return;
+      }
+      if (isBusy) return;
+
+      setError(null);
+      const image = await pick(pickerSource, { mediaTypes: ['images'] });
+      if (!image) return;
+
+      setUploading(true);
+      let frontMediaId: string;
+      try {
+        const uploaded = await uploadLocalAsset(image, 'kyc');
+        frontMediaId = uploaded.mediaId;
+      } catch (err) {
+        setError(assetUploadErrorMessage(err));
+        setUploading(false);
+        return;
+      }
+
+      try {
+        const document = await submitIdDocument.mutateAsync({
+          country,
+          type: idType,
+          frontMediaId,
+        });
+        router.push(`/vendor-verify/photo-guide?idDocumentId=${document.idDocumentId}` as never);
+      } catch {
+        setError('Could not submit your ID document.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [country, idType, isBusy, pick, submitIdDocument],
+  );
+
+  useEffect(() => {
+    if (source !== 'gallery' || galleryLaunched.current) return;
+    galleryLaunched.current = true;
+    submitDocument('library');
+  }, [source, submitDocument]);
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -39,23 +103,42 @@ export default function ScanIdScreen() {
         </View>
 
         <View style={styles.controls}>
-          <Pressable style={styles.sideBtn} hitSlop={8}>
+          <Pressable
+            disabled={isBusy}
+            onPress={() => submitDocument('library')}
+            style={({ pressed }) => [styles.sideBtn, isBusy && { opacity: 0.5 }, pressed && { opacity: 0.85 }]}
+            hitSlop={8}>
             <Ionicons name="images-outline" size={22} color="#FFFFFF" />
             <Text style={styles.sideBtnLabel}>Gallery</Text>
           </Pressable>
           <Pressable
+            disabled={isBusy}
             style={styles.shutterOuter}
-            onPress={() => router.push('/vendor-verify/photo-guide')}>
-            <View style={styles.shutterInner} />
+            onPress={() => submitDocument('camera')}>
+            {isBusy ? <ActivityIndicator color="#FFFFFF" /> : <View style={styles.shutterInner} />}
           </Pressable>
           <Pressable style={styles.sideBtn} hitSlop={8}>
             <Ionicons name="help-circle-outline" size={22} color="#FFFFFF" />
             <Text style={styles.sideBtnLabel}>Help</Text>
           </Pressable>
         </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </SafeAreaView>
     </View>
   );
+}
+
+function parseIdType(value: string | string[] | undefined): IdDocumentType | null {
+  const normalized = Array.isArray(value) ? value[0] : value;
+  if (
+    normalized === 'national' ||
+    normalized === 'passport' ||
+    normalized === 'driver' ||
+    normalized === 'voter'
+  ) {
+    return normalized;
+  }
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -143,5 +226,13 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
+  },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    lineHeight: 16,
+    color: palette.status.danger,
+    textAlign: 'center',
+    paddingBottom: spacing['3'],
   },
 });

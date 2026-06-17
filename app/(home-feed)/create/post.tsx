@@ -13,7 +13,7 @@ import { useMe } from '@/src/api/account/hooks';
 import { useCreatePost } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
-import { uploadLocalAsset } from '@/src/utils/upload-media';
+import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
 
@@ -22,6 +22,7 @@ export default function CreatePostScreen() {
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
   const { pick, pickMany } = useImagePicker();
   const { data: me } = useMe();
   const createPost = useCreatePost();
@@ -38,21 +39,32 @@ export default function CreatePostScreen() {
   };
 
   const canPost = text.trim().length > 0 || images.length > 0;
+  const isSubmitting = isUploading || createPost.isPending;
 
   const handlePost = async () => {
-    if (!canPost || createPost.isPending) return;
+    if (!canPost || isSubmitting) return;
     setError(null);
+    setUploading(true);
+    let mediaIds: string[];
     try {
-      const mediaIds = await Promise.all(images.map((image) => uploadLocalAsset(image, 'post')));
-      createPost.mutate(
-        {
-          caption: text.trim(),
-          mediaIds,
-        },
-        { onSuccess: () => router.back(), onError: () => setError('Could not publish post.') },
-      );
+      const uploaded = await uploadLocalAssets(images, 'post');
+      mediaIds = uploaded.map((asset) => asset.mediaId);
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await createPost.mutateAsync({
+        caption: text.trim(),
+        mediaIds,
+      });
+      router.back();
     } catch {
-      setError('Could not upload media.');
+      setError('Could not publish post.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -62,9 +74,9 @@ export default function CreatePostScreen() {
         title="New post"
         showBack
         rightAction={
-          <Pressable disabled={!canPost || createPost.isPending} hitSlop={8} onPress={handlePost}>
-            <Text style={[styles.postBtn, (!canPost || createPost.isPending) && { opacity: 0.5 }]}>
-              {createPost.isPending ? 'Posting' : 'Post'}
+          <Pressable disabled={!canPost || isSubmitting} hitSlop={8} onPress={handlePost}>
+            <Text style={[styles.postBtn, (!canPost || isSubmitting) && { opacity: 0.5 }]}>
+              {isSubmitting ? 'Posting' : 'Post'}
             </Text>
           </Pressable>
         }

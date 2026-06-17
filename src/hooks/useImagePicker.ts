@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import { Alert, Linking } from 'react-native';
 
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +10,11 @@ export type PickedImage = {
   uri: string;
   width: number;
   height: number;
+  mediaType?: 'image' | 'video' | 'livePhoto' | 'pairedVideo' | null;
+  fileName?: string;
+  contentType: string;
+  sizeBytes?: number;
+  durationMs?: number;
 };
 
 export function useImagePicker() {
@@ -38,8 +44,8 @@ export function useImagePicker() {
       }
 
       if (result.canceled) return null;
-      const asset = result.assets[0];
-      return { uri: asset.uri, width: asset.width, height: asset.height };
+      const [asset] = result.assets;
+      return normalizeAsset(asset);
     },
     []
   );
@@ -59,12 +65,53 @@ export function useImagePicker() {
         ...opts,
       });
       if (result.canceled) return [];
-      return result.assets.map((a) => ({ uri: a.uri, width: a.width, height: a.height }));
+      return result.assets.map(normalizeAsset);
     },
     []
   );
 
   return { pick, pickMany };
+}
+
+function normalizeAsset(asset: ImagePicker.ImagePickerAsset): PickedImage {
+  const contentType = asset.mimeType ?? inferContentType(asset.uri, asset.type);
+
+  return {
+    uri: asset.uri,
+    width: asset.width,
+    height: asset.height,
+    mediaType: asset.type,
+    fileName: asset.fileName ?? fileNameFor(asset.uri, contentType),
+    contentType,
+    sizeBytes: asset.fileSize && asset.fileSize > 0 ? asset.fileSize : undefined,
+    durationMs: asset.duration ?? undefined,
+  };
+}
+
+function inferContentType(uri: string, mediaType?: PickedImage['mediaType']): string {
+  const lower = uri.toLowerCase().split('?')[0] ?? '';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic')) return 'image/heic';
+  if (lower.endsWith('.heif')) return 'image/heif';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.mov')) return 'video/quicktime';
+  if (lower.endsWith('.m4v')) return 'video/x-m4v';
+  if (lower.endsWith('.mp4')) return 'video/mp4';
+  return mediaType === 'video' || mediaType === 'pairedVideo' ? 'video/mp4' : 'image/jpeg';
+}
+
+function fileNameFor(uri: string, contentType: string): string {
+  const fromUri = uri.split('?')[0]?.split('/').pop();
+  if (fromUri?.includes('.')) return fromUri;
+  const ext = extensionFor(contentType);
+  return `upload-${Date.now()}.${ext}`;
+}
+
+function extensionFor(contentType: string): string {
+  if (contentType === 'image/jpeg') return 'jpg';
+  if (contentType === 'video/quicktime') return 'mov';
+  return contentType.split('/')[1] || 'bin';
 }
 
 function promptOpenSettings(kind: 'camera' | 'photos') {

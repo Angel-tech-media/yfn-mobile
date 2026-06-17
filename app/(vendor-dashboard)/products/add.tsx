@@ -15,6 +15,7 @@ import { useCreateProduct } from '@/src/api/products/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { nairaToKobo } from '@/src/utils/money';
+import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
 
@@ -27,6 +28,8 @@ export default function AddProductScreen() {
   const [outOfStock, setOutOfStock] = useState(false);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUploading, setUploading] = useState(false);
   const createProduct = useCreateProduct();
 
   const { pick, pickMany } = useImagePicker();
@@ -46,21 +49,38 @@ export default function AddProductScreen() {
   const removeAt = (idx: number) => setImages((arr) => arr.filter((_, i) => i !== idx));
   const numericPrice = Number(salePrice.replace(/[^0-9]/g, '')) || 0;
   const canSave = name.trim().length > 0 && category.trim().length > 0 && numericPrice > 0;
+  const isSaving = isUploading || createProduct.isPending;
 
-  const save = () => {
-    if (!canSave) return;
-    createProduct.mutate(
-      {
+  const save = async () => {
+    if (!canSave || isSaving) return;
+    setError(null);
+    setUploading(true);
+    let mediaIds: string[];
+    try {
+      const uploaded = await uploadLocalAssets(images, 'product');
+      mediaIds = uploaded.map((asset) => asset.mediaId);
+    } catch (err) {
+      setError(assetUploadErrorMessage(err));
+      setUploading(false);
+      return;
+    }
+
+    try {
+      await createProduct.mutateAsync({
         title: name.trim(),
         description: desc.trim(),
         price: nairaToKobo(numericPrice),
         category: category.trim(),
         stock: outOfStock ? 0 : 1,
-        mediaIds: [],
+        mediaIds,
         active: !outOfStock,
-      },
-      { onSuccess: () => router.replace('/products/saved') },
-    );
+      });
+      router.replace('/products/saved');
+    } catch {
+      setError('Could not save product.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -136,14 +156,15 @@ export default function AddProductScreen() {
               }
             />
           </View>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </ScrollView>
 
       <View style={styles.actions}>
         <PrimaryButton
           label="Save Product"
-          loading={createProduct.isPending}
-          disabled={!canSave || createProduct.isPending}
+          loading={isSaving}
+          disabled={!canSave || isSaving}
           onPress={save}
         />
       </View>
@@ -284,4 +305,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
   actions: { paddingVertical: spacing['4'] },
+  errorText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    color: palette.status.danger,
+  },
 });
