@@ -10,13 +10,15 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
-import type { RankedProduct, Repost } from '@/src/api/types';
-import { useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
+import { useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
 import { useCartCount } from '@/src/store/cart';
 import { useWishlistCount } from '@/src/store/wishlist';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
 import { formatKobo } from '@/src/utils/money';
+
+import type { RankedProduct, Repost } from '@/src/api/types';
 
 export default function ProfileTabScreen() {
   const { data: me, isLoading } = useMe();
@@ -357,9 +359,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3'],
   },
   title: {
-    fontFamily: typography.h1.fontFamily,
-    fontSize: 24,
-    lineHeight: 30,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 18,
+    lineHeight: 24,
     color: palette.ink.onDarkStrong,
   },
   headerRight: { flexDirection: 'row', gap: spacing['2'] },

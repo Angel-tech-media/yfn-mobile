@@ -21,8 +21,8 @@ import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RepostSheet } from '@/components/ui/RepostSheet';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { useMe } from '@/src/api/account/hooks';
 import { useFeed, useStoriesInbox } from '@/src/api/feed/hooks';
-import type { Post, Story } from '@/src/api/types';
 import {
   useEngagement,
   useIsLiked,
@@ -30,7 +30,10 @@ import {
   useIsSaved,
 } from '@/src/store/engagement';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
 import { formatKobo } from '@/src/utils/money';
+
+import type { MeResponse, Post, Story } from '@/src/api/types';
 
 type StoryTile = { key: string; name: string; isAdd?: boolean; avatarUrl?: string | null };
 
@@ -55,6 +58,7 @@ type PostItem = {
 export default function HomeFeedScreen() {
   const { data, isError, isFetching, refetch } = useFeed({ limit: 30 });
   const { data: storiesData = [], refetch: refetchStories } = useStoriesInbox();
+  const { data: me } = useMe();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -64,6 +68,8 @@ export default function HomeFeedScreen() {
   }, [refetch, refetchStories]);
 
   const feedPosts = data?.items.map(toPostItem) ?? [];
+  const profileName = profileNameFor(me);
+  const profileAvatar = profileAvatarFor(me);
 
   const STORIES_VIEW: StoryTile[] = [
     { key: 'add', name: 'Your story', isAdd: true },
@@ -105,7 +111,11 @@ export default function HomeFeedScreen() {
               accessibilityLabel="Open profile"
               onPress={() => router.push('/(tabs)/profile' as never)}
               style={styles.profileBubble}>
-              <Avatar size={32} initials="DO" />
+              <Avatar
+                size={32}
+                source={profileAvatar}
+                initials={initialsFor(profileName)}
+              />
               <View style={styles.statusDot} />
             </Pressable>
           </View>
@@ -196,6 +206,14 @@ function toStoryTile(story: Story): StoryTile {
     name: story.author.name,
     avatarUrl: story.author.avatarUrl,
   };
+}
+
+function profileNameFor(me?: MeResponse) {
+  return me?.name || me?.displayName || me?.username || 'Me';
+}
+
+function profileAvatarFor(me?: MeResponse) {
+  return me?.avatarUrl ? { uri: me.avatarUrl } : undefined;
 }
 
 function initialsFor(name: string) {

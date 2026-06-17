@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -10,17 +11,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { useFeedReels } from '@/src/api/feed/hooks';
 import { useMarketplaceHome, useTopRatedVendors } from '@/src/api/marketplace/hooks';
-import type { RankedProduct, Reel } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
 import { formatKobo } from '@/src/utils/money';
+
+import type { RankedProduct, Reel, TopRatedResponse } from '@/src/api/types';
 
 export default function MarketScreen() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const { data: home, isError, isLoading, refetch } = useMarketplaceHome({ category, limit: 30 });
   const { data: topRated = [] } = useTopRatedVendors({ category });
   const { data: reels = [] } = useFeedReels({ limit: 8 });
-  const categories = home?.categories ?? [];
-  const products = home?.products ?? [];
+  const products = (home?.products ?? []).filter(isRealProduct);
+  const categories = uniqueCategories(products);
+  const vendors = topRated.filter(isRealVendor);
 
   return (
     <EspressoBackground variant="espresso">
@@ -73,10 +77,10 @@ export default function MarketScreen() {
                 </Section>
               ) : null}
 
-              {topRated.length ? (
+              {vendors.length ? (
                 <Section title="Top rated vendors">
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vendorRow}>
-                    {topRated.map((vendor) => (
+                    {vendors.map((vendor) => (
                       <Pressable key={vendor.id} style={styles.vendorCard}>
                         <View style={styles.vendorAvatar}>
                           <Text style={styles.vendorInitial}>{initialsFor(vendor.storeName)}</Text>
@@ -151,6 +155,28 @@ function ProductCard({ product }: { product: RankedProduct }) {
       </View>
     </Pressable>
   );
+}
+
+function isRealVendor(vendor: TopRatedResponse[number]) {
+  return !hasSeedMarker(vendor.storeName);
+}
+
+function isRealProduct(product: RankedProduct) {
+  return !hasSeedMarker(product.title) && product.title.trim().toLowerCase() !== 'ankara jacket';
+}
+
+function hasSeedMarker(value: string) {
+  const normalized = value.toLowerCase();
+  return ['demo', 'sample', 'dummy', 'placeholder', 'test vendor', 'test product'].some((term) =>
+    normalized.includes(term),
+  );
+}
+
+function uniqueCategories(products: RankedProduct[]) {
+  const productCategories = products
+    .map((product) => product.category)
+    .filter(Boolean);
+  return Array.from(new Set(productCategories));
 }
 
 function initialsFor(name: string) {

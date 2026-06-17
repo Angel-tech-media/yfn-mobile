@@ -1,50 +1,47 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { useOrders } from '@/src/api/orders/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
+import { formatKobo } from '@/src/utils/money';
+
+import type { Order } from '@/src/api/types';
 
 const PERIODS = ['7D', '4W', '3M', '12M'] as const;
 
-const DATA: Record<typeof PERIODS[number], { labels: string[]; sales: number[]; orders: number[] }> = {
-  '7D': {
-    labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-    sales: [40, 65, 50, 80, 60, 90, 70],
-    orders: [25, 40, 35, 55, 45, 60, 50],
-  },
-  '4W': {
-    labels: ['W1', 'W2', 'W3', 'W4'],
-    sales: [60, 75, 50, 90],
-    orders: [42, 48, 36, 55],
-  },
-  '3M': {
-    labels: ['Mar', 'Apr', 'May'],
-    sales: [55, 70, 85],
-    orders: [40, 50, 65],
-  },
-  '12M': {
-    labels: ['J','F','M','A','M','J','J','A','S','O','N','D'],
-    sales: [30, 35, 45, 60, 55, 70, 65, 80, 75, 70, 85, 90],
-    orders: [20, 25, 30, 40, 38, 50, 45, 55, 50, 48, 60, 65],
-  },
+type Period = typeof PERIODS[number];
+
+type Bucket = {
+  key: string;
+  label: string;
+  start: Date;
+  end: Date;
+  total: number;
+  count: number;
 };
 
-const TOP_PRODUCTS = [
-  { id: 'p1', name: 'Ankara high shoulder fitted gown', sold: 86, revenue: 2148140 },
-  { id: 'p3', name: 'Leopard heeled sandals', sold: 142, revenue: 5466850 },
-  { id: 'p4', name: 'Silk floral kimono dress', sold: 64, revenue: 1759680 },
-];
+type ProductMetric = {
+  key: string;
+  name: string;
+  sold: number;
+  revenue: number;
+};
 
 export default function SalesAnalyticsScreen() {
-  const [period, setPeriod] = useState<typeof PERIODS[number]>('7D');
-  const data = DATA[period];
+  const [period, setPeriod] = useState<Period>('7D');
+  const { data: orders = [], isError, isFetching, refetch } = useOrders({ role: 'vendor', limit: 100 });
 
-  const totalSales = data.sales.reduce((a, b) => a + b, 0) * 5000;
-  const totalOrders = data.orders.reduce((a, b) => a + b, 0);
-  const aov = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
+  const analytics = useMemo(() => buildAnalytics(orders, period), [orders, period]);
+  const maxRevenue = Math.max(...analytics.buckets.map((bucket) => bucket.total), 1);
+  const maxOrders = Math.max(...analytics.buckets.map((bucket) => bucket.count), 1);
+  const aov = analytics.orderCount > 0 ? Math.round(analytics.totalRevenue / analytics.orderCount) : 0;
+  const hasSales = analytics.orderCount > 0;
 
   return (
     <ScreenContainer variant="espresso">
@@ -62,40 +59,70 @@ export default function SalesAnalyticsScreen() {
           ))}
         </View>
 
+        {isError ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateText}>Could not load sales data.</Text>
+            <Pressable onPress={() => refetch()} disabled={isFetching}>
+              <Text style={styles.retryText}>{isFetching ? 'Retrying...' : 'Try again'}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View>
               <Text style={styles.chartLabel}>Revenue</Text>
-              <Text style={styles.chartValue}>₦{totalSales.toLocaleString()}</Text>
+              <Text style={styles.chartValue}>{formatKobo(analytics.totalRevenue)}</Text>
             </View>
-            <View style={styles.deltaBadge}>
-              <Ionicons name="trending-up" size={12} color="#1F8E26" />
-              <Text style={styles.deltaText}>+18%</Text>
+            <View style={styles.chartMeta}>
+              <Ionicons name="time-outline" size={12} color={palette.ink.onDarkMuted} />
+              <Text style={styles.chartMetaText}>{periodLabel(period)}</Text>
             </View>
           </View>
 
-          <View style={styles.bars}>
-            {data.labels.map((d, i) => (
-              <View key={d + i} style={styles.barCol}>
-                <View style={[styles.bar, { height: `${data.sales[i]}%`, backgroundColor: palette.brand.orange }]} />
-                <View
-                  style={[
-                    styles.bar,
-                    { height: `${data.orders[i]}%`, backgroundColor: 'rgba(255,255,255,0.55)' },
-                  ]}
-                />
+          {hasSales ? (
+            <>
+              <View style={styles.bars}>
+                {analytics.buckets.map((bucket) => (
+                  <View key={bucket.key} style={styles.barCol}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: bucket.total ? `${Math.max(8, (bucket.total / maxRevenue) * 100)}%` : '0%',
+                          backgroundColor: palette.brand.orange,
+                        },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: bucket.count ? `${Math.max(8, (bucket.count / maxOrders) * 100)}%` : '0%',
+                          backgroundColor: 'rgba(255,255,255,0.55)',
+                        },
+                      ]}
+                    />
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <View style={styles.daysRow}>
-            {data.labels.map((d, i) => (
-              <Text key={d + i} style={styles.dayLabel}>{d}</Text>
-            ))}
-          </View>
+              <View style={styles.daysRow}>
+                {analytics.buckets.map((bucket) => (
+                  <Text key={bucket.key} style={styles.dayLabel}>{bucket.label}</Text>
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={styles.chartEmpty}>
+              <Ionicons name="stats-chart-outline" size={28} color={palette.ink.onDarkMuted} />
+              <Text style={styles.stateText}>No sales in this period yet.</Text>
+            </View>
+          )}
+
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: palette.brand.orange }]} />
-              <Text style={styles.legendLabel}>Sales</Text>
+              <Text style={styles.legendLabel}>Revenue</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#FFFFFF' }]} />
@@ -105,36 +132,158 @@ export default function SalesAnalyticsScreen() {
         </View>
 
         <View style={styles.kpiRow}>
-          <KPI label="Orders" value={String(totalOrders)} delta="+12%" />
-          <KPI label="AOV" value={`₦${aov.toLocaleString()}`} delta="+5%" />
-          <KPI label="Followers" value="1.2K" delta="+3%" />
+          {renderKpi('Orders', String(analytics.orderCount))}
+          {renderKpi('AOV', formatKobo(aov))}
+          {renderKpi('Items sold', String(analytics.itemsSold))}
         </View>
 
         <Text style={styles.sectionTitle}>Top products</Text>
         <View style={styles.list}>
-          {TOP_PRODUCTS.map((p) => (
-            <View key={p.id} style={styles.productRow}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.productName} numberOfLines={1}>{p.name}</Text>
-                <Text style={styles.productSold}>{p.sold} sold</Text>
+          {analytics.topProducts.length ? (
+            analytics.topProducts.map((product) => (
+              <View key={product.key} style={styles.productRow}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+                  <Text style={styles.productSold}>{product.sold} sold</Text>
+                </View>
+                <Text style={styles.productRevenue}>{formatKobo(product.revenue)}</Text>
               </View>
-              <Text style={styles.productRevenue}>₦{p.revenue.toLocaleString()}</Text>
+            ))
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.stateText}>No product sales yet.</Text>
             </View>
-          ))}
+          )}
         </View>
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-function KPI({ label, value, delta }: { label: string; value: string; delta: string }) {
+function renderKpi(label: string, value: string) {
   return (
-    <View style={styles.kpi}>
+    <View key={label} style={styles.kpi}>
       <Text style={styles.kpiLabel}>{label}</Text>
       <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={styles.kpiDelta}>{delta}</Text>
     </View>
   );
+}
+
+function buildAnalytics(orders: Order[], period: Period) {
+  const buckets = buildBuckets(period);
+  const productMap = new Map<string, ProductMetric>();
+  let totalRevenue = 0;
+  let orderCount = 0;
+  let itemsSold = 0;
+
+  for (const order of orders) {
+    const placedAt = new Date(order.placedAt);
+    if (Number.isNaN(placedAt.getTime())) continue;
+
+    const bucket = buckets.find((item) => placedAt >= item.start && placedAt < item.end);
+    if (!bucket) continue;
+
+    bucket.total += order.grandTotal;
+    bucket.count += 1;
+    totalRevenue += order.grandTotal;
+    orderCount += 1;
+
+    for (const item of order.items) {
+      const key = item.productId ?? item.name;
+      const current = productMap.get(key) ?? {
+        key,
+        name: item.name,
+        sold: 0,
+        revenue: 0,
+      };
+      current.sold += item.qty;
+      current.revenue += item.unit * item.qty;
+      itemsSold += item.qty;
+      productMap.set(key, current);
+    }
+  }
+
+  return {
+    buckets,
+    totalRevenue,
+    orderCount,
+    itemsSold,
+    topProducts: Array.from(productMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5),
+  };
+}
+
+function buildBuckets(period: Period): Bucket[] {
+  const now = new Date();
+
+  if (period === '7D') {
+    return Array.from({ length: 7 }, (_, index) => {
+      const start = startOfDay(addDays(now, index - 6));
+      return {
+        key: start.toISOString(),
+        label: start.toLocaleDateString('en-NG', { weekday: 'short' }).slice(0, 1),
+        start,
+        end: addDays(start, 1),
+        total: 0,
+        count: 0,
+      };
+    });
+  }
+
+  if (period === '4W') {
+    return Array.from({ length: 4 }, (_, index) => {
+      const start = startOfDay(addDays(now, -((3 - index) * 7 + 6)));
+      return {
+        key: start.toISOString(),
+        label: `W${index + 1}`,
+        start,
+        end: addDays(start, 7),
+        total: 0,
+        count: 0,
+      };
+    });
+  }
+
+  const length = period === '3M' ? 3 : 12;
+  return Array.from({ length }, (_, index) => {
+    const start = startOfMonth(addMonths(now, index - (length - 1)));
+    return {
+      key: start.toISOString(),
+      label: start.toLocaleDateString('en-NG', { month: 'short' }).slice(0, period === '3M' ? 3 : 1),
+      start,
+      end: addMonths(start, 1),
+      total: 0,
+      count: 0,
+    };
+  });
+}
+
+function periodLabel(period: Period) {
+  if (period === '7D') return 'Last 7 days';
+  if (period === '4W') return 'Last 4 weeks';
+  if (period === '3M') return 'Last 3 months';
+  return 'Last 12 months';
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
 const styles = StyleSheet.create({
@@ -162,6 +311,24 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkSoft,
   },
   tabLabelActive: { color: palette.ink.onLightStrong },
+  stateCard: {
+    padding: spacing['4'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    gap: spacing['2'],
+  },
+  stateText: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkMuted,
+  },
+  retryText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 13,
+    color: palette.brand.orange,
+  },
   chartCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
@@ -181,19 +348,25 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: palette.ink.onDarkStrong,
   },
-  deltaBadge: {
+  chartMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(76,175,80,0.16)',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
-  deltaText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
+  chartMetaText: {
+    fontFamily: typography.caption.fontFamily,
     fontSize: 11,
-    color: '#1F8E26',
+    color: palette.ink.onDarkMuted,
+  },
+  chartEmpty: {
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing['2'],
   },
   bars: {
     height: 140,
@@ -253,17 +426,19 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: palette.ink.onDarkStrong,
   },
-  kpiDelta: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 11,
-    color: '#1F8E26',
-  },
   sectionTitle: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 14,
     color: palette.ink.onDarkStrong,
   },
   list: { gap: spacing['2'] },
+  emptyCard: {
+    padding: spacing['4'],
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+  },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
