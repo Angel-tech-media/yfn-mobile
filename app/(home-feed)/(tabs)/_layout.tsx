@@ -8,7 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreateSheet } from '@/components/ui/CreateSheet';
 import { palette } from '@/src/theme';
 
-type TabKey = 'index' | 'market' | 'hive' | 'wallet' | 'profile';
+// type TabKey = 'index' | 'market' | 'hive' | 'wallet' | 'profile';
+type TabKey = 'index' | 'market' | 'wallet' | 'profile' | 'hive'; // Kept 'hive' in type for commented out tab
 type IconSet = 'ion' | 'mci';
 
 type TabSpec = {
@@ -21,7 +22,7 @@ type TabSpec = {
 
 const TABS_LEFT: TabSpec[] = [
   { key: 'index', iconSet: 'ion', icon: 'home-outline', iconActive: 'home', label: 'Home' },
-  { key: 'hive', iconSet: 'mci', icon: 'hexagon-multiple-outline', iconActive: 'hexagon-multiple', label: 'Hive' },
+  // { key: 'hive', iconSet: 'mci', icon: 'hexagon-multiple-outline', iconActive: 'hexagon-multiple', label: 'Hive' },
   { key: 'market', iconSet: 'ion', icon: 'storefront-outline', iconActive: 'storefront', label: 'Market' },
 ];
 
@@ -95,10 +96,11 @@ export default function TabLayout() {
         }}>
         <Tabs.Screen name="index" />
         <Tabs.Screen name="market" />
-        <Tabs.Screen name="hive" />
         <Tabs.Screen name="wallet" />
         <Tabs.Screen name="profile" />
         {/* Routes still navigable but hidden from the bar */}
+        {/* <Tabs.Screen name="hive" /> */}
+        <Tabs.Screen name="hive" options={{ href: null }} />
         <Tabs.Screen name="news" options={{ href: null }} />
         <Tabs.Screen name="shop" options={{ href: null }} />
         <Tabs.Screen name="inbox" options={{ href: null }} />

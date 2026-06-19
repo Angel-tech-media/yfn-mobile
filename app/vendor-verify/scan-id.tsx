@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSubmitIdDocument } from '@/src/api/auth/hooks';
 import type { IdDocumentType } from '@/src/api/types';
 import { useImagePicker } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
@@ -22,20 +23,21 @@ export default function ScanIdScreen() {
   const country = typeof countryParam === 'string' && countryParam ? countryParam : 'NG';
   const { pick } = useImagePicker();
   const submitIdDocument = useSubmitIdDocument();
+  const toast = useToast();
   const galleryLaunched = useRef(false);
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setUploading] = useState(false);
   const isBusy = isUploading || submitIdDocument.isPending;
 
   const submitDocument = useCallback(
     async (pickerSource: 'camera' | 'library') => {
       if (!idType) {
-        setError('Choose an ID type before uploading your document.');
+        toast.warning('Select an ID type', {
+          description: 'Choose an ID type before uploading your document.',
+        });
         return;
       }
       if (isBusy) return;
 
-      setError(null);
       const image = await pick(pickerSource, { mediaTypes: ['images'] });
       if (!image) return;
 
@@ -45,7 +47,9 @@ export default function ScanIdScreen() {
         const uploaded = await uploadLocalAsset(image, 'kyc');
         frontMediaId = uploaded.mediaId;
       } catch (err) {
-        setError(assetUploadErrorMessage(err));
+        toast.error('Upload failed', {
+          description: assetUploadErrorMessage(err),
+        });
         setUploading(false);
         return;
       }
@@ -56,14 +60,20 @@ export default function ScanIdScreen() {
           type: idType,
           frontMediaId,
         });
+        toast.success('ID submitted', {
+          description: 'Now let\u2019s take a selfie to verify your identity',
+          icon: 'document-text',
+        });
         router.push(`/vendor-verify/photo-guide?idDocumentId=${document.idDocumentId}` as never);
       } catch {
-        setError('Could not submit your ID document.');
+        toast.error('Submission failed', {
+          description: 'Could not submit your ID document. Please try again.',
+        });
       } finally {
         setUploading(false);
       }
     },
-    [country, idType, isBusy, pick, submitIdDocument],
+    [country, idType, isBusy, pick, submitIdDocument, toast],
   );
 
   useEffect(() => {

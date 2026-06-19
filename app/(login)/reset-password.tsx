@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 
 type Rule = { key: string; label: string; check: (p: string) => boolean };
@@ -21,6 +22,7 @@ const RULES: Rule[] = [
 export default function ResetPasswordScreen() {
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
+  const toast = useToast();
 
   const passes = useMemo(() => RULES.map((r) => ({ ...r, ok: r.check(pw) })), [pw]);
   const allOk = passes.every((p) => p.ok) && pw === pw2 && pw.length > 0;
@@ -55,7 +57,13 @@ export default function ResetPasswordScreen() {
         <PrimaryButton
           label="Send OTP"
           disabled={!allOk}
-          onPress={() => router.replace('/login')}
+          onPress={() => {
+            toast.success('Password updated', {
+              description: 'You can now sign in with your new password',
+              icon: 'shield-checkmark',
+            });
+            router.replace('/login');
+          }}
         />
       </View>
     </ScreenContainer>

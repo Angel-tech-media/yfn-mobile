@@ -7,10 +7,12 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function ForgotPasswordScreen() {
   const [contact, setContact] = useState('');
+  const toast = useToast();
 
   return (
     <ScreenContainer variant="espresso">
@@ -31,7 +33,13 @@ export default function ForgotPasswordScreen() {
         <PrimaryButton
           label="Send OTP"
           disabled={!contact}
-          onPress={() => router.push('/forgot-otp')}
+          onPress={() => {
+            toast.success('OTP sent', {
+              description: `We sent a code to ${contact}`,
+              icon: 'mail-outline',
+            });
+            router.push('/forgot-otp');
+          }}
         />
       </View>
     </ScreenContainer>

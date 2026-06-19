@@ -12,6 +12,7 @@ import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useMe } from '@/src/api/account/hooks';
 import { useCreatePost } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
@@ -21,11 +22,11 @@ export default function CreatePostScreen() {
   const [text, setText] = useState('');
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setUploading] = useState(false);
   const { pick, pickMany } = useImagePicker();
   const { data: me } = useMe();
   const createPost = useCreatePost();
+  const toast = useToast();
 
   const fromCamera = async () => {
     const img = await pick('camera');
@@ -43,14 +44,15 @@ export default function CreatePostScreen() {
 
   const handlePost = async () => {
     if (!canPost || isSubmitting) return;
-    setError(null);
     setUploading(true);
     let mediaIds: string[];
     try {
       const uploaded = await uploadLocalAssets(images, 'post');
       mediaIds = uploaded.map((asset) => asset.mediaId);
     } catch (err) {
-      setError(assetUploadErrorMessage(err));
+      toast.error('Upload failed', {
+        description: assetUploadErrorMessage(err),
+      });
       setUploading(false);
       return;
     }
@@ -60,9 +62,14 @@ export default function CreatePostScreen() {
         caption: text.trim(),
         mediaIds,
       });
+      toast.success('Post published!', {
+        icon: 'checkmark-circle',
+      });
       router.back();
     } catch {
-      setError('Could not publish post.');
+      toast.error('Could not publish post', {
+        description: 'Please check your connection and try again.',
+      });
     } finally {
       setUploading(false);
     }
@@ -126,7 +133,7 @@ export default function CreatePostScreen() {
           </ScrollView>
         ) : null}
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
       </ScrollView>
 
       <View style={styles.toolRow}>
@@ -267,10 +274,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: palette.brand.orange,
   },
-  errorText: {
-    ...typography.caption,
-    color: palette.status.danger,
-  },
+
   toolRow: {
     flexDirection: 'row',
     gap: spacing['2'],

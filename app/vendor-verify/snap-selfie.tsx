@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSubmitSelfie } from '@/src/api/auth/hooks';
 import { useImagePicker } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 import { assetUploadErrorMessage, createSelfieFormData } from '@/src/utils/upload-media';
 
@@ -15,19 +16,24 @@ export default function SnapSelfieScreen() {
   const { idDocumentId } = useLocalSearchParams<{ idDocumentId?: string }>();
   const { pick } = useImagePicker();
   const submitSelfie = useSubmitSelfie();
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const submitSelfieFrom = async (source: 'camera' | 'library') => {
     if (submitSelfie.isPending) return;
-    setError(null);
     const image = await pick(source, { mediaTypes: ['images'] });
     if (!image) return;
 
     try {
       await submitSelfie.mutateAsync(createSelfieFormData(image, idDocumentId));
+      toast.success('Selfie submitted', {
+        description: 'Your verification is being reviewed',
+        icon: 'happy',
+      });
       router.replace('/vendor-verify/complete');
     } catch (err) {
-      setError(assetUploadErrorMessage(err));
+      toast.error('Selfie upload failed', {
+        description: assetUploadErrorMessage(err),
+      });
     }
   };
 
@@ -83,7 +89,6 @@ export default function SnapSelfieScreen() {
             <Text style={styles.sideBtnLabel}>Help</Text>
           </Pressable>
         </View>
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </SafeAreaView>
     </View>
   );
@@ -170,12 +175,5 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
   },
-  errorText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    color: palette.status.danger,
-    textAlign: 'center',
-    paddingBottom: spacing['3'],
-  },
 });
+

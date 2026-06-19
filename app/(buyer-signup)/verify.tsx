@@ -7,6 +7,7 @@ import { OtpInput } from '@/components/ui/OtpInput';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 
 const RESEND_SECONDS = 30;
@@ -14,6 +15,7 @@ const RESEND_SECONDS = 30;
 export default function VerifyScreen() {
   const { role } = useLocalSearchParams<{ role?: 'vendor' | 'buyer' }>();
   const isVendor = role === 'vendor';
+  const toast = useToast();
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
 
@@ -47,7 +49,13 @@ export default function VerifyScreen() {
           )}
           <Pressable
             disabled={secondsLeft > 0}
-            onPress={() => setSecondsLeft(RESEND_SECONDS)}
+            onPress={() => {
+              setSecondsLeft(RESEND_SECONDS);
+              toast.info('Code resent', {
+                description: 'Check your email or phone for the new code',
+                icon: 'refresh',
+              });
+            }}
             hitSlop={6}>
             <Text
               style={[
@@ -62,9 +70,15 @@ export default function VerifyScreen() {
         <PrimaryButton
           label="Verify"
           disabled={!canVerify}
-          onPress={() =>
-            router.replace(isVendor ? '/vendor-ready' : '/onboarding-complete')
-          }
+          onPress={() => {
+            toast.success('Account verified!', {
+              description: isVendor
+                ? 'Your vendor account is ready'
+                : 'You\u2019re all set to start shopping',
+              icon: 'checkmark-circle',
+            });
+            router.replace(isVendor ? '/vendor-ready' : '/onboarding-complete');
+          }}
         />
       </View>
     </ScreenContainer>

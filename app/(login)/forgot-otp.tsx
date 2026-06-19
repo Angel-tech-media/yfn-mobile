@@ -7,6 +7,7 @@ import { OtpInput } from '@/components/ui/OtpInput';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 
 const RESEND = 30;
@@ -14,6 +15,7 @@ const RESEND = 30;
 export default function ForgotOtpScreen() {
   const [code, setCode] = useState('');
   const [s, setS] = useState(RESEND);
+  const toast = useToast();
 
   useEffect(() => {
     if (s <= 0) return;
@@ -38,7 +40,13 @@ export default function ForgotOtpScreen() {
           ) : (
             <Text style={styles.info}>Didn&apos;t get the code?</Text>
           )}
-          <Pressable disabled={s > 0} onPress={() => setS(RESEND)} hitSlop={6}>
+          <Pressable disabled={s > 0} onPress={() => {
+            setS(RESEND);
+            toast.info('Code resent', {
+              description: 'A new code has been sent to your email or phone',
+              icon: 'refresh',
+            });
+          }} hitSlop={6}>
             <Text style={[styles.cta, s > 0 && { color: palette.ink.onDarkFaint }]}>Resend</Text>
           </Pressable>
         </View>

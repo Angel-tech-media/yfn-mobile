@@ -9,15 +9,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useCreateStory } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
 import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateStoryScreen() {
   const [photo, setPhoto] = useState<PickedImage | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setUploading] = useState(false);
   const { pick } = useImagePicker();
   const createStory = useCreateStory();
+  const toast = useToast();
 
   useEffect(() => {
     // Auto-launch camera on mount
@@ -95,23 +96,29 @@ export default function CreateStoryScreen() {
             disabled={createStory.isPending || isUploading}
             onPress={async () => {
               if (!photo || createStory.isPending || isUploading) return;
-              setError(null);
               setUploading(true);
               let mediaId: string;
               try {
                 const uploaded = await uploadLocalAsset(photo, 'story');
                 mediaId = uploaded.mediaId;
               } catch (err) {
-                setError(assetUploadErrorMessage(err));
+                toast.error('Upload failed', {
+                  description: assetUploadErrorMessage(err),
+                });
                 setUploading(false);
                 return;
               }
 
               try {
                 await createStory.mutateAsync({ mediaId });
+                toast.success('Story shared!', {
+                  icon: 'sparkles',
+                });
                 router.back();
               } catch {
-                setError('Could not share story.');
+                toast.error('Could not share story', {
+                  description: 'Please check your connection and try again.',
+                });
               } finally {
                 setUploading(false);
               }
@@ -120,7 +127,6 @@ export default function CreateStoryScreen() {
             <Ionicons name="paper-plane" size={18} color={palette.ink.onLightStrong} />
             <Text style={styles.shareLabel}>{createStory.isPending || isUploading ? 'Sharing' : 'Share to Story'}</Text>
           </Pressable>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </SafeAreaView>
     </View>
@@ -192,10 +198,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: palette.ink.onLightStrong,
   },
-  errorText: {
-    ...typography.caption,
-    color: palette.status.danger,
-    textAlign: 'center',
-    marginTop: spacing['2'],
-  },
 });
+

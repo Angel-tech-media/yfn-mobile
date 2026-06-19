@@ -11,18 +11,19 @@ import { TextField } from '@/components/ui/TextField';
 import { useMe } from '@/src/api/account/hooks';
 import { useCreateReel } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateReelScreen() {
   const [video, setVideo] = useState<PickedImage | null>(null);
   const [caption, setCaption] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isUploading, setUploading] = useState(false);
   const { data: me } = useMe();
   const audio = `original sound · ${me?.username ?? 'me'}`;
   const { pick } = useImagePicker();
   const createReel = useCreateReel();
+  const toast = useToast();
 
   if (!video) {
     return (
@@ -103,14 +104,15 @@ export default function CreateReelScreen() {
             disabled={!video || createReel.isPending || isUploading}
             onPress={async () => {
               if (!video || createReel.isPending || isUploading) return;
-              setError(null);
               setUploading(true);
               let videoMediaId: string;
               try {
                 const uploaded = await uploadLocalAsset(video, 'reel');
                 videoMediaId = uploaded.mediaId;
               } catch (err) {
-                setError(assetUploadErrorMessage(err));
+                toast.error('Upload failed', {
+                  description: assetUploadErrorMessage(err),
+                });
                 setUploading(false);
                 return;
               }
@@ -121,9 +123,14 @@ export default function CreateReelScreen() {
                   caption: caption.trim(),
                   audio,
                 });
+                toast.success('Reel posted!', {
+                  icon: 'videocam',
+                });
                 router.back();
               } catch {
-                setError('Could not post reel.');
+                toast.error('Could not post reel', {
+                  description: 'Please check your connection and try again.',
+                });
               } finally {
                 setUploading(false);
               }
@@ -131,7 +138,6 @@ export default function CreateReelScreen() {
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
             <Text style={styles.shareLabel}>{createReel.isPending || isUploading ? 'Posting' : 'Post reel'}</Text>
           </Pressable>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
       </SafeAreaView>
     </View>
@@ -223,10 +229,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#FFFFFF',
   },
-  errorText: {
-    ...typography.caption,
-    color: palette.status.danger,
-    textAlign: 'center',
-    marginTop: spacing['2'],
-  },
 });
+

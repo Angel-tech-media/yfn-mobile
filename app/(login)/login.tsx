@@ -11,16 +11,17 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
 import { authApi } from '@/src/api';
+import { useToast } from '@/src/hooks/use-toast';
 import { useUser } from '@/src/store/user';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function LoginScreen() {
   const setRole = useUser((s) => s.setRole);
+  const toast = useToast();
   const [role, setSelectedRole] = useState<'buyer' | 'vendor'>('buyer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const canSubmit = useMemo(
     () => email.trim().length > 0 && password.length >= 8 && !submitting,
@@ -30,14 +31,19 @@ export default function LoginScreen() {
   const submit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    setError(null);
     setRole(role);
     const result = await authApi.login(email.trim(), password, role);
     setSubmitting(false);
     if (!result.ok) {
-      setError(result.error);
+      toast.error('Login failed', {
+        description: result.error,
+      });
       return;
     }
+    toast.success('Welcome back!', {
+      description: `Signed in as ${role}`,
+      icon: 'hand-right',
+    });
     router.replace('/(tabs)' as never);
   };
 
@@ -85,11 +91,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           isPassword
         />
-        {error ? (
-          <Text accessibilityRole="alert" style={styles.errorText}>
-            {error}
-          </Text>
-        ) : null}
+
         <PrimaryButton
           label={`Log in as ${role === 'buyer' ? 'buyer' : 'vendor'}`}
           onPress={submit}
@@ -242,12 +244,7 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     paddingTop: spacing['5'],
   },
-  errorText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.status.danger,
-  },
+
   noteText: {
     fontFamily: typography.caption.fontFamily,
     fontSize: 12,
