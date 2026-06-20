@@ -6,10 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { useMe } from '@/src/api/account/hooks';
 import { useConversations } from '@/src/api/chat/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function InboxScreen() {
+  const { data: me } = useMe();
   const { data: threads = [], isLoading, isError, refetch, isFetching } = useConversations();
 
   return (
@@ -47,7 +49,9 @@ export default function InboxScreen() {
               style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
               <Avatar size={48} initials="C" />
               <View style={styles.body}>
-                <Text style={styles.name}>{conversationTitle(t)}</Text>
+                <Text style={styles.name}>
+                  {t.orderId ? `Order ${t.orderId}` : t.productId ? `Product ${t.productId}` : (t.participants?.find(p => p.userId !== me?.id)?.name || t.participants?.find(p => p.userId !== me?.id)?.username || `Conversation ${t.id.slice(0, 8)}`)}
+                </Text>
                 <Text style={styles.preview} numberOfLines={1}>{t.lastMessagePreview ?? 'No messages yet'}</Text>
               </View>
               <View style={styles.meta}>
@@ -59,12 +63,6 @@ export default function InboxScreen() {
       </SafeAreaView>
     </EspressoBackground>
   );
-}
-
-function conversationTitle(thread: { orderId?: string | null; productId?: string | null; id: string }) {
-  if (thread.orderId) return `Order ${thread.orderId}`;
-  if (thread.productId) return `Product ${thread.productId}`;
-  return `Conversation ${thread.id.slice(0, 8)}`;
 }
 
 function formatWhen(iso: string) {

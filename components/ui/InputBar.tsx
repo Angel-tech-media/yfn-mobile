@@ -7,6 +7,7 @@ import { palette, radius, spacing, typography } from '@/src/theme';
 type Props = TextInputProps & {
   onAttach?: () => void;
   onSend?: () => void;
+  onEmojiClick?: () => void;
   attachDisabled?: boolean;
   showEmoji?: boolean;
   showSend?: boolean;
@@ -15,6 +16,7 @@ type Props = TextInputProps & {
 export function InputBar({
   onAttach,
   onSend,
+  onEmojiClick,
   attachDisabled = false,
   showEmoji = true,
   showSend = true,
@@ -39,12 +41,14 @@ export function InputBar({
         </Pressable>
       ) : null}
       {showEmoji ? (
-        <Ionicons
-          name="happy-outline"
-          size={20}
-          color={palette.ink.onDarkSoft}
-          style={styles.lead}
-        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open emoji picker"
+          hitSlop={8}
+          onPress={onEmojiClick}
+          style={({ pressed }) => [styles.lead, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="happy-outline" size={20} color={palette.ink.onDarkSoft} />
+        </Pressable>
       ) : null}
       <TextInput
         {...rest}

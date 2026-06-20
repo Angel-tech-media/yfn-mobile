@@ -4,8 +4,9 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InputBar } from '@/components/ui/InputBar';
@@ -30,6 +31,8 @@ export default function MessageThreadScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const otherParticipant = conversation?.participants.find((participant) => participant.userId !== me?.id);
   const { pick } = useImagePicker();
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!conversationId) return;
@@ -83,7 +86,7 @@ export default function MessageThreadScreen() {
           <Avatar size={36} initials={otherParticipant?.role === 'vendor' ? 'V' : 'U'} />
           <View style={{ flex: 1 }}>
             <Text style={styles.peerName}>
-              {otherParticipant ? `${capitalize(otherParticipant.role)} ${shortId(otherParticipant.userId)}` : 'Conversation'}
+              {otherParticipant ? (otherParticipant.name || otherParticipant.username || `${capitalize(otherParticipant.role)} ${shortId(otherParticipant.userId)}`) : 'Conversation'}
             </Text>
             <Text style={styles.peerStatus}>{conversation?.productId ? 'Product chat' : 'Messages'}</Text>
           </View>
@@ -121,7 +124,7 @@ export default function MessageThreadScreen() {
               )}
             </ScrollView>
 
-            <View style={styles.composerWrap}>
+              <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, spacing['3']) }]}>
               <InputBar
                 placeholder="Type a message..."
                 value={draft}
@@ -129,12 +132,19 @@ export default function MessageThreadScreen() {
                 onAttach={attachImage}
                 attachDisabled={attachmentUploading || sendMessage.isPending}
                 onSend={send}
+                onEmojiClick={() => setShowEmojiPicker(true)}
               />
               {attachmentError ? <Text style={styles.composerError}>{attachmentError}</Text> : null}
             </View>
           </KeyboardAvoidingView>
         )}
       </SafeAreaView>
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelected={(emoji) => setDraft((d) => d + emoji)}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
     </EspressoBackground>
   );
 }

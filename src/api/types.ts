@@ -689,6 +689,8 @@ export type ChatConversation = {
     userId: Id;
     role: 'buyer' | 'vendor' | 'admin';
     lastReadAt?: ISODateTime;
+    username?: string;
+    name?: string;
   }[];
   productId?: Id | null;
   orderId?: Id | null;

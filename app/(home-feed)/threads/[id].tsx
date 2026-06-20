@@ -12,11 +12,14 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InputBar } from '@/components/ui/InputBar';
 import {
+  useConversation,
   useMarkConversationRead,
   useMessages,
   useSendMessage,
@@ -30,12 +33,14 @@ export default function ThreadDetailScreen() {
   const conversationId = String(id);
   const me = useAuth((s) => s.user?.id);
 
+  const { data: conversation } = useConversation(conversationId);
   const { data: messages, isLoading, isError } = useMessages(conversationId);
   const send = useSendMessage(conversationId);
   const markRead = useMarkConversationRead();
   useChatSocket(conversationId);
-  const [draft, setDraft] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (conversationId) markRead.mutate(conversationId);
@@ -53,6 +58,8 @@ export default function ThreadDetailScreen() {
     setDraft('');
   };
 
+  const otherParticipant = conversation?.participants?.find((p) => p.userId !== me);
+
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -61,7 +68,7 @@ export default function ThreadDetailScreen() {
             <Ionicons name="chevron-back" size={22} color={palette.ink.onDarkStrong} />
           </Pressable>
           <Text style={styles.title} numberOfLines={1}>
-            Thread
+            {otherParticipant?.name || otherParticipant?.username || 'Thread'}
           </Text>
           <View style={styles.iconBtn} />
         </View>
@@ -128,16 +135,23 @@ export default function ThreadDetailScreen() {
             </ScrollView>
           )}
 
-          <View style={styles.composerWrap}>
+          <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, spacing['3']) }]}>
             <InputBar
               placeholder="Type a message…"
               value={draft}
               onChangeText={setDraft}
               onSend={submit}
+              onEmojiClick={() => setShowEmojiPicker(true)}
             />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelected={(emoji) => setDraft((d) => d + emoji)}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
     </EspressoBackground>
   );
 }

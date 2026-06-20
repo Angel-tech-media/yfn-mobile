@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
+import { ProfileTabContent } from '@/components/ui/ProfileTabContent';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
 import { useStartConversation } from '@/src/api/chat/hooks';
@@ -32,14 +32,12 @@ export default function PublicProfileScreen() {
   const blockUser = useBlockUser();
   const { data: me } = useMe();
   const isMe = me?.username === userHandle || me?.handle === userHandle;
-  const [activeTab, setActiveTab] = useState<TabKey>('posts');
+
 
   const { data: reposts = [] } = useUserReposts(userHandle);
   const { data: repostedPostsData } = useUserRepostedPosts(userHandle);
   const repostedPosts = repostedPostsData?.items ?? [];
   const startConversation = useStartConversation();
-  const [repostType, setRepostType] = useState<'post' | 'product'>('post');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleOptions = () => {
     Alert.alert(
@@ -104,7 +102,8 @@ export default function PublicProfileScreen() {
           <StateView label="Profile unavailable." onRetry={() => refetch()} />
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            <View style={styles.profileTop}>
+            <View style={styles.topSection}>
+              <View style={styles.profileTop}>
               <Avatar size={88} initials={initialsFor(vendor.storeName || vendor.name)} />
               <View style={styles.statsRow}>
                 <Stat value={compact(vendor.posts ?? products.length)} label="Posts" />
@@ -167,121 +166,17 @@ export default function PublicProfileScreen() {
                 <Ionicons name="location-outline" size={17} color={palette.ink.onDarkStrong} />
               </Pressable>
             </View>
-
-            <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products', 'reposts']} />
-
-            <View style={{ marginTop: spacing['4'] }}>
-              {activeTab === 'posts' && (
-                <>
-                  <Text style={styles.sectionTitle}>Posts</Text>
-                  {posts.length ? (
-                    <View style={styles.grid}>
-                      {posts.map((post) => (
-                        <PostTile key={post.id} post={post} />
-                      ))}
-                    </View>
-                  ) : (
-                    <EmptyState label="No posts yet." />
-                  )}
-                </>
-              )}
-
-              {activeTab === 'products' && (
-                <>
-                  {vendor.category ? (
-                    <>
-                      <Text style={styles.sectionTitle}>Products</Text>
-                      {products.length ? (
-                        <View style={styles.grid}>
-                          {products.map((product) => (
-                            <ProductTile key={product.id} product={product} />
-                          ))}
-                        </View>
-                      ) : (
-                        <EmptyState label="No products yet." />
-                      )}
-                    </>
-                  ) : (
-                    <EmptyState label="No products available." />
-                  )}
-                </>
-              )}
-
-              {activeTab === 'reposts' && (
-                <View style={{ zIndex: 10 }}>
-                  <Pressable
-                    onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                    style={styles.dropdownToggle}>
-                    <Text style={styles.dropdownToggleText}>
-                      {repostType === 'product' ? 'Product Reposts' : 'Reposted Posts'}
-                    </Text>
-                    <Ionicons
-                      name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color={palette.ink.onDarkStrong}
-                    />
-                  </Pressable>
-
-                  {isDropdownOpen && (
-                    <View style={styles.dropdownMenu}>
-                      <Pressable
-                        onPress={() => {
-                          setRepostType('post');
-                          setIsDropdownOpen(false);
-                        }}
-                        style={styles.dropdownItem}>
-                        <Text style={[styles.dropdownItemText, repostType === 'post' && styles.dropdownItemTextActive]}>
-                          Reposted Posts
-                        </Text>
-                        {repostType === 'post' && (
-                          <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
-                        )}
-                      </Pressable>
-                      <View style={styles.dropdownDivider} />
-                      <Pressable
-                        onPress={() => {
-                          setRepostType('product');
-                          setIsDropdownOpen(false);
-                        }}
-                        style={styles.dropdownItem}>
-                        <Text style={[styles.dropdownItemText, repostType === 'product' && styles.dropdownItemTextActive]}>
-                          Product Reposts
-                        </Text>
-                        {repostType === 'product' && (
-                          <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
-                        )}
-                      </Pressable>
-                    </View>
-                  )}
-
-                  {repostType === 'product' ? (
-                    reposts.length ? (
-                      <View style={styles.grid}>
-                        {reposts.map((repost) => (
-                          <RepostTile key={repost.id} repost={repost} handle={userHandle} />
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={styles.padded}>
-                        <EmptyState label="No product reposts yet." />
-                      </View>
-                    )
-                  ) : (
-                    repostedPosts.length ? (
-                      <View style={styles.grid}>
-                        {repostedPosts.map((post) => (
-                          <PostTile key={post.id} post={post} />
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={styles.padded}>
-                        <EmptyState label="No reposted posts yet." />
-                      </View>
-                    )
-                  )}
-                </View>
-              )}
             </View>
+
+            <ProfileTabContent
+              handle={userHandle}
+              posts={posts}
+              products={products}
+              reposts={reposts}
+              repostedPosts={repostedPosts}
+              vendorCategory={vendor.category}
+              hasStore={false}
+            />
           </ScrollView>
         )}
       </SafeAreaView>
@@ -302,71 +197,7 @@ function StateView({ label, onRetry }: { label: string; onRetry?: () => void }) 
   );
 }
 
-function ProductTile({ product }: { product: RankedProduct }) {
-  const imageUrl = product.media?.find((media) => media.type === 'image')?.url;
 
-  return (
-    <Pressable onPress={() => router.push(`/product/${product.id}` as never)} style={styles.tile}>
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.tileImage} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.tileImage} />
-      )}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
-      <View style={styles.tileMeta}>
-        <Text style={styles.tilePrice}>{formatKobo(product.price)}</Text>
-        <Text style={styles.tileCategory} numberOfLines={1}>{product.category}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function RepostTile({ repost, handle }: { repost: Repost; handle: string }) {
-  return (
-    <Pressable
-      onPress={() => router.push(`/product/${repost.productId}?via=${handle}` as never)}
-      style={styles.tile}>
-      <LinearGradient colors={['#3a2818', '#1f1108']} style={StyleSheet.absoluteFill} />
-      <View style={[styles.tileBadge, { backgroundColor: palette.brand.orange }]}>
-        <Ionicons name="repeat" size={12} color="#fff" />
-      </View>
-      <View style={styles.tileMeta}>
-        <Text style={styles.tilePrice}>+{formatKobo(repost.earnings)}</Text>
-        <Text style={styles.tileCategory} numberOfLines={1}>
-          {repost.clicks} clicks · {repost.conversions} sales
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function PostTile({ post }: { post: Post }) {
-  const imageUrl = post.imageUrls?.[0];
-
-  return (
-    <Pressable
-      onPress={() => router.push(`/post/${post.id}` as never)}
-      style={styles.tile}>
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.tileImage} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.tileImage} />
-      )}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
-      <View style={styles.tileMeta}>
-        <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function EmptyState({ label }: { label: string }) {
-  return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyText}>{label}</Text>
-    </View>
-  );
-}
 
 function Meta({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   return (
@@ -429,7 +260,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   retryText: { ...typography.bodyEmphasis, color: '#fff' },
-  scroll: { paddingHorizontal: spacing['5'], paddingBottom: 100, gap: spacing['3'] },
+  scroll: { paddingBottom: 100 },
+  topSection: { paddingHorizontal: spacing['5'], gap: spacing['3'] },
   profileTop: { flexDirection: 'row', alignItems: 'center', gap: spacing['4'] },
   statsRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center', gap: 2 },
@@ -476,19 +308,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.06)',
   },
-  sectionTitle: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong, marginTop: spacing['3'] },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
-  tile: { width: '33.2%', aspectRatio: 1, overflow: 'hidden' },
-  tileImage: { width: '100%', height: '100%' },
-  tileMeta: { position: 'absolute', bottom: 8, left: 8, right: 8, gap: 1 },
-  tilePrice: { ...typography.bodyEmphasis, color: '#fff', fontSize: 13 },
-  tileCategory: { ...typography.caption, color: 'rgba(255,255,255,0.85)', fontSize: 11 },
-  empty: {
-    padding: spacing['4'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  emptyText: { ...typography.body, color: palette.ink.onDarkMuted, textAlign: 'center' },
+
   reviewList: { gap: spacing['2'] },
   reviewCard: {
     padding: spacing['3'],
@@ -502,59 +322,5 @@ const styles = StyleSheet.create({
   reviewAuthor: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
   reviewRating: { ...typography.bodyEmphasis, color: palette.brand.orange },
   reviewText: { ...typography.body, color: palette.ink.onDarkSoft },
-  padded: { paddingHorizontal: spacing['5'] },
-  dropdownToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing['5'],
-    paddingBottom: spacing['4'],
-  },
-  dropdownToggleText: {
-    ...typography.h2,
-    color: palette.ink.onDarkStrong,
-    marginRight: spacing['2'],
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 36,
-    left: spacing['5'],
-    width: 220,
-    backgroundColor: palette.bg.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    zIndex: 20,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing['4'],
-  },
-  dropdownItemText: {
-    ...typography.bodyEmphasis,
-    color: palette.ink.onDarkStrong,
-  },
-  dropdownItemTextActive: {
-    color: palette.brand.orange,
-  },
-  dropdownDivider: {
-    height: 1,
-    backgroundColor: palette.line.divider,
-  },
-  tileBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
 });
