@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { useMe } from '@/src/api/account/hooks';
 import { useStoriesInbox } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
@@ -17,7 +18,9 @@ const { width: SW } = Dimensions.get('window');
 export default function StoryViewerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: stories = [], isError, isLoading, refetch } = useStoriesInbox();
+  const { data: me } = useMe();
   const story = stories.find((item) => item.id === id);
+  const isMine = me?.handle === story?.author.handle;
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
 
@@ -120,16 +123,31 @@ export default function StoryViewerScreen() {
       ) : null}
 
       <SafeAreaView edges={['bottom']} style={styles.footer}>
-        <View style={styles.composer}>
-          <TextInput
-            placeholder={`Reply to ${story.author.name}...`}
-            placeholderTextColor="rgba(255,255,255,0.65)"
-            style={styles.composerInput}
-          />
-        </View>
-        <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM">
-          <Ionicons name="paper-plane-outline" size={20} color="#fff" />
-        </Pressable>
+        {isMine ? (
+          <View style={styles.ownFooter}>
+            <View style={styles.viewsRow}>
+              <Ionicons name="eye-outline" size={20} color="#fff" />
+              <Text style={styles.viewsCount}>0 Viewers</Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="More">
+              <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.composer}>
+              <TextInput
+                placeholder={`Reply to ${story.author.name}...`}
+                placeholderTextColor="rgba(255,255,255,0.65)"
+                style={styles.composerInput}
+              />
+            </View>
+            <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM">
+              <Ionicons name="paper-plane-outline" size={24} color="#fff" />
+            </Pressable>
+          </>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -286,5 +304,21 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.fontFamily,
     fontSize: 14,
     paddingVertical: 4,
+  },
+  ownFooter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2'],
+  },
+  viewsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  viewsCount: {
+    ...typography.bodyEmphasis,
+    color: '#fff',
+    fontSize: 15,
   },
 });
