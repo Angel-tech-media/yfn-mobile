@@ -52,7 +52,8 @@ export default function ArticleScreen() {
     );
   }
 
-  const authorInitial = article.author.initial ?? article.author.name.charAt(0).toUpperCase();
+  const author = articleAuthor(article);
+  const authorInitial = author.initial ?? author.name.charAt(0).toUpperCase();
   const paragraphs = article.paragraphs?.length ? article.paragraphs : [article.excerpt];
   const claps = article.claps + (clapped && !article.clappedByMe ? 1 : 0);
 
@@ -85,17 +86,17 @@ export default function ArticleScreen() {
           <Text style={styles.headline}>{article.title}</Text>
 
           <View style={styles.authorRow}>
-            {article.author.avatarUrl ? (
-              <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} contentFit="cover" />
+            {author.avatarUrl ? (
+              <Image source={{ uri: author.avatarUrl }} style={styles.authorAvatar} contentFit="cover" />
             ) : (
               <View style={styles.authorAvatar}>
                 <Text style={styles.authorInitial}>{authorInitial}</Text>
               </View>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={styles.authorName}>{article.author.name}</Text>
+              <Text style={styles.authorName}>{author.name}</Text>
               <Text style={styles.authorMeta}>
-                {article.author.role ?? 'Vibe News'} · {dateLabel(article.publishedAt)} · {article.readMin} min read
+                {author.role ?? 'Vibe News'} · {dateLabel(article.publishedAt)} · {article.readMin} min read
               </Text>
             </View>
             <Pressable style={styles.followBtn}>
@@ -148,9 +149,9 @@ export default function ArticleScreen() {
           ) : null}
 
           <View style={styles.authorCard}>
-            {article.author.avatarUrl ? (
+            {author.avatarUrl ? (
               <Image
-                source={{ uri: article.author.avatarUrl }}
+                source={{ uri: author.avatarUrl }}
                 style={styles.authorAvatarLg}
                 contentFit="cover"
               />
@@ -159,8 +160,8 @@ export default function ArticleScreen() {
                 <Text style={styles.authorInitialLg}>{authorInitial}</Text>
               </View>
             )}
-            <Text style={styles.authorCardName}>Written by {article.author.name}</Text>
-            <Text style={styles.authorCardMeta}>{article.author.role ?? 'Vibe News'}</Text>
+            <Text style={styles.authorCardName}>Written by {author.name}</Text>
+            <Text style={styles.authorCardMeta}>{author.role ?? 'Vibe News'}</Text>
             <Pressable style={styles.authorFollow}>
               <Text style={styles.authorFollowText}>Follow</Text>
             </Pressable>
@@ -226,7 +227,25 @@ function RelatedThumb({ article }: { article: Article }) {
 }
 
 function sourceLabel(article: Article) {
-  return article.author.role ? article.author.role : article.author.name;
+  const author = articleAuthor(article);
+  return author.role ?? author.name;
+}
+
+function articleAuthor(article: Article) {
+  const { author } = article;
+  if (!author || typeof author !== 'object') return { name: 'Vibe News' };
+
+  const name = 'name' in author ? (author as { name?: unknown }).name : undefined;
+  const role = 'role' in author ? (author as { role?: unknown }).role : undefined;
+  const avatarUrl = 'avatarUrl' in author ? (author as { avatarUrl?: unknown }).avatarUrl : undefined;
+  const initial = 'initial' in author ? (author as { initial?: unknown }).initial : undefined;
+
+  return {
+    name: typeof name === 'string' && name.trim() ? name : 'Vibe News',
+    role: typeof role === 'string' && role.trim() ? role : undefined,
+    avatarUrl: typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl : undefined,
+    initial: typeof initial === 'string' && initial.trim() ? initial : undefined,
+  };
 }
 
 function dateLabel(value: string) {

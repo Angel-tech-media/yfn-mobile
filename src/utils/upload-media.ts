@@ -1,5 +1,8 @@
+import * as FileSystem from 'expo-file-system/legacy';
+
 import { uploadsApi } from '@/src/api/uploads';
 import { HttpError } from '@/src/lib/http';
+import { logApiFailure } from '@/src/utils/api-logging';
 
 export type UploadKind = 'product' | 'post' | 'story' | 'reel' | 'kyc' | 'chat';
 
@@ -28,12 +31,19 @@ export type LocalAsset = {
 
 type UploadPhase = 'metadata' | 'sign' | 'upload';
 
+type StorageErrorDetails = {
+  code?: string;
+  message?: string;
+  body: string;
+};
+
 export class AssetUploadError extends Error {
   constructor(
     message: string,
     readonly phase: UploadPhase,
     readonly status?: number,
     readonly cause?: unknown,
+    readonly storage?: StorageErrorDetails,
   ) {
     super(message);
     this.name = 'AssetUploadError';
@@ -42,10 +52,31 @@ export class AssetUploadError extends Error {
 
 export async function uploadAsset(input: UploadAssetInput): Promise<UploadedAsset> {
   const fileName = input.fileName ?? fileNameFor(input.uri, input.contentType);
-  const blob = await readLocalBlob(input.uri);
-  const sizeBytes = positiveInteger(input.sizeBytes) ?? positiveInteger(blob.size);
+  const logContext = {
+    kind: input.kind,
+    fileName,
+    contentType: input.contentType,
+    providedSizeBytes: input.sizeBytes,
+  };
 
-  const signed = await uploadsApi.sign({
+  let info: FileSystem.FileInfo;
+  try {
+    info = await FileSystem.getInfoAsync(input.uri);
+  } catch (err) {
+    logApiFailure('media metadata read', err, logContext);
+    throw new AssetUploadError('Could not read selected media.', 'metadata', undefined, err);
+  }
+
+  if (!info.exists) {
+    console.error('[api] media metadata read failed', {
+      ...logContext,
+      reason: 'local file does not exist',
+    });
+    throw new AssetUploadError('Could not read selected media.', 'metadata');
+  }
+  const sizeBytes = positiveInteger(input.sizeBytes) ?? positiveInteger(info.size);
+
+  const signed = await signUpload({
     kind: input.kind,
     contentType: input.contentType,
     fileName,
@@ -54,14 +85,43 @@ export async function uploadAsset(input: UploadAssetInput): Promise<UploadedAsse
 
   const uploadHeaders = signed.headers ?? { 'Content-Type': input.contentType };
 
-  const upload = await fetch(signed.uploadUrl, {
-    method: 'PUT',
-    headers: uploadHeaders,
-    body: blob,
-  });
+  let upload: FileSystem.FileSystemUploadResult;
+  try {
+    upload = await FileSystem.uploadAsync(signed.uploadUrl, input.uri, {
+      httpMethod: 'PUT',
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: uploadHeaders,
+    });
+  } catch (err) {
+    logApiFailure('PUT <uploadUrl>', err, {
+      ...logContext,
+      endpoint: 'PUT <uploadUrl>',
+      uploadHost: uploadHostFor(signed.uploadUrl),
+      uploadBucket: uploadBucketFor(signed.uploadUrl),
+      mediaId: signed.mediaId,
+      sizeBytes,
+    });
+    throw new AssetUploadError('Cloudflare R2 upload failed.', 'upload', undefined, err);
+  }
 
-  if (!upload.ok) {
-    throw new AssetUploadError('Cloudflare R2 rejected the upload.', 'upload', upload.status);
+  if (upload.status < 200 || upload.status >= 300) {
+    const storage = parseStorageError(upload.body);
+    const message = storage?.code === 'NoSuchBucket'
+      ? 'Cloudflare R2 bucket does not exist.'
+      : 'Cloudflare R2 rejected the upload.';
+    console.error('[api] PUT <uploadUrl> failed', {
+      ...logContext,
+      endpoint: 'PUT <uploadUrl>',
+      uploadHost: uploadHostFor(signed.uploadUrl),
+      uploadBucket: uploadBucketFor(signed.uploadUrl),
+      mediaId: signed.mediaId,
+      sizeBytes,
+      status: upload.status,
+      storageCode: storage?.code,
+      storageMessage: storage?.message,
+      body: upload.body,
+    });
+    throw new AssetUploadError(message, 'upload', upload.status, undefined, storage);
   }
 
   return {
@@ -70,6 +130,26 @@ export async function uploadAsset(input: UploadAssetInput): Promise<UploadedAsse
     contentType: headerValue(uploadHeaders, 'Content-Type') ?? input.contentType,
     fileName,
   };
+}
+
+async function signUpload(input: {
+  kind: UploadKind;
+  contentType: string;
+  fileName: string;
+  sizeBytes?: number;
+}) {
+  try {
+    return await uploadsApi.sign(input);
+  } catch (err) {
+    logApiFailure('POST /upload/sign', err, {
+      endpoint: 'POST /upload/sign',
+      kind: input.kind,
+      fileName: input.fileName,
+      contentType: input.contentType,
+      sizeBytes: input.sizeBytes,
+    });
+    throw err;
+  }
 }
 
 export function uploadLocalAsset(asset: LocalAsset, kind: UploadKind): Promise<UploadedAsset> {
@@ -85,7 +165,11 @@ export function uploadLocalAsset(asset: LocalAsset, kind: UploadKind): Promise<U
 }
 
 export async function uploadLocalAssets(assets: LocalAsset[], kind: UploadKind): Promise<UploadedAsset[]> {
-  return Promise.all(assets.map((asset) => uploadLocalAsset(asset, kind)));
+  const uploaded: UploadedAsset[] = [];
+  for (const asset of assets) {
+    uploaded.push(await uploadLocalAsset(asset, kind));
+  }
+  return uploaded;
 }
 
 export function createMultipartFile(asset: LocalAsset): Blob {
@@ -108,7 +192,9 @@ export function createSelfieFormData(asset: LocalAsset, idDocumentId?: string): 
 export function assetUploadErrorMessage(error: unknown): string {
   if (error instanceof AssetUploadError) {
     if (error.phase === 'metadata') return 'Could not read the selected media. Please choose another file.';
+    if (error.storage?.code === 'NoSuchBucket') return 'Upload storage is not configured correctly. Please try again later.';
     if (error.status === 403) return 'The upload link expired. Please try again.';
+    if (error.status === 404) return 'Upload storage could not be found. Please try again later.';
     if (error.status === 400) return 'The selected media could not be uploaded. Please try again.';
     if (error.status && error.status >= 500) return 'Storage is temporarily unavailable. Please try again.';
     return 'Could not upload media. Please try again.';
@@ -151,17 +237,6 @@ function extensionFor(contentType: string): string {
   return contentType.split('/')[1] || 'bin';
 }
 
-async function readLocalBlob(uri: string): Promise<Blob> {
-  try {
-    const response = await fetch(uri);
-    if (!response.ok) throw new AssetUploadError('Could not read selected media.', 'metadata', response.status);
-    return response.blob();
-  } catch (error) {
-    if (error instanceof AssetUploadError) throw error;
-    throw new AssetUploadError('Could not read selected media.', 'metadata', undefined, error);
-  }
-}
-
 function positiveInteger(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
 }
@@ -169,4 +244,36 @@ function positiveInteger(value: unknown): number | undefined {
 function headerValue(headers: Record<string, string>, name: string): string | undefined {
   const found = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
   return found?.[1];
+}
+
+function parseStorageError(body: string | undefined): StorageErrorDetails | undefined {
+  if (!body) return undefined;
+
+  return {
+    code: xmlTagValue(body, 'Code'),
+    message: xmlTagValue(body, 'Message'),
+    body,
+  };
+}
+
+function xmlTagValue(body: string, tag: string): string | undefined {
+  const match = body.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+  return match?.[1];
+}
+
+function uploadHostFor(uploadUrl: string): string | undefined {
+  try {
+    return new URL(uploadUrl).host;
+  } catch {
+    return undefined;
+  }
+}
+
+function uploadBucketFor(uploadUrl: string): string | undefined {
+  try {
+    const url = new URL(uploadUrl);
+    return url.pathname.split('/').filter(Boolean)[0];
+  } catch {
+    return undefined;
+  }
 }

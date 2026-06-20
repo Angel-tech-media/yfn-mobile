@@ -1,4 +1,4 @@
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,14 +22,7 @@ export default function WalletScreen() {
   const firstActive = activeOrders[0];
 
   const handleTopUp = () => {
-    topUp.mutate(
-      { amount: nairaToKobo(10000), source: 'Paystack' },
-      {
-        onSuccess: (result) => {
-          if (result.authorizationUrl) void Linking.openURL(result.authorizationUrl);
-        },
-      },
-    );
+    topUp.mutate({ amount: nairaToKobo(10000), source: 'Paystack' });
   };
 
   return (

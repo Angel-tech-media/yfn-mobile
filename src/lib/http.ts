@@ -1,5 +1,5 @@
 import { apiUrl } from '@/src/config/api';
-import { useAuth } from '@/src/store/auth';
+import { getAuthSnapshot, refreshAuthToken } from '@/src/lib/auth-token-provider';
 
 export class HttpError extends Error {
   constructor(
@@ -32,7 +32,7 @@ export interface HttpOptions {
 // eslint-disable-next-line complexity
 export async function request<T>(path: string, options: HttpOptions = {}): Promise<T> {
   const url = buildUrl(path, options.query);
-  const auth = useAuth.getState();
+  const auth = getAuthSnapshot();
 
   const headers: Record<string, string> = { Accept: 'application/json', ...options.headers };
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
@@ -76,10 +76,7 @@ export async function request<T>(path: string, options: HttpOptions = {}): Promi
 }
 
 async function tryRefresh(): Promise<string | null> {
-  const { refresh, refreshToken } = useAuth.getState();
-  if (!refreshToken) return null;
-
-  return refresh();
+  return refreshAuthToken();
 }
 
 function buildUrl(path: string, query?: HttpOptions['query']): string {

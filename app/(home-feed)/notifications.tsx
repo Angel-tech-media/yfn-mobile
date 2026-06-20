@@ -110,8 +110,12 @@ function NotificationRow({
 }
 
 function hrefFor(notification: NotificationItem) {
-  const href = notification.data?.href ?? notification.data?.path;
-  return typeof href === 'string' ? href : undefined;
+  const { data } = notification;
+  if (!data || typeof data !== 'object') return undefined;
+  const href = 'href' in data ? (data as { href?: unknown }).href : undefined;
+  const path = 'path' in data ? (data as { path?: unknown }).path : undefined;
+  const target = href ?? path;
+  return typeof target === 'string' ? target : undefined;
 }
 
 function ageLabel(value: string) {

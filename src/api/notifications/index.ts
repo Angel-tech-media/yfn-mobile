@@ -8,11 +8,11 @@ export const notificationsApi = {
   },
 
   markRead(id: Id) {
-    return http.patch<{ read: boolean }>(`/notifications/${id}/read`);
+    return http.patch<{ read: true }>(`/notifications/${id}/read`);
   },
 
   markAllRead() {
-    return http.patch<{ success: boolean; count: number }>('/notifications/read-all');
+    return http.patch<{ success: true; count: number }>('/notifications/read-all');
   },
 
   registerDeviceToken(input: { token: string; platform: 'ios' | 'android' | 'web' }) {

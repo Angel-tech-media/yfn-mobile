@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { LiveScoreCard } from '@/components/ui/LiveScoreCard';
 import { useHiveDetail, useHiveMessages, useHiveTree, useJoinHive, useSendHiveMessage } from '@/src/api/hive/hooks';
-import type { HiveMessage, HiveNode } from '@/src/api/types';
+import type { HiveMessage, HiveNode, LiveMatch } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 type TrailNode = Pick<HiveNode, 'slug' | 'name'>;
@@ -199,7 +199,7 @@ function CommunityView({
   joined: boolean;
   node: HiveNode;
   slugPath: string;
-  topic?: string;
+  topic?: string | null;
 }) {
   const [composer, setComposer] = useState('');
   const botName = (node.bot ?? 'vibebot').replace(/bot$/, '') + 'Bot';
@@ -207,6 +207,7 @@ function CommunityView({
   const joinHive = useJoinHive();
   const sendMessage = useSendHiveMessage(slugPath);
   const messages = messagesData?.messages ?? initialMessages;
+  const liveMatch = asLiveMatch(node.liveMatch);
   const scrollRef = useRef<ScrollView>(null);
 
   // Auto-scroll to the newest message when one arrives so the sender sees it.
@@ -283,14 +284,14 @@ function CommunityView({
         </LinearGradient>
 
         {/* Live match scoreboard — only on sport communities with a live event */}
-        {node.liveMatch ? (
+        {liveMatch ? (
           <LiveScoreCard
-            title={node.liveMatch.title}
-            meta={node.liveMatch.meta}
-            status={node.liveMatch.status}
-            periodLabel={node.liveMatch.periodLabel}
-            home={node.liveMatch.home}
-            away={node.liveMatch.away}
+            title={liveMatch.title}
+            meta={liveMatch.meta}
+            status={liveMatch.status}
+            periodLabel={liveMatch.periodLabel}
+            home={liveMatch.home}
+            away={liveMatch.away}
           />
         ) : null}
 
@@ -359,6 +360,34 @@ function BotMessage({ botName, message }: { botName: string; message: string }) 
         <Text style={styles.botBubbleText}>{message}</Text>
       </View>
     </View>
+  );
+}
+
+function asLiveMatch(value: unknown): LiveMatch | null {
+  if (!value || typeof value !== 'object') return null;
+  const match = value as Partial<LiveMatch>;
+  const validStatus =
+    match.status === 'live' || match.status === 'finished' || match.status === 'upcoming';
+  if (
+    typeof match.title !== 'string' ||
+    typeof match.meta !== 'string' ||
+    !validStatus ||
+    !isScoreTeam(match.home) ||
+    !isScoreTeam(match.away)
+  ) {
+    return null;
+  }
+  return match as LiveMatch;
+}
+
+function isScoreTeam(value: unknown): value is LiveMatch['home'] {
+  if (!value || typeof value !== 'object') return false;
+  const team = value as LiveMatch['home'];
+  return (
+    typeof team.name === 'string' &&
+    typeof team.flag === 'string' &&
+    Array.isArray(team.scores) &&
+    team.scores.every((score) => typeof score === 'number')
   );
 }
 

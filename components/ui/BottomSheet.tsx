@@ -7,22 +7,24 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { palette, radius, spacing } from '@/src/theme';
+import { radius, spacing } from '@/src/theme';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 };
 
-export function BottomSheet({ visible, onClose, children, style }: Props) {
+export function BottomSheet({ visible, onClose, onDismiss, children, style }: Props) {
   return (
     <Modal
       animationType="slide"
       transparent
       visible={visible}
       onRequestClose={onClose}
+      onDismiss={onDismiss}
       statusBarTranslucent>
       <View style={styles.root}>
         <Pressable style={styles.backdrop} onPress={onClose} />

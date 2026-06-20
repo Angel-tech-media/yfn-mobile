@@ -205,7 +205,15 @@ export default function NewsScreen() {
 }
 
 function sourceLabel(article: Article) {
-  return article.author.role ? article.author.role : article.author.name;
+  const { author } = article;
+  if (author && typeof author === 'object') {
+    const role = 'role' in author ? (author as { role?: unknown }).role : undefined;
+    if (typeof role === 'string' && role.trim()) return role;
+
+    const name = 'name' in author ? (author as { name?: unknown }).name : undefined;
+    if (typeof name === 'string' && name.trim()) return name;
+  }
+  return 'Vibe News';
 }
 
 function ageLabel(value: string) {

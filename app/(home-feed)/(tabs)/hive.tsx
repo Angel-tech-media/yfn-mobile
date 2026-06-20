@@ -101,7 +101,7 @@ function renderNews(articles: Article[]) {
               {article.title}
             </Text>
             <View style={styles.newsMeta}>
-              <Text style={styles.newsSource}>{article.author.name}</Text>
+              <Text style={styles.newsSource}>{authorName(article)}</Text>
               <View style={styles.newsDot} />
               <Text style={styles.newsAge}>{formatDate(article.publishedAt)}</Text>
             </View>
@@ -162,7 +162,7 @@ function renderTrending(leaf: { node: HiveNode; path: string }) {
 function isRealArticle(article: Article) {
   const title = article.title.trim().toLowerCase();
   if (title === 'how local vendors win with faster fulfillment') return false;
-  return !hasSeedMarker(article.title) && !hasSeedMarker(article.author.name);
+  return !hasSeedMarker(article.title) && !hasSeedMarker(authorName(article));
 }
 
 function hasSeedMarker(value: string) {
@@ -196,6 +196,15 @@ function flatLeaves(
 function formatMembers(value: number) {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return String(value);
+}
+
+function authorName(article: Article) {
+  const { author } = article;
+  if (author && typeof author === 'object' && 'name' in author) {
+    const { name } = author as { name?: unknown };
+    if (typeof name === 'string' && name.trim()) return name;
+  }
+  return 'Vibe News';
 }
 
 function coverColors(category: string): [string, string] {

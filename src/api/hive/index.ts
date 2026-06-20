@@ -12,7 +12,7 @@ import type {
   HiveMessage,
 } from '../types';
 
-const pathFor = (slugPath: string) => `/hive/${slugPath}`;
+const pathFor = (slugPath: string) => `/hive/${encodeURIComponent(slugPath)}`;
 
 export const hiveApi = {
   tree() {
@@ -24,7 +24,7 @@ export const hiveApi = {
   },
 
   join(slugPath: string) {
-    return http.post<{ success: boolean }>(`${pathFor(slugPath)}/join`);
+    return http.post<{ success: true }>(`${pathFor(slugPath)}/join`);
   },
 
   messages(slugPath: string, query: PageQuery = {}) {

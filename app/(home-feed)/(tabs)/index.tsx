@@ -141,7 +141,7 @@ export default function HomeFeedScreen() {
               {STORIES_VIEW.map((s) => (
                 <Pressable
                   key={s.key}
-                  onPress={() => !s.isAdd && router.push(`/story/${s.key}` as never)}
+                  onPress={() => router.push((s.isAdd ? '/create/story' : `/story/${s.key}`) as never)}
                   style={styles.storyTile}>
                   <View style={[styles.storyRing, s.isAdd && styles.storyRingAdd]}>
                     {s.isAdd ? (

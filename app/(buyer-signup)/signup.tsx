@@ -16,8 +16,8 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SelectField } from '@/components/ui/SelectField';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
-import { authApi } from '@/src/api';
 import { useToast } from '@/src/hooks/use-toast';
+import { useAuth } from '@/src/store/auth';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 const signupSchema = z.object({
@@ -46,6 +46,7 @@ const GENDER_OPTIONS: { key: Gender; label: string }[] = [
 export default function SignupScreen() {
   const { role } = useLocalSearchParams<{ role?: 'vendor' | 'buyer' }>();
   const toast = useToast();
+  const signUp = useAuth((s) => s.signUp);
   const isVendor = role === 'vendor';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -95,7 +96,7 @@ export default function SignupScreen() {
   const handleSubmit = async () => {
     if (!validation.success) return;
     setSubmitting(true);
-    const result = await authApi.register({
+    const result = await signUp({
       name,
       email,
       phone,
@@ -108,9 +109,9 @@ export default function SignupScreen() {
     if (!result.ok) {
       toast.error('Could not create account', {
         description:
-          result.error === 'Validation failed'
+          result.reason === 'Validation failed'
             ? 'Check your details and try again.'
-            : result.error,
+            : result.reason,
       });
       return;
     }

@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef } from 'react';
+
+import { InteractionManager, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -69,19 +71,35 @@ const ACTIONS: Action[] = [
 
 export function CreateSheet({ visible, onClose }: Props) {
   const role = useUser((s) => s.role);
+  const pendingActionRef = useRef<(() => void) | null>(null);
   const actions = ACTIONS.filter((a) => !a.vendorOnly || role === 'vendor');
 
+  const runPendingAction = useCallback(() => {
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    action?.();
+  }, []);
+
+  const closeThenNavigate = useCallback(
+    (href: string) => {
+      pendingActionRef.current = () => router.push(href as never);
+      onClose();
+
+      if (Platform.OS !== 'ios') {
+        InteractionManager.runAfterInteractions(runPendingAction);
+      }
+    },
+    [onClose, runPendingAction],
+  );
+
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} onDismiss={runPendingAction}>
       <Text style={styles.title}>Create</Text>
       <View style={styles.list}>
         {actions.map((a) => (
           <Pressable
             key={a.key}
-            onPress={() => {
-              onClose();
-              router.push(a.href as never);
-            }}
+            onPress={() => closeThenNavigate(a.href)}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
             <View style={[styles.iconWrap, { backgroundColor: a.tint }]}>
               <Ionicons name={a.icon} size={22} color={palette.ink.onDarkStrong} />

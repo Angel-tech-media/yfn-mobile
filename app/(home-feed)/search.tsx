@@ -144,7 +144,7 @@ export default function SearchScreen() {
                     key={place.id}
                     onPress={() => router.push(`/u/${place.handle}` as never)}
                     style={styles.peopleRow}>
-                    <Avatar size={44} source={place.avatarUrl ? { uri: place.avatarUrl } : undefined} initials={place.storeName[0]} />
+                    <Avatar size={44} initials={place.storeName[0]} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.peopleName}>{place.storeName}</Text>
                       <Text style={styles.peopleHandle}>

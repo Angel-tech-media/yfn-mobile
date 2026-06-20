@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { accountApi } from '@/src/api/account';
 import { authBackend } from '@/src/api/backend';
 import { authSessionStorage } from '@/src/lib/auth-session-storage';
+import { setAuthTokenProvider } from '@/src/lib/auth-token-provider';
 
 import { useUser } from './user';
 
@@ -341,5 +342,13 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+setAuthTokenProvider({
+  getSnapshot: () => {
+    const { accessToken, refreshToken } = useAuth.getState();
+    return { accessToken, refreshToken };
+  },
+  refresh: () => useAuth.getState().refresh(),
+});
 
 export const useIsAuthed = () => useAuth((s) => !!s.accessToken && !!s.user);

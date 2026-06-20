@@ -8,6 +8,9 @@ import { useAuth } from '@/src/store/auth';
 
 import type { ChatConversation, ChatMessage } from '@/src/api/types';
 
+const PRIMARY_SOCKET_PATH = '/ws/chat';
+const LEGACY_SOCKET_PATH = '/ws';
+
 function appendMessage(prev: ChatMessage[] | undefined, message: ChatMessage): ChatMessage[] {
   if (!prev) return [message];
   if (prev.some((m) => m.id === message.id)) return prev;
@@ -35,34 +38,46 @@ export function useChatSocket(conversationId: string | undefined): void {
   useEffect(() => {
     if (!conversationId || !accessToken) return;
 
-    const socket = io(`${API_BASE_URL}/ws/chat`, {
-      auth: { token: accessToken },
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-    });
-    socketRef.current = socket;
+    const connect = (path: string) => {
+      const socket = io(API_BASE_URL, {
+        path,
+        auth: { token: accessToken },
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+      });
+      socketRef.current = socket;
 
-    socket.on('connect', () => {
-      socket.emit('chat:join', { conversationId });
-    });
+      socket.on('connect', () => {
+        socket.emit('chat:join', { conversationId });
+      });
 
-    socket.on('chat:message', (message: ChatMessage) => {
-      qc.setQueriesData<ChatMessage[]>(
-        { queryKey: ['chat', 'messages', conversationId] },
-        (prev) => appendMessage(prev, message),
-      );
-      qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
-    });
+      socket.on('connect_error', () => {
+        if (path === PRIMARY_SOCKET_PATH && socketRef.current === socket) {
+          socket.disconnect();
+          connect(LEGACY_SOCKET_PATH);
+        }
+      });
 
-    socket.on('chat:updated', (conversation: ChatConversation) => {
-      qc.setQueryData(['chat', 'conversation', conversation.id], conversation);
-      qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
-    });
+      socket.on('chat:message', (message: ChatMessage) => {
+        qc.setQueriesData<ChatMessage[]>(
+          { queryKey: ['chat', 'messages', conversationId] },
+          (prev) => appendMessage(prev, message),
+        );
+        qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
+      });
+
+      socket.on('chat:updated', (conversation: ChatConversation) => {
+        qc.setQueryData(['chat', 'conversation', conversation.id], conversation);
+        qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
+      });
+    };
+
+    connect(PRIMARY_SOCKET_PATH);
 
     return () => {
-      socket.emit('chat:leave', { conversationId });
-      socket.disconnect();
+      socketRef.current?.emit('chat:leave', { conversationId });
+      socketRef.current?.disconnect();
       socketRef.current = null;
     };
   }, [conversationId, accessToken, qc]);

@@ -34,12 +34,24 @@ const STATUS_TO_STAGE_INDEX: Partial<Record<OrderStatus, number>> = {
   released: 5,
 };
 
+const ORDER_STATUSES = [
+  'paid',
+  'confirmed',
+  'packed',
+  'shipped',
+  'delivered',
+  'released',
+  'refunded',
+  'disputed',
+] as const satisfies readonly OrderStatus[];
+
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const orderId = String(id ?? '');
   const { data: order, isLoading, isError, refetch, isFetching } = useOrder(orderId);
   const confirmOrder = useConfirmOrder();
-  const currentIdx = STATUS_TO_STAGE_INDEX[order?.status ?? 'paid'] ?? 0;
+  const currentStatus = asOrderStatus(order?.status) ?? 'paid';
+  const currentIdx = STATUS_TO_STAGE_INDEX[currentStatus] ?? 0;
   const shipTo = useMemo(() => (order ? formatShipTo(order.shipTo) : ''), [order]);
   const shipPhone = useMemo(() => (order ? formatShipPhone(order.shipTo, order.shipPhone) : ''), [order]);
 
@@ -271,7 +283,11 @@ export default function OrderDetailScreen() {
   );
 }
 
-function statusHeadline(status: OrderStatus) {
+function asOrderStatus(status: string | undefined): OrderStatus | undefined {
+  return ORDER_STATUSES.includes(status as OrderStatus) ? (status as OrderStatus) : undefined;
+}
+
+function statusHeadline(status: string) {
   if (status === 'released') return 'Order complete';
   if (status === 'delivered') return 'Awaiting payout';
   if (status === 'shipped') return 'On its way';
@@ -282,8 +298,9 @@ function statusHeadline(status: OrderStatus) {
   return 'Paid · held in escrow';
 }
 
-function statusLabel(status: OrderStatus) {
-  const stage = STAGES.find((item) => item.key === status);
+function statusLabel(status: string) {
+  const known = asOrderStatus(status);
+  const stage = known ? STAGES.find((item) => item.key === known) : undefined;
   return stage?.label ?? statusHeadline(status);
 }
 

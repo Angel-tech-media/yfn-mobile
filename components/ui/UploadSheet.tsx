@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useCallback, useRef } from 'react';
+
+import { InteractionManager, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,11 +17,43 @@ type Props = {
 };
 
 export function UploadSheet({ visible, onClose, onCamera, onGallery, title = 'Add image' }: Props) {
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
+  const runPendingAction = useCallback(() => {
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    action?.();
+  }, []);
+
+  const closeThenRun = useCallback(
+    (action: () => void) => {
+      pendingActionRef.current = action;
+      onClose();
+
+      if (Platform.OS !== 'ios') {
+        InteractionManager.runAfterInteractions(runPendingAction);
+      }
+    },
+    [onClose, runPendingAction],
+  );
+
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
+    <BottomSheet visible={visible} onClose={onClose} onDismiss={runPendingAction}>
       <Text style={styles.title}>{title}</Text>
-      <Row icon="camera-outline" label="Take a photo" onPress={() => { onClose(); onCamera(); }} />
-      <Row icon="images-outline" label="Choose from gallery" onPress={() => { onClose(); onGallery(); }} />
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => closeThenRun(onCamera)}
+        style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
+        <Ionicons name="camera-outline" size={20} color={palette.ink.onDarkStrong} />
+        <Text style={styles.label}>Take a photo</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => closeThenRun(onGallery)}
+        style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
+        <Ionicons name="images-outline" size={20} color={palette.ink.onDarkStrong} />
+        <Text style={styles.label}>Choose from gallery</Text>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         onPress={onClose}
@@ -27,26 +61,6 @@ export function UploadSheet({ visible, onClose, onCamera, onGallery, title = 'Ad
         <Text style={styles.cancelLabel}>Cancel</Text>
       </Pressable>
     </BottomSheet>
-  );
-}
-
-function Row({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
-      <Ionicons name={icon} size={20} color={palette.ink.onDarkStrong} />
-      <Text style={styles.label}>{label}</Text>
-    </Pressable>
   );
 }
 

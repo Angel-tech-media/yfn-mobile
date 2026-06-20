@@ -6,8 +6,8 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
-import { authApi } from '@/src/api';
 import { useMe } from '@/src/api/account/hooks';
+import { useAuth } from '@/src/store/auth';
 import { useTheme, type ThemeMode } from '@/src/store/theme';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
@@ -87,6 +87,7 @@ function ThemeToggle() {
 
 export default function SettingsScreen() {
   const { data: me } = useMe();
+  const signOut = useAuth((s) => s.signOut);
   const sections = buildSections(me?.name || me?.displayName || me?.username);
 
   return (
@@ -124,7 +125,7 @@ export default function SettingsScreen() {
             label="Sign out"
             variant="ghost"
             onPress={async () => {
-              await authApi.logout();
+              await signOut();
               router.replace('/login');
             }}
           />

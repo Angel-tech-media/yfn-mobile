@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,13 +10,14 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { TopBar } from '@/components/ui/TopBar';
-import { authApi } from '@/src/api';
 import { useToast } from '@/src/hooks/use-toast';
+import { useAuth } from '@/src/store/auth';
 import { useUser } from '@/src/store/user';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function LoginScreen() {
   const setRole = useUser((s) => s.setRole);
+  const signIn = useAuth((s) => s.signIn);
   const toast = useToast();
   const [role, setSelectedRole] = useState<'buyer' | 'vendor'>('buyer');
   const [email, setEmail] = useState('');
@@ -32,11 +33,11 @@ export default function LoginScreen() {
     if (!canSubmit) return;
     setSubmitting(true);
     setRole(role);
-    const result = await authApi.login(email.trim(), password, role);
+    const result = await signIn({ email: email.trim(), password, role });
     setSubmitting(false);
     if (!result.ok) {
       toast.error('Login failed', {
-        description: result.error,
+        description: result.reason,
       });
       return;
     }
@@ -135,6 +136,34 @@ function RoleTile({
   onPress: () => void;
 }) {
   const accentColor = accent ?? '#fff';
+  const selectedProgress = useRef(new Animated.Value(selected ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(selectedProgress, {
+      toValue: selected ? 1 : 0,
+      useNativeDriver: true,
+      tension: 140,
+      friction: 16,
+    }).start();
+  }, [selected, selectedProgress]);
+
+  const arrowOpacity = selectedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const checkOpacity = selectedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+  const arrowScale = selectedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0.72],
+  });
+  const checkScale = selectedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.72, 1],
+  });
+
   return (
     <Pressable
       onPress={onPress}
@@ -157,11 +186,28 @@ function RoleTile({
         <Text style={styles.tileTagline}>{tagline}</Text>
       </View>
       <View style={[styles.tileArrow, { backgroundColor: accentColor }]}>
-        <Ionicons
-          name="arrow-forward"
-          size={18}
-          color={accent ? '#fff' : palette.ink.onLightStrong}
-        />
+        <Animated.View
+          style={[
+            styles.tileIconLayer,
+            { opacity: arrowOpacity, transform: [{ scale: arrowScale }] },
+          ]}>
+          <Ionicons
+            name="arrow-forward"
+            size={18}
+            color={accent ? '#fff' : palette.ink.onLightStrong}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.tileIconLayer,
+            { opacity: checkOpacity, transform: [{ scale: checkScale }] },
+          ]}>
+          <Ionicons
+            name="checkmark"
+            size={18}
+            color={accent ? '#fff' : palette.ink.onLightStrong}
+          />
+        </Animated.View>
       </View>
     </Pressable>
   );
@@ -230,6 +276,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileIconLayer: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },

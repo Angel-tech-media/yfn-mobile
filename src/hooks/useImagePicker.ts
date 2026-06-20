@@ -33,14 +33,24 @@ export function useImagePicker() {
           promptOpenSettings('camera');
           return null;
         }
-        result = await ImagePicker.launchCameraAsync(baseOpts);
+        try {
+          result = await ImagePicker.launchCameraAsync(baseOpts);
+        } catch (e) {
+          Alert.alert('Camera unavailable', errorMessage(e));
+          return null;
+        }
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
           promptOpenSettings('photos');
           return null;
         }
-        result = await ImagePicker.launchImageLibraryAsync(baseOpts);
+        try {
+          result = await ImagePicker.launchImageLibraryAsync(baseOpts);
+        } catch (e) {
+          Alert.alert('Photos unavailable', errorMessage(e));
+          return null;
+        }
       }
 
       if (result.canceled) return null;
@@ -57,13 +67,19 @@ export function useImagePicker() {
         promptOpenSettings('photos');
         return [];
       }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        selectionLimit: limit,
-        quality: 0.85,
-        ...opts,
-      });
+      let result: ImagePicker.ImagePickerResult;
+      try {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: true,
+          selectionLimit: limit,
+          quality: 0.85,
+          ...opts,
+        });
+      } catch (e) {
+        Alert.alert('Photos unavailable', errorMessage(e));
+        return [];
+      }
       if (result.canceled) return [];
       return result.assets.map(normalizeAsset);
     },
@@ -123,4 +139,8 @@ function promptOpenSettings(kind: 'camera' | 'photos') {
       { text: 'Open Settings', onPress: () => Linking.openSettings() },
     ]
   );
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Please try again.';
 }

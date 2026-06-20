@@ -38,9 +38,9 @@ export type MediaAsset = {
   id: Id;
   url: string;
   type: 'image' | 'video';
-  width?: number;
-  height?: number;
-  durationMs?: number;
+  width?: number | null;
+  height?: number | null;
+  durationMs?: number | null;
 };
 
 export type RankedProduct = {
@@ -60,7 +60,7 @@ export type RankedProduct = {
 
 export type VendorSummary = {
   id: Id;
-  handle: string;
+  handle?: string;
   storeName: string;
   category?: string;
   rating: number;
@@ -177,7 +177,7 @@ export type SubmitIdDocumentRequest = {
 
 export type SubmitIdDocumentResponse = {
   idDocumentId: Id;
-  status: 'pending' | 'verified' | 'rejected';
+  status: 'pending';
   extractedName?: string;
   reviewedAt?: ISODateTime;
 };
@@ -199,8 +199,12 @@ export type SignUploadResponse = {
   mediaId: Id;
   uploadUrl: string;
   publicUrl: string;
-  headers?: Record<string, string>;
+  headers: { 'Content-Type': string };
   expiresAt: ISODateTime;
+};
+
+export type DeleteAssetResponse = {
+  success: true;
 };
 
 export type MarketplaceHomeQuery = PageQuery & {
@@ -227,7 +231,7 @@ export type MarketplaceNearbyResponse = {
     lat: number;
     lng: number;
     radiusKm: number;
-    sortBy: string;
+    sortBy: 'relevance' | 'distance';
     matched: number;
   };
 };
@@ -245,14 +249,14 @@ export type TopRatedResponse = {
 
 export type ProductDetail = RankedProduct & {
   vendor: VendorSummary;
-  images?: string[];
-  variants?: {
-    colors?: { key: string; hex: string; label: string }[];
+  images: string[];
+  variants: {
+    colors?: { key: string; hex?: string; label: string }[];
     sizes?: string[];
   };
-  reviews?: Review[];
-  rating?: number;
-  ratingCount?: number;
+  reviews: Review[];
+  rating: number;
+  ratingCount: number;
 };
 
 export type CreateProductRequest = {
@@ -261,7 +265,7 @@ export type CreateProductRequest = {
   price: Kobo;
   category: string;
   stock?: number;
-  mediaIds: Id[];
+  mediaIds?: Id[];
   variants?: {
     colors?: { key: string; hex?: string; label: string }[];
     sizes?: string[];
@@ -298,15 +302,15 @@ export type VendorProfile = {
   rank?: string;
   open: boolean;
   closesAt?: string;
-  address?: string;
-  phone?: string;
-  about?: string;
-  hours?: { day: string; hours: string }[];
-  photos?: string[];
-  followers?: number;
-  following?: number;
-  posts?: number;
-  isFollowing?: boolean;
+  address?: string | null;
+  phone?: string | null;
+  about?: string | null;
+  hours: { day: string; hours: string }[];
+  photos: string[];
+  followers: number;
+  following: number;
+  posts: number;
+  isFollowing: boolean;
 };
 
 export type StoreSetupResponse = {
@@ -329,7 +333,7 @@ export type NearbyVendorsResponse = {
 }[];
 
 export type SearchQuery = {
-  q: string;
+  q?: string;
   type?: 'people' | 'products' | 'tags' | 'places' | 'top';
   limit?: number;
 };
@@ -340,12 +344,20 @@ export type SearchResponse = {
     handle: string;
     name: string;
     avatarUrl?: string | null;
-    kycVerified?: boolean;
+    kycVerified: boolean;
     kind: 'buyer' | 'vendor';
   }[];
   products: RankedProduct[];
   tags: { tag: string; count: number }[];
-  places: VendorSummary[];
+  places: {
+    id: Id;
+    handle: string;
+    storeName: string;
+    category: string;
+    rating: number;
+    ratingCount: number;
+    isYfnVerified: boolean;
+  }[];
 };
 
 export type WalletTx = {
@@ -380,8 +392,7 @@ export type TopUpRequest = {
 
 export type TopUpResponse = {
   newBalance: Kobo;
-  authorizationUrl?: string;
-  reference?: string;
+  reference: Id;
 };
 
 export type WalletPayRequest = {
@@ -438,11 +449,11 @@ export type OrderStatus =
   | 'disputed';
 
 export type OrderItem = {
-  productId?: Id;
+  productId?: Id | null;
   name: string;
   qty: number;
   unit: Kobo;
-  imageUrl?: string;
+  imageUrl?: string | null;
 };
 
 export type ShippingAddress = {
@@ -458,18 +469,18 @@ export type Order = {
   id: Id;
   vendor: string;
   vendorHandle: string;
-  vendorId?: Id;
+  vendorId: Id;
   items: OrderItem[];
-  status: OrderStatus;
+  status: OrderStatus | string;
   placedAt: ISODateTime;
-  estimatedDelivery?: string;
-  shipTo?: string | ShippingAddress;
+  estimatedDelivery?: string | null;
+  shipTo: unknown;
   shipPhone?: string;
-  referrerHandle?: string;
+  referrerHandle?: string | null;
   goodsTotal: Kobo;
   deliveryFee: Kobo;
   platformFee: Kobo;
-  referralFee?: Kobo;
+  referralFee: Kobo;
   grandTotal: Kobo;
 };
 
@@ -529,10 +540,10 @@ export type Repost = {
   id: Id;
   productId: Id;
   vendorId: Id;
-  caption?: string;
+  caption?: string | null;
   visibility: 'public' | 'mutuals' | 'close-friends';
   ts: ISODateTime;
-  earningsNgn?: number;
+  earningsNgn: number;
   earnings: Kobo;
   clicks: number;
   conversions: number;
@@ -554,7 +565,7 @@ export type CreateRepostRequest = {
 };
 
 export type DeleteResponse = {
-  success: boolean;
+  success: true;
 };
 
 export type RepostReelRequest = {
@@ -595,7 +606,7 @@ export type Story = {
   id: Id;
   author: FeedAuthor;
   imageUrl: string;
-  caption?: string;
+  caption?: string | null;
   createdAt: ISODateTime;
   expiresAt: ISODateTime;
 };
@@ -604,9 +615,9 @@ export type Reel = {
   id: Id;
   author: FeedAuthor;
   videoUrl: string;
-  coverUrl?: string;
+  coverUrl?: string | null;
   caption: string;
-  audio?: string;
+  audio?: string | null;
   createdAt: ISODateTime;
   views: number;
 };
@@ -627,7 +638,7 @@ export type FeedQuery = {
 
 export type FeedResponse = {
   items: Post[];
-  nextCursor?: string | null;
+  nextCursor: string | null;
 };
 
 export type CreatePostRequest = {
@@ -638,7 +649,7 @@ export type CreatePostRequest = {
 
 export type CommentsResponse = {
   comments: Comment[];
-  nextCursor?: string | null;
+  nextCursor: string | null;
 };
 
 export type CreateCommentRequest = {
@@ -662,12 +673,12 @@ export type ChatConversation = {
   id: Id;
   participants: {
     userId: Id;
-    role: 'buyer' | 'vendor';
+    role: 'buyer' | 'vendor' | 'admin';
     lastReadAt?: ISODateTime;
   }[];
-  productId?: Id;
-  orderId?: Id;
-  lastMessagePreview?: string;
+  productId?: Id | null;
+  orderId?: Id | null;
+  lastMessagePreview?: string | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 };
@@ -677,10 +688,10 @@ export type ChatMessage = {
   conversationId: Id;
   senderId: Id;
   kind: 'text' | 'image' | 'product_card' | 'system';
-  body?: string;
-  mediaId?: Id;
-  imageUrl?: string;
-  productId?: Id;
+  body?: string | null;
+  mediaId?: Id | null;
+  imageUrl?: string | null;
+  productId?: Id | null;
   createdAt: ISODateTime;
 };
 
@@ -705,12 +716,13 @@ export type NotificationItem = {
   kind: string;
   title: string;
   body: string;
-  data: Record<string, unknown> | null;
+  data?: unknown;
   readAt: ISODateTime | null;
   createdAt: ISODateTime;
 };
 
 export type NotificationsQuery = {
+  page?: number;
   unread?: 'true';
   cursor?: string;
   limit?: number;
@@ -739,7 +751,7 @@ export type PaymentMethod = {
 export type MeResponse = AuthUserPayload & {
   handle: string;
   name: string;
-  phone?: string;
+  phone?: string | null;
   isPrivate: boolean;
   hasStore: boolean;
 };
@@ -786,13 +798,13 @@ export type LiveMatch = {
 export type HiveNode = {
   slug: string;
   name: string;
-  emoji?: string;
-  description?: string;
-  members?: number;
-  pinnedTopic?: string;
-  bot?: string;
-  liveMatch?: LiveMatch;
-  children?: HiveNode[];
+  emoji?: string | null;
+  description?: string | null;
+  members: number;
+  pinnedTopic?: string | null;
+  bot?: string | null;
+  liveMatch?: unknown;
+  children: HiveNode[];
 };
 
 export type HiveMessage = {
@@ -801,22 +813,22 @@ export type HiveMessage = {
   author: string;
   initial: string;
   text: string;
-  time: string;
-  createdAt?: ISODateTime;
-  mine?: boolean;
-  bot?: boolean;
+  time: ISODateTime;
+  createdAt: ISODateTime;
+  mine: boolean;
+  bot: boolean;
 };
 
 export type HiveDetailResponse = {
   node: HiveNode;
-  topic?: string;
+  topic?: string | null;
   messages: HiveMessage[];
   joined: boolean;
 };
 
 export type HiveMessagesResponse = {
   messages: HiveMessage[];
-  nextCursor?: string | null;
+  nextCursor: null;
 };
 
 export type CreateHiveMessageRequest = {
@@ -843,17 +855,17 @@ export type Article = {
   id: Id;
   title: string;
   category: string;
-  coverUrl?: string;
-  author: { name: string; role?: string; avatarUrl?: string; initial?: string };
+  coverUrl?: string | null;
+  author: unknown;
   publishedAt: ISODateTime;
   readMin: number;
   claps: number;
   comments: number;
   excerpt: string;
-  paragraphs?: string[];
-  tags?: string[];
-  savedByMe?: boolean;
-  clappedByMe?: boolean;
+  paragraphs: string[];
+  tags: string[];
+  savedByMe: boolean;
+  clappedByMe: boolean;
 };
 
 export type NewsFeedQuery = {
@@ -866,7 +878,7 @@ export type NewsFeedQuery = {
 export type NewsFeedResponse = {
   articles: Article[];
   trendingTags: string[];
-  nextCursor?: string | null;
+  nextCursor: string | null;
 };
 
 export type NewsArticleResponse = Article & {

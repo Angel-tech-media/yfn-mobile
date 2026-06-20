@@ -13,6 +13,8 @@ import { useCreateReel } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { useToast } from '@/src/hooks/use-toast';
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { apiErrorMessage } from '@/src/utils/api-error-message';
+import { logApiFailure } from '@/src/utils/api-logging';
 import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateReelScreen() {
@@ -127,9 +129,16 @@ export default function CreateReelScreen() {
                   icon: 'videocam',
                 });
                 router.back();
-              } catch {
+              } catch (err) {
+                logApiFailure('POST /reels', err, {
+                  endpoint: 'POST /reels',
+                  flow: 'reel',
+                  videoMediaId,
+                  captionLength: caption.trim().length,
+                  hasAudio: Boolean(audio),
+                });
                 toast.error('Could not post reel', {
-                  description: 'Please check your connection and try again.',
+                  description: apiErrorMessage(err),
                 });
               } finally {
                 setUploading(false);
@@ -230,4 +239,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-

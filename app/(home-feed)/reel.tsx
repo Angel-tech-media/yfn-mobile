@@ -90,7 +90,7 @@ export default function ReelScreen() {
             avatar={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
             name={reel.author.name}
             meta={`@${reel.author.handle}`}
-            audioLabel={reel.audio}
+            audioLabel={reel.audio ?? undefined}
             verified={reel.author.verified}
             rightAction={
               <Pressable style={styles.followBtn}>

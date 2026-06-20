@@ -132,7 +132,6 @@ export default function ScanIdScreen() {
             <Text style={styles.sideBtnLabel}>Help</Text>
           </Pressable>
         </View>
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </SafeAreaView>
     </View>
   );

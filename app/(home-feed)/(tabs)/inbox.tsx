@@ -61,7 +61,7 @@ export default function InboxScreen() {
   );
 }
 
-function conversationTitle(thread: { orderId?: string; productId?: string; id: string }) {
+function conversationTitle(thread: { orderId?: string | null; productId?: string | null; id: string }) {
   if (thread.orderId) return `Order ${thread.orderId}`;
   if (thread.productId) return `Product ${thread.productId}`;
   return `Conversation ${thread.id.slice(0, 8)}`;

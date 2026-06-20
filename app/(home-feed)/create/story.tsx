@@ -11,6 +11,8 @@ import { useCreateStory } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { useToast } from '@/src/hooks/use-toast';
 import { palette, spacing, typography } from '@/src/theme';
+import { apiErrorMessage } from '@/src/utils/api-error-message';
+import { logApiFailure } from '@/src/utils/api-logging';
 import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 
 export default function CreateStoryScreen() {
@@ -115,9 +117,14 @@ export default function CreateStoryScreen() {
                   icon: 'sparkles',
                 });
                 router.back();
-              } catch {
+              } catch (err) {
+                logApiFailure('POST /stories', err, {
+                  endpoint: 'POST /stories',
+                  flow: 'story',
+                  mediaId,
+                });
                 toast.error('Could not share story', {
-                  description: 'Please check your connection and try again.',
+                  description: apiErrorMessage(err),
                 });
               } finally {
                 setUploading(false);
@@ -199,4 +206,3 @@ const styles = StyleSheet.create({
     color: palette.ink.onLightStrong,
   },
 });
-
