@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
 import { useMe } from '@/src/api/account/hooks';
 import { useMyRepostedPosts } from '@/src/api/feed/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
@@ -57,6 +59,9 @@ export default function ProfileTabScreen() {
 }
 
 function BuyerView() {
+  const [activeTab, setActiveTab] = useState<TabKey>('posts');
+  const [repostType, setRepostType] = useState<'product' | 'post'>('post');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { data: me } = useMe();
   const { data: reposts = [] } = useMyReposts();
   const { data: repostedPostsData } = useMyRepostedPosts();
@@ -132,49 +137,113 @@ function BuyerView() {
         </View>
       </View>
 
-      <Text style={styles.sectionTitlePadded}>My Posts</Text>
-      {userPosts.length ? (
-        <View style={styles.grid}>
-          {userPosts.map((post) => (
-            <PostTile key={post.id} post={post} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.padded}>
-          <EmptyState icon="images-outline" title="No posts yet" />
-        </View>
-      )}
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products', 'reposts']} />
 
-      <Text style={styles.sectionTitlePadded}>Product Reposts</Text>
-      {reposts.length ? (
-        <View style={styles.grid}>
-          {reposts.map((repost) => (
-            <RepostTile key={repost.id} repost={repost} handle={handle} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.padded}>
-          <EmptyState icon="cube-outline" title="No product reposts" />
-        </View>
-      )}
+      <View style={{ marginTop: spacing['4'] }}>
+        {activeTab === 'posts' && (
+          <>
+            <Text style={styles.sectionTitlePadded}>My Posts</Text>
+            {userPosts.length ? (
+              <View style={styles.grid}>
+                {userPosts.map((post) => (
+                  <PostTile key={post.id} post={post} />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.padded}>
+                <EmptyState icon="images-outline" title="No posts yet" />
+              </View>
+            )}
+          </>
+        )}
 
-      <Text style={styles.sectionTitlePadded}>Reposted Posts</Text>
-      {repostedPosts.length ? (
-        <View style={styles.grid}>
-          {repostedPosts.map((post) => (
-            <PostTile key={post.id} post={post} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.padded}>
-          <EmptyState icon="images-outline" title="No reposted posts yet" />
-        </View>
-      )}
+        {activeTab === 'products' && (
+          <View style={styles.padded}>
+            <EmptyState icon="cube-outline" title="No products" />
+          </View>
+        )}
+
+        {activeTab === 'reposts' && (
+          <View style={{ zIndex: 10 }}>
+            <Pressable
+              onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={styles.dropdownToggle}>
+              <Text style={styles.dropdownToggleText}>
+                {repostType === 'product' ? 'Product Reposts' : 'Reposted Posts'}
+              </Text>
+              <Ionicons
+                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={palette.ink.onDarkStrong}
+              />
+            </Pressable>
+
+            {isDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                <Pressable
+                  onPress={() => {
+                    setRepostType('post');
+                    setIsDropdownOpen(false);
+                  }}
+                  style={styles.dropdownItem}>
+                  <Text style={[styles.dropdownItemText, repostType === 'post' && styles.dropdownItemTextActive]}>
+                    Reposted Posts
+                  </Text>
+                  {repostType === 'post' && (
+                    <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
+                  )}
+                </Pressable>
+                <View style={styles.dropdownDivider} />
+                <Pressable
+                  onPress={() => {
+                    setRepostType('product');
+                    setIsDropdownOpen(false);
+                  }}
+                  style={styles.dropdownItem}>
+                  <Text style={[styles.dropdownItemText, repostType === 'product' && styles.dropdownItemTextActive]}>
+                    Product Reposts
+                  </Text>
+                  {repostType === 'product' && (
+                    <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {repostType === 'product' ? (
+              reposts.length ? (
+                <View style={styles.grid}>
+                  {reposts.map((repost) => (
+                    <RepostTile key={repost.id} repost={repost} handle={handle} />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.padded}>
+                  <EmptyState icon="cube-outline" title="No product reposts" />
+                </View>
+              )
+            ) : (
+              repostedPosts.length ? (
+                <View style={styles.grid}>
+                  {repostedPosts.map((post) => (
+                    <PostTile key={post.id} post={post} />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.padded}>
+                  <EmptyState icon="images-outline" title="No reposted posts yet" />
+                </View>
+              )
+            )}
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 function VendorView({ handle }: { handle?: string }) {
+  const [activeTab, setActiveTab] = useState<TabKey>('posts');
   const { data: me } = useMe();
   const { data: vendor } = useVendor(handle);
   const { data: products = [] } = useVendorProducts(handle);
@@ -247,43 +316,47 @@ function VendorView({ handle }: { handle?: string }) {
         </Pressable>
       </View>
 
-      <Text style={styles.sectionTitlePadded}>Products</Text>
-      {products.length ? (
-        <View style={styles.grid}>
-          {products.map((product) => (
-            <ProductTile key={product.id} product={product} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.padded}>
-          <EmptyState icon="cube-outline" title="No products yet" />
-        </View>
-      )}
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products', 'reposts']} />
 
-      <Text style={styles.sectionTitlePadded}>My Posts</Text>
-      {userPosts.length ? (
-        <View style={styles.grid}>
-          {userPosts.map((post) => (
-            <PostTile key={post.id} post={post} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.padded}>
-          <EmptyState icon="images-outline" title="No posts yet" />
-        </View>
-      )}
+      <View style={{ marginTop: spacing['4'] }}>
+        {activeTab === 'posts' && (
+          <>
+            <Text style={styles.sectionTitlePadded}>My Posts</Text>
+            {userPosts.length ? (
+              <View style={styles.grid}>
+                {userPosts.map((post) => (
+                  <PostTile key={post.id} post={post} />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.padded}>
+                <EmptyState icon="images-outline" title="No posts yet" />
+              </View>
+            )}
+          </>
+        )}
 
-      <Text style={styles.sectionTitlePadded}>Recent reviews</Text>
-      <View style={styles.reviewList}>
-        {reviews.length ? (
-          reviews.slice(0, 3).map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
-              <Text style={styles.reviewAuthor}>{review.author}</Text>
-              <Text style={styles.reviewText}>{review.text}</Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No reviews yet.</Text>
+        {activeTab === 'products' && (
+          <>
+            <Text style={styles.sectionTitlePadded}>Products</Text>
+            {products.length ? (
+              <View style={styles.grid}>
+                {products.map((product) => (
+                  <ProductTile key={product.id} product={product} />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.padded}>
+                <EmptyState icon="cube-outline" title="No products yet" />
+              </View>
+            )}
+          </>
+        )}
+
+        {activeTab === 'reposts' && (
+          <View style={styles.padded}>
+            <EmptyState icon="repeat-outline" title="No reposts yet" />
+          </View>
         )}
       </View>
     </ScrollView>
@@ -545,10 +618,54 @@ const styles = StyleSheet.create({
     marginTop: spacing['3'],
   },
   sectionTitlePadded: {
+    ...typography.h2,
+    color: palette.ink.onDarkStrong,
+    paddingHorizontal: spacing['5'],
+    paddingBottom: spacing['4'],
+  },
+  dropdownToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['5'],
+    paddingBottom: spacing['4'],
+  },
+  dropdownToggleText: {
+    ...typography.h2,
+    color: palette.ink.onDarkStrong,
+    marginRight: spacing['2'],
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 36,
+    left: spacing['5'],
+    width: 220,
+    backgroundColor: palette.bg.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 20,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing['4'],
+  },
+  dropdownItemText: {
     ...typography.bodyEmphasis,
     color: palette.ink.onDarkStrong,
-    marginTop: spacing['4'],
-    paddingHorizontal: spacing['5'],
+  },
+  dropdownItemTextActive: {
+    color: palette.brand.orange,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: palette.line.divider,
   },
   grid: {
     flexDirection: 'row',

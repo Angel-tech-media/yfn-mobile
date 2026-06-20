@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { useCart } from '@/src/store/cart';
@@ -16,7 +17,7 @@ import type { Post } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function WishlistScreen() {
-  const [activeTab, setActiveTab] = useState<'products' | 'posts'>('products');
+  const [activeTab, setActiveTab] = useState<TabKey>('products');
   const items = useWishlist((s) => s.items);
   const remove = useWishlist((s) => s.remove);
   const addCart = useCart((s) => s.add);
@@ -33,22 +34,7 @@ export default function WishlistScreen() {
         <TopBar title="Wishlist" showBack />
       </View>
 
-      <View style={styles.tabsRow}>
-        <Pressable
-          onPress={() => setActiveTab('products')}
-          style={[styles.tabBtn, activeTab === 'products' && styles.tabBtnActive]}>
-          <Text style={[styles.tabText, activeTab === 'products' && styles.tabTextActive]}>
-            Products
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveTab('posts')}
-          style={[styles.tabBtn, activeTab === 'posts' && styles.tabBtnActive]}>
-          <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
-            Posts
-          </Text>
-        </Pressable>
-      </View>
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products']} />
 
       {activeTab === 'products' ? (
         emptyProducts ? (

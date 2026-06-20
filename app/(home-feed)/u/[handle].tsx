@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
 import { useBlockUser, useFollowVendor, useUserPosts, useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
@@ -27,6 +29,7 @@ export default function PublicProfileScreen() {
   const blockUser = useBlockUser();
   const { data: me } = useMe();
   const isMe = me?.username === userHandle || me?.handle === userHandle;
+  const [activeTab, setActiveTab] = useState<TabKey>('posts');
 
   const handleOptions = () => {
     Alert.alert(
@@ -139,48 +142,49 @@ export default function PublicProfileScreen() {
               </Pressable>
             </View>
 
-            {vendor.category ? (
-              <>
-                <Text style={styles.sectionTitle}>Products</Text>
-                {products.length ? (
-                  <View style={styles.grid}>
-                    {products.map((product) => (
-                      <ProductTile key={product.id} product={product} />
-                    ))}
-                  </View>
-                ) : (
-                  <EmptyState label="No products yet." />
-                )}
+            <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products', 'reposts']} />
 
-                <Text style={styles.sectionTitle}>Reviews</Text>
-                {reviews.length ? (
-                  <View style={styles.reviewList}>
-                    {reviews.slice(0, 4).map((review) => (
-                      <View key={review.id} style={styles.reviewCard}>
-                        <View style={styles.reviewHeader}>
-                          <Text style={styles.reviewAuthor}>{review.author}</Text>
-                          <Text style={styles.reviewRating}>{review.rating.toFixed(1)}</Text>
+            <View style={{ marginTop: spacing['4'] }}>
+              {activeTab === 'posts' && (
+                <>
+                  <Text style={styles.sectionTitle}>Posts</Text>
+                  {posts.length ? (
+                    <View style={styles.grid}>
+                      {posts.map((post) => (
+                        <PostTile key={post.id} post={post} />
+                      ))}
+                    </View>
+                  ) : (
+                    <EmptyState label="No posts yet." />
+                  )}
+                </>
+              )}
+
+              {activeTab === 'products' && (
+                <>
+                  {vendor.category ? (
+                    <>
+                      <Text style={styles.sectionTitle}>Products</Text>
+                      {products.length ? (
+                        <View style={styles.grid}>
+                          {products.map((product) => (
+                            <ProductTile key={product.id} product={product} />
+                          ))}
                         </View>
-                        <Text style={styles.reviewText}>{review.text}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <EmptyState label="No reviews yet." />
-                )}
-              </>
-            ) : null}
+                      ) : (
+                        <EmptyState label="No products yet." />
+                      )}
+                    </>
+                  ) : (
+                    <EmptyState label="No products available." />
+                  )}
+                </>
+              )}
 
-            <Text style={styles.sectionTitle}>Posts</Text>
-            {posts.length ? (
-              <View style={styles.grid}>
-                {posts.map((post) => (
-                  <PostTile key={post.id} post={post} />
-                ))}
-              </View>
-            ) : (
-              <EmptyState label="No posts yet." />
-            )}
+              {activeTab === 'reposts' && (
+                <EmptyState label="No reposts yet." />
+              )}
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
