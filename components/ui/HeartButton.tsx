@@ -18,11 +18,11 @@ export function HeartButton({ liked, count, onToggle, size = 28 }: Props) {
       accessibilityLabel={liked ? 'Unlike' : 'Like'}
       onPress={onToggle}
       style={({ pressed }) => [styles.root, pressed && styles.pressed]}>
-      <View style={styles.iconWrap}>
+      <View style={[styles.iconWrap, styles.iconDropShadow]}>
         <Ionicons
           name={liked ? 'heart' : 'heart-outline'}
           size={size}
-          color={liked ? '#FF3B47' : palette.ink.onDarkStrong}
+          color={liked ? '#FF3B47' : '#FFFFFF'}
         />
       </View>
       {typeof count === 'number' ? (
@@ -55,5 +55,12 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkStrong,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowRadius: 4,
+  },
+  iconDropShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });

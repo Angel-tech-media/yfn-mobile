@@ -80,30 +80,32 @@ export default function ReelScreen() {
           <PlayButton playing={playing} onToggle={() => setPlaying((value) => !value)} />
         </View>
 
-        <View style={styles.actionRail}>
-          <HeartButton liked={liked} onToggle={() => setLiked((value) => !value)} />
-          <RailIcon icon="chatbubble-outline" />
-          <RailIcon icon="paper-plane-outline" />
-          <RailIcon icon="bookmark-outline" />
-          <RailIcon icon="eye-outline" count={formatCompact(reel.views)} />
-        </View>
+        <View style={styles.bottomContainer}>
+          <View style={styles.bottomLeft}>
+            <StoryAuthorInfo
+              avatar={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
+              name={reel.author.name}
+              meta={`@${reel.author.handle}`}
+              audioLabel={reel.audio ?? undefined}
+              verified={reel.author.verified}
+              rightAction={
+                <Pressable style={styles.followBtn}>
+                  <Text style={styles.followText}>Follow</Text>
+                </Pressable>
+              }
+            />
+            <Text style={styles.caption} numberOfLines={2}>
+              {reel.caption}
+            </Text>
+          </View>
 
-        <View style={styles.bottom}>
-          <StoryAuthorInfo
-            avatar={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
-            name={reel.author.name}
-            meta={`@${reel.author.handle}`}
-            audioLabel={reel.audio ?? undefined}
-            verified={reel.author.verified}
-            rightAction={
-              <Pressable style={styles.followBtn}>
-                <Text style={styles.followText}>Follow</Text>
-              </Pressable>
-            }
-          />
-          <Text style={styles.caption} numberOfLines={2}>
-            {reel.caption}
-          </Text>
+          <View style={styles.actionRail}>
+            <HeartButton liked={liked} onToggle={() => setLiked((value) => !value)} size={32} />
+            <RailIcon icon="chatbubble-outline" />
+            <RailIcon icon="paper-plane-outline" />
+            <RailIcon icon="bookmark-outline" />
+            <RailIcon icon="eye-outline" count={formatCompact(reel.views)} />
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -152,7 +154,7 @@ function TopRow() {
 function RailIcon({ icon, count }: { icon: keyof typeof Ionicons.glyphMap; count?: string }) {
   return (
     <Pressable hitSlop={8} style={styles.rail}>
-      <Ionicons name={icon} size={26} color="#FFFFFF" />
+      <Ionicons name={icon} size={30} color="#FFFFFF" style={styles.iconDropShadow} />
       {count ? <Text style={styles.railCount}>{count}</Text> : null}
     </Pressable>
   );
@@ -204,12 +206,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
   },
+  bottomContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingBottom: spacing['4'],
+    gap: spacing['2'],
+  },
+  bottomLeft: {
+    flex: 1,
+    gap: spacing['3'],
+    paddingRight: spacing['4'],
+  },
   actionRail: {
-    position: 'absolute',
-    right: spacing['4'],
-    bottom: 220,
     gap: spacing['4'],
     alignItems: 'center',
+    paddingBottom: spacing['2'],
+  },
+  iconDropShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 3,
   },
   rail: { alignItems: 'center', gap: 2 },
   railCount: {
@@ -220,7 +239,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowRadius: 4,
   },
-  bottom: { gap: spacing['3'], paddingBottom: spacing['4'] },
+
   followBtn: {
     paddingHorizontal: spacing['4'],
     paddingVertical: 6,

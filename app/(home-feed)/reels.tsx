@@ -96,7 +96,12 @@ export default function ReelsFeedScreen() {
 function TopBar() {
   return (
     <View style={styles.topRow}>
-      <Text style={styles.title}>Reels</Text>
+      <View style={styles.titleRow}>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="chevron-back" size={26} color="#FFFFFF" style={styles.iconDropShadow} />
+        </Pressable>
+        <Text style={styles.title}>Reels</Text>
+      </View>
       <Pressable onPress={() => router.push('/create/reel' as never)} style={styles.iconBtn} hitSlop={8}>
         <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
       </Pressable>
@@ -132,54 +137,57 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
 
         <View style={{ flex: 1 }} />
 
-        <View style={styles.actionRail}>
-          <HeartButton liked={liked} onToggle={() => toggleLike(reel.id)} size={28} />
-          <Pressable
-            onPress={() => router.push(`/post/${reel.id}/comments` as never)}
-            hitSlop={6}
-            style={styles.rail}>
-            <Ionicons name="chatbubble-outline" size={26} color="#FFFFFF" />
-          </Pressable>
-          <Pressable hitSlop={6} style={styles.rail}>
-            <Ionicons name="paper-plane-outline" size={26} color="#FFFFFF" />
-          </Pressable>
-          <Pressable onPress={() => toggleSave(reel.id)} hitSlop={6} style={styles.rail}>
-            <Ionicons
-              name={saved ? 'bookmark' : 'bookmark-outline'}
-              size={26}
-              color={saved ? palette.brand.orange : '#FFFFFF'}
-            />
-          </Pressable>
-          <View style={styles.rail}>
-            <Ionicons name="eye-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.railCount}>{formatCompact(reel.views)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.bottom}>
-          <Pressable
-            onPress={() => router.push(`/u/${reel.author.handle}` as never)}
-            style={styles.authorRow}>
-            <Avatar
-              size={36}
-              source={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
-              initials={initialsFor(reel.author.name)}
-            />
-            <View style={styles.authorBlock}>
-              <View style={styles.nameRow}>
-                <Text style={styles.author}>{reel.author.name}</Text>
-                {reel.author.verified ? <VerifiedCheck tone="success" size={13} /> : null}
+        <View style={styles.bottomContainer}>
+          <View style={styles.bottomLeft}>
+            <Pressable
+              onPress={() => router.push(`/u/${reel.author.handle}` as never)}
+              style={styles.authorRow}>
+              <Avatar
+                size={36}
+                source={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
+                initials={initialsFor(reel.author.name)}
+              />
+              <View style={styles.authorBlock}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.author}>{reel.author.name}</Text>
+                  {reel.author.verified ? <VerifiedCheck tone="success" size={13} /> : null}
+                </View>
+                <Text style={styles.handle}>@{reel.author.handle}</Text>
               </View>
-              <Text style={styles.handle}>@{reel.author.handle}</Text>
+            </Pressable>
+            <Text style={styles.caption} numberOfLines={2}>{reel.caption}</Text>
+            {reel.audio ? (
+              <View style={styles.audioRow}>
+                <Ionicons name="musical-notes" size={12} color="#FFFFFF" />
+                <Text style={styles.audioText} numberOfLines={1}>{reel.audio}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.actionRail}>
+            <HeartButton liked={liked} onToggle={() => toggleLike(reel.id)} size={32} />
+            <Pressable
+              onPress={() => router.push(`/post/${reel.id}/comments` as never)}
+              hitSlop={6}
+              style={styles.rail}>
+              <Ionicons name="chatbubble-outline" size={30} color="#FFFFFF" style={styles.iconDropShadow} />
+            </Pressable>
+            <Pressable hitSlop={6} style={styles.rail}>
+              <Ionicons name="paper-plane-outline" size={30} color="#FFFFFF" style={styles.iconDropShadow} />
+            </Pressable>
+            <Pressable onPress={() => toggleSave(reel.id)} hitSlop={6} style={styles.rail}>
+              <Ionicons
+                name={saved ? 'bookmark' : 'bookmark-outline'}
+                size={30}
+                color={saved ? palette.brand.orange : '#FFFFFF'}
+                style={styles.iconDropShadow}
+              />
+            </Pressable>
+            <View style={styles.rail}>
+              <Ionicons name="eye-outline" size={30} color="#FFFFFF" style={styles.iconDropShadow} />
+              <Text style={styles.railCount}>{formatCompact(reel.views)}</Text>
             </View>
-          </Pressable>
-          <Text style={styles.caption} numberOfLines={2}>{reel.caption}</Text>
-          {reel.audio ? (
-            <View style={styles.audioRow}>
-              <Ionicons name="musical-notes" size={12} color="#FFFFFF" />
-              <Text style={styles.audioText} numberOfLines={1}>{reel.audio}</Text>
-            </View>
-          ) : null}
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -261,10 +269,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: spacing['2'],
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+  },
   title: {
     fontFamily: typography.h1.fontFamily,
     fontSize: 22,
     color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowRadius: 4,
   },
   iconBtn: {
     width: 36,
@@ -274,12 +289,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.10)',
   },
+  bottomContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingBottom: spacing['10'],
+    gap: spacing['2'],
+  },
+  bottomLeft: {
+    flex: 1,
+    gap: spacing['2'],
+    paddingRight: spacing['4'],
+  },
   actionRail: {
-    position: 'absolute',
-    right: spacing['3'],
-    bottom: 200,
     gap: spacing['4'],
     alignItems: 'center',
+    paddingBottom: spacing['2'],
+  },
+  iconDropShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 3,
   },
   rail: { alignItems: 'center', gap: 2 },
   railCount: {
@@ -289,7 +321,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowRadius: 4,
   },
-  bottom: { gap: spacing['2'], paddingBottom: spacing['10'] },
+
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
   authorBlock: { gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
