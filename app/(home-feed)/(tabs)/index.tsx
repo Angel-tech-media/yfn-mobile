@@ -383,10 +383,21 @@ function FeedCard({ post }: { post: PostItem }) {
 
       <BottomSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)}>
         {isMine ? (
-          <Pressable onPress={handleDelete} style={styles.optionsActionRow}>
-            <Ionicons name="trash-outline" size={20} color="#FF3B47" />
-            <Text style={[styles.optionsActionText, { color: '#FF3B47' }]}>Delete post</Text>
-          </Pressable>
+          <>
+            <Pressable
+              onPress={() => {
+                setOptionsOpen(false);
+                router.push(`/post/${post.id}/edit` as never);
+              }}
+              style={styles.optionsActionRow}>
+              <Ionicons name="pencil-outline" size={20} color={palette.ink.onDarkStrong} />
+              <Text style={styles.optionsActionText}>Edit post</Text>
+            </Pressable>
+            <Pressable onPress={handleDelete} style={styles.optionsActionRow}>
+              <Ionicons name="trash-outline" size={20} color="#FF3B47" />
+              <Text style={[styles.optionsActionText, { color: '#FF3B47' }]}>Delete post</Text>
+            </Pressable>
+          </>
         ) : (
           <Pressable onPress={() => setOptionsOpen(false)} style={styles.optionsActionRow}>
             <Ionicons name="flag-outline" size={20} color={palette.ink.onDarkStrong} />
