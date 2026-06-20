@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -9,40 +11,82 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { useCart } from '@/src/store/cart';
 import { useWishlist, type WishlistItem } from '@/src/store/wishlist';
+import { useMyBookmarkedPosts } from '@/src/api/feed/hooks';
+import type { Post } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
 export default function WishlistScreen() {
+  const [activeTab, setActiveTab] = useState<'products' | 'posts'>('products');
   const items = useWishlist((s) => s.items);
   const remove = useWishlist((s) => s.remove);
   const addCart = useCart((s) => s.add);
 
-  const empty = items.length === 0;
+  const { data: bookmarkedPostsData } = useMyBookmarkedPosts();
+  const bookmarkedPosts = bookmarkedPostsData?.items ?? [];
+
+  const emptyProducts = items.length === 0;
+  const emptyPosts = bookmarkedPosts.length === 0;
 
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Wishlist" showBack />
 
-      {empty ? (
-        <View style={styles.empty}>
-          <Ionicons name="heart-outline" size={40} color={palette.ink.onDarkMuted} />
-          <Text style={styles.emptyTitle}>No saved products</Text>
-          <Text style={styles.emptyText}>Products you heart from the backend catalog will appear here.</Text>
-          <PrimaryButton label="Browse shop" onPress={() => router.replace('/(tabs)/shop' as never)} />
-        </View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <View style={styles.grid}>
-            {items.map((p) => (
-              <Card
-                key={p.id}
-                product={p}
-                onTap={() => router.push(`/product/${p.id}` as never)}
-                onRemove={() => remove(p.id)}
-                onAddCart={() => addCart({ id: p.id, name: p.name, price: p.price, image: p.image, vendor: p.vendor })}
-              />
-            ))}
+      <View style={styles.tabsRow}>
+        <Pressable
+          onPress={() => setActiveTab('products')}
+          style={[styles.tabBtn, activeTab === 'products' && styles.tabBtnActive]}>
+          <Text style={[styles.tabText, activeTab === 'products' && styles.tabTextActive]}>
+            Products
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab('posts')}
+          style={[styles.tabBtn, activeTab === 'posts' && styles.tabBtnActive]}>
+          <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
+            Posts
+          </Text>
+        </Pressable>
+      </View>
+
+      {activeTab === 'products' ? (
+        emptyProducts ? (
+          <View style={styles.empty}>
+            <Ionicons name="cart-outline" size={40} color={palette.ink.onDarkMuted} />
+            <Text style={styles.emptyTitle}>No saved products</Text>
+            <Text style={styles.emptyText}>Products you heart from the backend catalog will appear here.</Text>
+            <PrimaryButton label="Browse shop" onPress={() => router.replace('/(tabs)/shop' as never)} />
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+            <View style={styles.grid}>
+              {items.map((p) => (
+                <Card
+                  key={p.id}
+                  product={p}
+                  onTap={() => router.push(`/product/${p.id}` as never)}
+                  onRemove={() => remove(p.id)}
+                  onAddCart={() => addCart({ id: p.id, name: p.name, price: p.price, image: p.image, vendor: p.vendor })}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        )
+      ) : (
+        emptyPosts ? (
+          <View style={styles.empty}>
+            <Ionicons name="images-outline" size={40} color={palette.ink.onDarkMuted} />
+            <Text style={styles.emptyTitle}>No saved posts</Text>
+            <Text style={styles.emptyText}>Posts you bookmark from the home feed will appear here.</Text>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+            <View style={styles.grid}>
+              {bookmarkedPosts.map((post) => (
+                <PostTile key={post.id} post={post} />
+              ))}
+            </View>
+          </ScrollView>
+        )
       )}
     </ScreenContainer>
   );
@@ -81,7 +125,51 @@ function Card({
   );
 }
 
+function PostTile({ post }: { post: Post }) {
+  const imageUrl = post.imageUrls?.[0];
+
+  return (
+    <View style={styles.card}>
+      <Pressable
+        onPress={() => router.push(`/post/${post.id}` as never)}
+        style={styles.imageWrap}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" />
+        ) : (
+          <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.image} />
+        )}
+      </Pressable>
+      <Text style={styles.name} numberOfLines={2}>{post.caption}</Text>
+      <Text style={styles.vendor} numberOfLines={1}>@{post.author.handle}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  tabsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing['5'],
+    paddingTop: spacing['2'],
+    paddingBottom: spacing['4'],
+    gap: spacing['3'],
+  },
+  tabBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  tabBtnActive: {
+    backgroundColor: palette.brand.orange,
+  },
+  tabText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 14,
+    color: palette.ink.onDarkMuted,
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
   scroll: { paddingBottom: 40 },
   empty: {
     flex: 1,

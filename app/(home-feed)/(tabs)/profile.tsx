@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
+import { useMyRepostedPosts } from '@/src/api/feed/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
 import { useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
 import { useCartCount } from '@/src/store/cart';
@@ -18,7 +19,7 @@ import { palette, radius, spacing, typography } from '@/src/theme';
 
 import { formatKobo } from '@/src/utils/money';
 
-import type { RankedProduct, Repost } from '@/src/api/types';
+import type { Post, RankedProduct, Repost } from '@/src/api/types';
 
 export default function ProfileTabScreen() {
   const { data: me, isLoading } = useMe();
@@ -58,6 +59,8 @@ export default function ProfileTabScreen() {
 function BuyerView() {
   const { data: me } = useMe();
   const { data: reposts = [] } = useMyReposts();
+  const { data: repostedPostsData } = useMyRepostedPosts();
+  const repostedPosts = repostedPostsData?.items ?? [];
   const cartCount = useCartCount();
   const wishlistCount = useWishlistCount();
   const displayName = me?.name || me?.displayName || me?.username || 'Profile';
@@ -124,7 +127,7 @@ function BuyerView() {
         <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(tabs)/wallet' as never)} />
       </View>
 
-      <Text style={styles.sectionTitle}>Reposts</Text>
+      <Text style={styles.sectionTitle}>Product Reposts</Text>
       {reposts.length ? (
         <View style={styles.grid}>
           {reposts.map((repost) => (
@@ -132,7 +135,18 @@ function BuyerView() {
           ))}
         </View>
       ) : (
-        <EmptyState icon="repeat" title="No reposts yet" />
+        <EmptyState icon="cube-outline" title="No product reposts" />
+      )}
+
+      <Text style={styles.sectionTitle}>Reposted Posts</Text>
+      {repostedPosts.length ? (
+        <View style={styles.grid}>
+          {repostedPosts.map((post) => (
+            <PostTile key={post.id} post={post} />
+          ))}
+        </View>
+      ) : (
+        <EmptyState icon="images-outline" title="No reposted posts yet" />
       )}
     </ScrollView>
   );
@@ -253,6 +267,29 @@ function RepostTile({ repost, handle }: { repost: Repost; handle: string }) {
         <Text style={styles.tileCategory} numberOfLines={1}>
           {repost.clicks} clicks · {repost.conversions} sales
         </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function PostTile({ post }: { post: Post }) {
+  const imageUrl = post.imageUrls?.[0];
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/post/${post.id}` as never)}
+      style={styles.tile}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.tileImage} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.tileImage} />
+      )}
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
+      <View style={styles.tileBadge}>
+        <Ionicons name="repeat" size={14} color="#fff" />
+      </View>
+      <View style={styles.tileMeta}>
+        <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
       </View>
     </Pressable>
   );

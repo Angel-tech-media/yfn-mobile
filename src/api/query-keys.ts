@@ -36,6 +36,8 @@ export const queryKeys = {
     reels: (params?: unknown) => ['feed', 'reels', params ?? {}] as const,
     comments: (postId?: string, params?: unknown) =>
       ['posts', postId, 'comments', params ?? {}] as const,
+    bookmarks: (params?: unknown) => ['feed', 'bookmarks', params ?? {}] as const,
+    reposts: (params?: unknown) => ['feed', 'reposts', params ?? {}] as const,
     storiesInbox: ['stories', 'inbox'] as const,
   },
   chat: {

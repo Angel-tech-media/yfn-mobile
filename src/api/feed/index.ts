@@ -26,6 +26,14 @@ export const feedApi = {
     return http.get<Reel[]>('/feed/reels', { query });
   },
 
+  myBookmarks(query: PageQuery = {}) {
+    return http.get<FeedResponse>('/posts/bookmarks/me', { query });
+  },
+
+  myReposts(query: PageQuery = {}) {
+    return http.get<FeedResponse>('/posts/reposts/me', { query });
+  },
+
   createPost(input: CreatePostRequest) {
     return http.post<Post>('/posts', input);
   },

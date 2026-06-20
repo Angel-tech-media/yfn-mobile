@@ -83,33 +83,37 @@ export default function PublicProfileScreen() {
               </Pressable>
             </View>
 
-            <Text style={styles.sectionTitle}>Products</Text>
-            {products.length ? (
-              <View style={styles.grid}>
-                {products.map((product) => (
-                  <ProductTile key={product.id} product={product} />
-                ))}
-              </View>
-            ) : (
-              <EmptyState label="No products yet." />
-            )}
-
-            <Text style={styles.sectionTitle}>Reviews</Text>
-            {reviews.length ? (
-              <View style={styles.reviewList}>
-                {reviews.slice(0, 4).map((review) => (
-                  <View key={review.id} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                      <Text style={styles.reviewAuthor}>{review.author}</Text>
-                      <Text style={styles.reviewRating}>{review.rating.toFixed(1)}</Text>
-                    </View>
-                    <Text style={styles.reviewText}>{review.text}</Text>
+            {vendor.category ? (
+              <>
+                <Text style={styles.sectionTitle}>Products</Text>
+                {products.length ? (
+                  <View style={styles.grid}>
+                    {products.map((product) => (
+                      <ProductTile key={product.id} product={product} />
+                    ))}
                   </View>
-                ))}
-              </View>
-            ) : (
-              <EmptyState label="No reviews yet." />
-            )}
+                ) : (
+                  <EmptyState label="No products yet." />
+                )}
+
+                <Text style={styles.sectionTitle}>Reviews</Text>
+                {reviews.length ? (
+                  <View style={styles.reviewList}>
+                    {reviews.slice(0, 4).map((review) => (
+                      <View key={review.id} style={styles.reviewCard}>
+                        <View style={styles.reviewHeader}>
+                          <Text style={styles.reviewAuthor}>{review.author}</Text>
+                          <Text style={styles.reviewRating}>{review.rating.toFixed(1)}</Text>
+                        </View>
+                        <Text style={styles.reviewText}>{review.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <EmptyState label="No reviews yet." />
+                )}
+              </>
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>

@@ -21,6 +21,22 @@ export function useFeed(params: FeedQuery = {}) {
   });
 }
 
+export function useMyBookmarkedPosts(params: PageQuery = {}) {
+  return useQuery({
+    queryKey: queryKeys.feed.bookmarks(params),
+    queryFn: () => feedApi.myBookmarks(params),
+    staleTime: 15_000,
+  });
+}
+
+export function useMyRepostedPosts(params: PageQuery = {}) {
+  return useQuery({
+    queryKey: queryKeys.feed.reposts(params),
+    queryFn: () => feedApi.myReposts(params),
+    staleTime: 15_000,
+  });
+}
+
 export function useFeedReels(params: PageQuery = {}) {
   return useQuery({
     queryKey: queryKeys.feed.reels(params),
