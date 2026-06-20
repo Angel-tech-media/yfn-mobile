@@ -156,7 +156,11 @@ export default function SignupScreen() {
             onPress={() => setGenderOpen(true)}
           />
           <SelectField
-            value={dob || undefined}
+            value={
+              dob
+                ? `${dob.split('-')[2]} / ${dob.split('-')[1]} / ${dob.split('-')[0]}`
+                : undefined
+            }
             placeholder="Date of birth"
             onPress={() => setDobOpen(true)}
             rightIcon="calendar-outline"
@@ -211,7 +215,7 @@ export default function SignupScreen() {
           const dd = String(d.getDate()).padStart(2, '0');
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const yyyy = d.getFullYear();
-          setDob(`${dd} / ${mm} / ${yyyy}`);
+          setDob(`${yyyy}-${mm}-${dd}`);
         }}
         title="Date of birth"
         maximumDate={new Date()}
