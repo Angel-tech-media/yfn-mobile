@@ -52,24 +52,7 @@ function TabIcon({ spec, focused }: { spec: TabSpec; focused: boolean }) {
   );
 }
 
-function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; onPress: () => void }) {
-  const progress = useSharedValue(focused ? 1 : 0);
-
-  useEffect(() => {
-    progress.value = withTiming(focused ? 1 : 0, { duration: 250 });
-  }, [focused]);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const backgroundColor = interpolateColor(
-      progress.value,
-      [0, 1],
-      ['rgba(216, 149, 68, 0)', 'rgba(216, 149, 68, 0.18)']
-    );
-    return {
-      backgroundColor,
-    };
-  });
-
+function TabBarButton({ t, focused, onPress, onLayout }: { t: TabSpec; focused: boolean; onPress: () => void; onLayout: (e: any) => void }) {
   return (
     <Pressable
       key={t.key}
@@ -77,48 +60,83 @@ function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; o
       accessibilityLabel={t.label}
       accessibilityState={{ selected: focused }}
       onPress={onPress}
+      onLayout={onLayout}
       style={styles.slot}>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.slotBackground, animatedStyle]} />
       <TabIcon spec={t} focused={focused} />
     </Pressable>
+  );
+}
+
+function CustomTabBar({ state, navigation }: { state: any; navigation: any }) {
+  const activeName = state.routes[state.index]?.name;
+  const [positions, setPositions] = useState<Record<string, number>>({});
+  
+  const translateX = useSharedValue(0);
+
+  useEffect(() => {
+    if (positions[activeName] !== undefined) {
+      translateX.value = withTiming(positions[activeName], { duration: 250 });
+    }
+  }, [activeName, positions]);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+      opacity: translateX.value > 0 || positions[activeName] === 0 ? 1 : 0, // hide until first layout
+    };
+  });
+
+  const renderTab = (t: TabSpec, focused: boolean, onPress: () => void) => (
+    <TabBarButton 
+      key={t.key} 
+      t={t} 
+      focused={focused} 
+      onPress={onPress} 
+      onLayout={(e) => {
+        const x = e.nativeEvent.layout.x;
+        setPositions((prev) => ({ ...prev, [t.key]: x }));
+      }}
+    />
+  );
+
+  return (
+    <SafeAreaView edges={['bottom']} style={styles.safe}>
+      <View style={styles.bar}>
+        <Animated.View style={[styles.slidingIndicator, indicatorStyle]} />
+        
+        {TABS_LEFT.map((t) =>
+          renderTab(t, activeName === t.key, () => navigation.navigate(t.key)),
+        )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create"
+          // @ts-ignore - handled by parent
+          onPress={() => navigation.emit({ type: 'openCreate' })}
+          style={({ pressed }) => [styles.createBtn, pressed && { opacity: 0.85 }]}>
+          <Ionicons name="add" size={20} color="#FFFFFF" />
+        </Pressable>
+
+        {TABS_RIGHT.map((t) =>
+          renderTab(t, activeName === t.key, () => navigation.navigate(t.key)),
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 export default function TabLayout() {
   const [createOpen, setCreateOpen] = useState(false);
 
-  const renderTab = (t: TabSpec, focused: boolean, onPress: () => void) => (
-    <TabBarButton key={t.key} t={t} focused={focused} onPress={onPress} />
-  );
-
   return (
     <>
       <Tabs
         screenOptions={{ headerShown: false, animation: 'shift' }}
-        tabBar={({ state, navigation }) => {
-          const activeName = state.routes[state.index]?.name;
-          return (
-            <SafeAreaView edges={['bottom']} style={styles.safe}>
-              <View style={styles.bar}>
-                {TABS_LEFT.map((t) =>
-                  renderTab(t, activeName === t.key, () => navigation.navigate(t.key)),
-                )}
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Create"
-                  onPress={() => setCreateOpen(true)}
-                  style={({ pressed }) => [styles.createBtn, pressed && { opacity: 0.85 }]}>
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
-                </Pressable>
-
-                {TABS_RIGHT.map((t) =>
-                  renderTab(t, activeName === t.key, () => navigation.navigate(t.key)),
-                )}
-              </View>
-            </SafeAreaView>
-          );
-        }}>
+        screenListeners={{
+          // @ts-ignore - custom event
+          openCreate: () => setCreateOpen(true),
+        }}
+        tabBar={(props) => <CustomTabBar {...props} />}>
         <Tabs.Screen name="index" />
         <Tabs.Screen name="market" />
         <Tabs.Screen name="wallet" />
@@ -170,8 +188,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden', // to ensure background respects border radius
   },
-  slotBackground: {
+  slidingIndicator: {
+    position: 'absolute',
+    width: 42,
+    height: 42,
     borderRadius: 999,
+    backgroundColor: 'rgba(216, 149, 68, 0.18)',
   },
   createBtn: {
     width: 42,
