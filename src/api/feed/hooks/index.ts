@@ -110,3 +110,12 @@ export function useEditPost() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
   });
 }
+
+export function useToggleRepostPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, isReposted, input }: { postId: Id; isReposted: boolean; input?: { caption?: string; visibility?: 'public' | 'mutuals' | 'close-friends' } }) =>
+      isReposted ? feedApi.unrepostPost(postId) : feedApi.repostPost(postId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
+  });
+}

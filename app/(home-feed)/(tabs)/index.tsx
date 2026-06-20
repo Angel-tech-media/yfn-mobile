@@ -30,7 +30,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { ImageViewerModal } from '@/components/ui/ImageViewerModal';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { RepostSheet } from '@/components/ui/RepostSheet';
+import { PostRepostSheet } from '@/components/ui/PostRepostSheet';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
 import {
@@ -44,7 +44,7 @@ import { useToast } from '@/src/hooks/use-toast';
 import {
   useEngagement,
   useIsLiked,
-  useIsReposted,
+  useIsRepostedPost,
   useIsSaved,
 } from '@/src/store/engagement';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -68,8 +68,10 @@ type PostItem = {
   price: string;
   likes: number;
   comments: number;
+  reposts: number;
   likedByMe?: boolean;
   savedByMe?: boolean;
+  repostedByMe?: boolean;
   imageUrls: string[];
 };
 
@@ -251,8 +253,10 @@ function toPostItem(item: Post): PostItem {
     price: item.product ? formatKobo(item.product.price) : '',
     likes: item.likes,
     comments: item.comments,
+    reposts: item.reposts ?? 0,
     likedByMe: item.likedByMe,
     savedByMe: item.savedByMe,
+    repostedByMe: item.repostedByMe,
     imageUrls: item.imageUrls,
   };
 }
@@ -293,9 +297,11 @@ function FeedCard({ post }: { post: PostItem }) {
   const localSave = useIsSaved(post.id);
   const liked = localLike !== undefined ? localLike : !!post.likedByMe;
   const saved = localSave !== undefined ? localSave : !!post.savedByMe;
-  const reposted = useIsReposted(post.id);
+  const localRepost = useIsRepostedPost(post.id);
+  const reposted = localRepost !== undefined ? localRepost : !!post.repostedByMe;
   const setLike = useEngagement((s) => s.setLike);
   const setSave = useEngagement((s) => s.setSave);
+  const setRepostedPost = useEngagement((s) => s.setRepostedPost);
   const [repostOpen, setRepostOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
@@ -414,7 +420,7 @@ function FeedCard({ post }: { post: PostItem }) {
             size={22}
             color={reposted ? palette.brand.orange : palette.ink.onDarkStrong}
           />
-          {reposted ? <Text style={styles.engageCount}>Reposted</Text> : null}
+          <Text style={styles.engageCount}>{formatCompact(post.reposts + (reposted && !post.repostedByMe ? 1 : (!reposted && post.repostedByMe ? -1 : 0)))}</Text>
         </Pressable>
         <Pressable hitSlop={6} style={styles.engageBtn} onPress={handleShare}>
           <Ionicons name="paper-plane-outline" size={22} color={palette.ink.onDarkStrong} />
@@ -429,15 +435,15 @@ function FeedCard({ post }: { post: PostItem }) {
         </Pressable>
       </View>
 
-      <RepostSheet
+      <PostRepostSheet
         visible={repostOpen}
         onClose={() => setRepostOpen(false)}
-        product={{
+        post={{
           id: post.id,
-          name: post.product,
-          price: post.price,
-          vendor: post.author,
-          vendorId: post.authorHandle,
+          author: post.author,
+          authorHandle: post.authorHandle,
+          repostedByMe: reposted,
+          caption: post.caption,
         }}
       />
 

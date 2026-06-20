@@ -598,8 +598,10 @@ export type Post = {
   createdAt: ISODateTime;
   likes: number;
   comments: number;
+  reposts?: number;
   likedByMe?: boolean;
   savedByMe?: boolean;
+  repostedByMe?: boolean;
 };
 
 export type PostActionState = {

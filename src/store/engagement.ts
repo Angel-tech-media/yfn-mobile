@@ -21,8 +21,10 @@ type EngagementState = {
   savedPosts: Record<string, boolean>;
   followedVendors: Record<string, true>;
   reposts: Record<string, Repost>;
+  repostedPosts: Record<string, boolean>;
   setLike: (postId: string, liked: boolean) => void;
   setSave: (postId: string, saved: boolean) => void;
+  setRepostedPost: (postId: string, reposted: boolean) => void;
   toggleFollow: (vendorId: string) => void;
   /** Add or remove a repost. If the product is already reposted, removes it. */
   toggleRepost: (input: {
@@ -43,6 +45,7 @@ type EngagementState = {
 export const useEngagement = create<EngagementState>((set, get) => ({
   likedPosts: {},
   savedPosts: {},
+  repostedPosts: {},
   followedVendors: {},
   reposts: {},
   setLike: (postId, liked) =>
@@ -52,6 +55,10 @@ export const useEngagement = create<EngagementState>((set, get) => ({
   setSave: (postId, saved) =>
     set((s) => ({
       savedPosts: { ...s.savedPosts, [postId]: saved },
+    })),
+  setRepostedPost: (postId, reposted) =>
+    set((s) => ({
+      repostedPosts: { ...s.repostedPosts, [postId]: reposted },
     })),
   toggleFollow: (vendorId) =>
     set((s) => {
@@ -112,6 +119,9 @@ export const useIsFollowing = (vendorId: string) =>
 
 export const useIsReposted = (productId: string) =>
   useEngagement((s) => !!s.reposts[productId]);
+
+export const useIsRepostedPost = (postId: string) =>
+  useEngagement((s) => s.repostedPosts[postId]);
 
 /**
  * Returns true when the current user is allowed to repost this vendor's product.
