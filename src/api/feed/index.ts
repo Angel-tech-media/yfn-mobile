@@ -12,6 +12,7 @@ import type {
   Id,
   PageQuery,
   Post,
+  PostActionState,
   Reel,
   Story,
 } from '../types';
@@ -47,5 +48,33 @@ export const feedApi = {
 
   createReel(input: CreateReelRequest) {
     return http.post<Reel>('/reels', input);
+  },
+
+  likePost(postId: Id) {
+    return http.post<PostActionState>(`/posts/${postId}/like`);
+  },
+
+  unlikePost(postId: Id) {
+    return http.delete<PostActionState>(`/posts/${postId}/like`);
+  },
+
+  deletePost(postId: Id) {
+    return http.delete<{ success: boolean }>(`/posts/${postId}`);
+  },
+
+  bookmarkPost(postId: Id) {
+    return http.post<PostActionState>(`/posts/${postId}/bookmark`);
+  },
+
+  unbookmarkPost(postId: Id) {
+    return http.delete<PostActionState>(`/posts/${postId}/bookmark`);
+  },
+
+  repostPost(postId: Id, input?: { caption?: string; visibility?: 'public' | 'mutuals' | 'close-friends' }) {
+    return http.post<PostActionState>(`/posts/${postId}/repost`, input);
+  },
+
+  unrepostPost(postId: Id) {
+    return http.delete<PostActionState>(`/posts/${postId}/repost`);
   },
 };

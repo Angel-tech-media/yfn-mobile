@@ -17,12 +17,12 @@ export type Repost = {
 };
 
 type EngagementState = {
-  likedPosts: Record<string, true>;
-  savedPosts: Record<string, true>;
+  likedPosts: Record<string, boolean>;
+  savedPosts: Record<string, boolean>;
   followedVendors: Record<string, true>;
   reposts: Record<string, Repost>;
-  toggleLike: (postId: string) => void;
-  toggleSave: (postId: string) => void;
+  setLike: (postId: string, liked: boolean) => void;
+  setSave: (postId: string, saved: boolean) => void;
   toggleFollow: (vendorId: string) => void;
   /** Add or remove a repost. If the product is already reposted, removes it. */
   toggleRepost: (input: {
@@ -45,20 +45,14 @@ export const useEngagement = create<EngagementState>((set, get) => ({
   savedPosts: {},
   followedVendors: {},
   reposts: {},
-  toggleLike: (postId) =>
-    set((s) => {
-      const next = { ...s.likedPosts };
-      if (next[postId]) delete next[postId];
-      else next[postId] = true;
-      return { likedPosts: next };
-    }),
-  toggleSave: (postId) =>
-    set((s) => {
-      const next = { ...s.savedPosts };
-      if (next[postId]) delete next[postId];
-      else next[postId] = true;
-      return { savedPosts: next };
-    }),
+  setLike: (postId, liked) =>
+    set((s) => ({
+      likedPosts: { ...s.likedPosts, [postId]: liked },
+    })),
+  setSave: (postId, saved) =>
+    set((s) => ({
+      savedPosts: { ...s.savedPosts, [postId]: saved },
+    })),
   toggleFollow: (vendorId) =>
     set((s) => {
       const next = { ...s.followedVendors };
@@ -108,10 +102,10 @@ export const useEngagement = create<EngagementState>((set, get) => ({
 }));
 
 export const useIsLiked = (postId: string) =>
-  useEngagement((s) => !!s.likedPosts[postId]);
+  useEngagement((s) => s.likedPosts[postId]);
 
 export const useIsSaved = (postId: string) =>
-  useEngagement((s) => !!s.savedPosts[postId]);
+  useEngagement((s) => s.savedPosts[postId]);
 
 export const useIsFollowing = (vendorId: string) =>
   useEngagement((s) => !!s.followedVendors[vendorId]);

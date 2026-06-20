@@ -75,3 +75,29 @@ export function useCreateReel() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['feed', 'reels'] }),
   });
 }
+
+export function useToggleLikePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, isLiked }: { postId: Id; isLiked: boolean }) =>
+      isLiked ? feedApi.unlikePost(postId) : feedApi.likePost(postId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
+  });
+}
+
+export function useToggleBookmarkPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, isSaved }: { postId: Id; isSaved: boolean }) =>
+      isSaved ? feedApi.unbookmarkPost(postId) : feedApi.bookmarkPost(postId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
+  });
+}
+
+export function useDeletePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: Id) => feedApi.deletePost(postId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
+  });
+}

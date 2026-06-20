@@ -602,6 +602,18 @@ export type Post = {
   savedByMe?: boolean;
 };
 
+export type PostActionState = {
+  postId: Id;
+  likes: number;
+  comments: number;
+  bookmarks: number;
+  reposts: number;
+  likedByMe: boolean;
+  savedByMe: boolean;
+  repostedByMe: boolean;
+  repost?: Repost;
+};
+
 export type Story = {
   id: Id;
   author: FeedAuthor;
