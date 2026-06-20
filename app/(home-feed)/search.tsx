@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { useMe } from '@/src/api/account/hooks';
 import { useSearch } from '@/src/api/search/hooks';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
@@ -20,6 +21,7 @@ export default function SearchScreen() {
   const [tab, setTab] = useState<typeof TABS[number]>(
     params.focus === 'people' ? 'People' : 'Top',
   );
+  const { data: me } = useMe();
   const { data, isLoading, isError } = useSearch({ q: query.trim(), limit: 20 });
 
   const people = data?.people ?? [];
@@ -87,7 +89,13 @@ export default function SearchScreen() {
                 {people.map((p) => (
                   <Pressable
                     key={p.handle}
-                    onPress={() => router.push(`/u/${p.handle}` as never)}
+                    onPress={() => {
+                      if (me?.username === p.handle || me?.handle === p.handle) {
+                        router.push('/profile');
+                      } else {
+                        router.push(`/u/${p.handle}` as never);
+                      }
+                    }}
                     style={styles.peopleRow}>
                     <Avatar size={44} source={p.avatarUrl ? { uri: p.avatarUrl } : undefined} initials={p.name[0]} />
                     <View style={{ flex: 1 }}>
@@ -142,7 +150,13 @@ export default function SearchScreen() {
                 {places.map((place) => (
                   <Pressable
                     key={place.id}
-                    onPress={() => router.push(`/u/${place.handle}` as never)}
+                    onPress={() => {
+                      if (me?.username === place.handle || me?.handle === place.handle) {
+                        router.push('/profile');
+                      } else {
+                        router.push(`/u/${place.handle}` as never);
+                      }
+                    }}
                     style={styles.peopleRow}>
                     <Avatar size={44} initials={place.storeName[0]} />
                     <View style={{ flex: 1 }}>
