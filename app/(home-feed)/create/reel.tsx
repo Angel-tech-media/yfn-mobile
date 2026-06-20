@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TextField } from '@/components/ui/TextField';
 import { useMe } from '@/src/api/account/hooks';
@@ -26,15 +26,18 @@ export default function CreateReelScreen() {
   const { pick } = useImagePicker();
   const createReel = useCreateReel();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
 
   if (!video) {
     return (
       <View style={styles.root}>
         <LinearGradient colors={['#1A1812', '#0A0805']} style={StyleSheet.absoluteFill} />
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <Pressable onPress={() => router.back()} style={styles.iconBtn} hitSlop={8}>
-            <Ionicons name="close" size={22} color="#FFFFFF" />
-          </Pressable>
+        <View style={[styles.safe, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.topRow}>
+            <Pressable onPress={() => router.back()} style={styles.iconBtn} hitSlop={8}>
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
 
           <View style={styles.center}>
             <View style={styles.recordRing}>
@@ -62,7 +65,7 @@ export default function CreateReelScreen() {
               </Pressable>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
@@ -76,7 +79,7 @@ export default function CreateReelScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={[styles.safe, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
         <View style={styles.topRow}>
           <Pressable onPress={() => setVideo(null)} style={styles.iconBtn} hitSlop={8}>
             <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
@@ -148,7 +151,7 @@ export default function CreateReelScreen() {
             <Text style={styles.shareLabel}>{createReel.isPending || isUploading ? 'Posting' : 'Post reel'}</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

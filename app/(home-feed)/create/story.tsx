@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCreateStory } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
@@ -23,6 +23,7 @@ export default function CreateStoryScreen() {
   const { pick } = useImagePicker();
   const createStory = useCreateStory();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Auto-launch camera on mount
@@ -36,10 +37,12 @@ export default function CreateStoryScreen() {
     return (
       <View style={styles.root}>
         <LinearGradient colors={['#1A1812', '#0A0805']} style={StyleSheet.absoluteFill} />
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <Pressable onPress={() => router.back()} style={styles.iconBtn} hitSlop={8}>
-            <Ionicons name="close" size={22} color="#FFFFFF" />
-          </Pressable>
+        <View style={[styles.safe, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.topRow}>
+            <Pressable onPress={() => router.back()} style={styles.iconBtn} hitSlop={8}>
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
           <View style={styles.center}>
             <Pressable onPress={async () => {
               const img = await pick('camera');
@@ -58,7 +61,7 @@ export default function CreateStoryScreen() {
               <Text style={styles.galleryLabel}>Choose from gallery</Text>
             </Pressable>
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
@@ -75,7 +78,7 @@ export default function CreateStoryScreen() {
         style={[StyleSheet.absoluteFill, { top: '50%' }]}
       />
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={[styles.safe, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
         <View style={styles.topRow}>
           <Pressable onPress={() => setPhoto(null)} style={styles.iconBtn} hitSlop={8}>
             <Ionicons name="close" size={22} color="#FFFFFF" />
@@ -157,7 +160,7 @@ export default function CreateStoryScreen() {
             <Text style={styles.shareLabel}>{createStory.isPending || isUploading ? 'Sharing' : 'Share to Story'}</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
