@@ -691,6 +691,7 @@ export type ChatConversation = {
     lastReadAt?: ISODateTime;
     username?: string;
     name?: string;
+    avatarUrl?: string;
   }[];
   productId?: Id | null;
   orderId?: Id | null;

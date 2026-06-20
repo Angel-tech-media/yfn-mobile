@@ -50,23 +50,29 @@ export default function InboxScreen() {
               <Ionicons name="chatbubbles-outline" size={32} color={palette.ink.onDarkMuted} />
               <Text style={styles.emptyText}>No conversations yet.</Text>
             </View>
-          ) : threads.map((t) => (
-            <Pressable
-              key={t.id}
-              onPress={() => router.push(`/threads/${t.id}` as never)}
-              style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
-              <Avatar size={48} initials="C" />
-              <View style={styles.body}>
-                <Text style={styles.name}>
-                  {t.orderId ? `Order ${t.orderId}` : t.productId ? `Product ${t.productId}` : (t.participants?.find(p => p.userId !== me)?.name || t.participants?.find(p => p.userId !== me)?.username || `Conversation ${t.id.slice(0, 8)}`)}
-                </Text>
-                <Text style={styles.preview} numberOfLines={1}>{t.lastMessagePreview ?? 'No messages yet'}</Text>
-              </View>
+          ) : threads.map((t) => {
+            const peer = t.participants?.find((p) => p.userId !== me);
+            const peerName = peer?.name || peer?.username || `Conversation ${t.id.slice(0, 8)}`;
+            const initials = peerName.charAt(0).toUpperCase() || 'C';
+
+            return (
+              <Pressable
+                key={t.id}
+                onPress={() => router.push(`/threads/${t.id}` as never)}
+                style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
+                <Avatar size={48} source={peer?.avatarUrl ? { uri: peer.avatarUrl } : undefined} initials={initials} />
+                <View style={styles.body}>
+                  <Text style={styles.name}>
+                    {t.orderId ? `Order ${t.orderId}` : t.productId ? `Product ${t.productId}` : peerName}
+                  </Text>
+                  <Text style={styles.preview} numberOfLines={1}>{t.lastMessagePreview ?? 'No messages yet'}</Text>
+                </View>
               <View style={styles.meta}>
                 <Text style={styles.time}>{formatWhen(t.updatedAt)}</Text>
               </View>
             </Pressable>
-          ))}
+            );
+          })}
         </ScrollView>
       </SafeAreaView>
       <NewMessageModal visible={newMsgOpen} onClose={() => setNewMsgOpen(false)} />

@@ -88,7 +88,7 @@ export function NewMessageModal({ visible, onClose }: Props) {
                 <Avatar
                   size={48}
                   source={item.avatarUrl ? { uri: item.avatarUrl } : undefined}
-                  initials={item.name.charAt(0).toUpperCase()}
+                  initials={(item.name || item.handle || 'C').charAt(0).toUpperCase()}
                 />
                 <View style={styles.userInfo}>
                   <Text style={styles.userName}>{item.name}</Text>
