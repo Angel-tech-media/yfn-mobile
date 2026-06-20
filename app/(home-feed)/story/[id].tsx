@@ -8,7 +8,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { useMe } from '@/src/api/account/hooks';
+import { chatApi } from '@/src/api/chat';
 import { useStoriesInbox } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
@@ -23,6 +25,31 @@ export default function StoryViewerScreen() {
   const isMine = me?.handle === story?.author.handle;
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
+
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleSend = async () => {
+    const body = draft.trim();
+    if (!body || sending || !story) return;
+
+    setSending(true);
+    setPaused(true);
+    try {
+      const conv = await chatApi.startOrFetch({ participantUserId: story.author.id });
+      await chatApi.sendMessage(conv.id, { kind: 'story_reply', body, imageUrl: story.imageUrl });
+      
+      setDraft('');
+      setPaused(false);
+      router.back();
+    } catch (e) {
+      console.error('Failed to send story reply', e);
+      setPaused(false);
+    } finally {
+      setSending(false);
+    }
+  };
 
   useEffect(() => {
     if (!story || paused) return;
@@ -141,14 +168,38 @@ export default function StoryViewerScreen() {
                 placeholder={`Reply to ${story.author.name}...`}
                 placeholderTextColor="rgba(255,255,255,0.65)"
                 style={styles.composerInput}
+                value={draft}
+                onChangeText={setDraft}
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
               />
+              <Pressable
+                onPress={() => {
+                  setPaused(true);
+                  setShowEmojiPicker(true);
+                }}
+                hitSlop={8}
+                style={{ marginLeft: 8 }}>
+                <Ionicons name="happy-outline" size={22} color="rgba(255,255,255,0.75)" />
+              </Pressable>
             </View>
-            <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM">
-              <Ionicons name="paper-plane-outline" size={24} color="#fff" />
+            <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM" onPress={handleSend} disabled={sending}>
+              <Ionicons name="paper-plane-outline" size={24} color={draft.trim() && !sending ? "#fff" : "rgba(255,255,255,0.5)"} />
             </Pressable>
           </>
         )}
       </SafeAreaView>
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelected={(emoji) => setDraft((d) => d + emoji)}
+          onClose={() => {
+            setShowEmojiPicker(false);
+            setPaused(false);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -298,8 +349,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     backgroundColor: 'rgba(0,0,0,0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   composerInput: {
+    flex: 1,
     color: '#fff',
     fontFamily: typography.body.fontFamily,
     fontSize: 14,

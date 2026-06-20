@@ -159,6 +159,11 @@ function MessageBubble({ message, mine }: { message: ChatMessage; mine: boolean 
           <Image source={{ uri: message.imageUrl }} style={styles.messageImage} contentFit="cover" />
         </View>
       ) : null}
+      {message.kind === 'story_reply' && message.imageUrl ? (
+        <View style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle, { height: 160, width: 120, marginBottom: 2 }]}>
+          <Image source={{ uri: message.imageUrl }} style={styles.messageImage} contentFit="cover" />
+        </View>
+      ) : null}
       {message.kind === 'product_card' && message.productId ? (
         <Pressable onPress={() => router.push(`/product/${message.productId}` as never)} style={styles.productCard}>
           <Ionicons name="cube-outline" size={20} color={palette.brand.orange} />
@@ -168,7 +173,7 @@ function MessageBubble({ message, mine }: { message: ChatMessage; mine: boolean 
           </View>
         </Pressable>
       ) : null}
-      {body && message.kind !== 'product_card' ? (
+      {(body || message.kind === 'story_reply') && message.kind !== 'product_card' ? (
         <View style={[styles.bubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
           <Text style={[styles.bubbleText, !mine && { color: palette.ink.onDarkStrong }]}>
             {body}

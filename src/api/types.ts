@@ -704,7 +704,7 @@ export type ChatMessage = {
   id: Id;
   conversationId: Id;
   senderId: Id;
-  kind: 'text' | 'image' | 'product_card' | 'system';
+  kind: 'text' | 'image' | 'product_card' | 'system' | 'story_reply';
   body?: string | null;
   mediaId?: Id | null;
   imageUrl?: string | null;
@@ -725,7 +725,8 @@ export type ListMessagesQuery = PageQuery;
 export type SendMessageRequest =
   | { kind: 'text'; body: string }
   | { kind: 'image'; imageUrl: string; mediaId?: Id }
-  | { kind: 'product_card'; productId: Id };
+  | { kind: 'product_card'; productId: Id }
+  | { kind: 'story_reply'; body: string; imageUrl: string };
 
 export type NotificationItem = {
   id: Id;
