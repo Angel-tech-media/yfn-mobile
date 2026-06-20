@@ -1,11 +1,14 @@
 import { useCallback, useState } from 'react';
 
 import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -52,7 +55,7 @@ type PostItem = {
   comments: number;
   likedByMe?: boolean;
   savedByMe?: boolean;
-  imageUrl?: string;
+  imageUrls: string[];
 };
 
 export default function HomeFeedScreen() {
@@ -196,7 +199,7 @@ function toPostItem(item: Post): PostItem {
     comments: item.comments,
     likedByMe: item.likedByMe,
     savedByMe: item.savedByMe,
-    imageUrl: item.imageUrls[0],
+    imageUrls: item.imageUrls,
   };
 }
 
@@ -266,8 +269,8 @@ function FeedCard({ post }: { post: PostItem }) {
 
       <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
 
-      {post.imageUrl ? (
-        <Image source={{ uri: post.imageUrl }} style={styles.heroImage} contentFit="cover" />
+      {post.imageUrls.length ? (
+        <PostCarousel imageUrls={post.imageUrls} />
       ) : (
         <View style={styles.heroImagePlaceholder}>
           <Ionicons name="image-outline" size={28} color={palette.ink.onDarkMuted} />
@@ -342,6 +345,54 @@ function FeedCard({ post }: { post: PostItem }) {
         </View>
       ) : null}
       </View>
+    </View>
+  );
+}
+
+function PostCarousel({ imageUrls }: { imageUrls: string[] }) {
+  const { width } = useWindowDimensions();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const mediaWidth = Math.max(width - spacing['5'] * 2 - spacing['3'] * 2, 240);
+  const hasMultiple = imageUrls.length > 1;
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / mediaWidth);
+    setActiveIndex(Math.min(Math.max(nextIndex, 0), imageUrls.length - 1));
+  };
+
+  return (
+    <View style={[styles.carouselFrame, { width: mediaWidth }]}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleMomentumEnd}>
+        {imageUrls.map((url, index) => (
+          <Image
+            key={`${url}-${index}`}
+            source={{ uri: url }}
+            style={[styles.carouselImage, { width: mediaWidth }]}
+            contentFit="cover"
+          />
+        ))}
+      </ScrollView>
+
+      {hasMultiple ? (
+        <>
+          <View style={styles.imageCounter}>
+            <Text style={styles.imageCounterText}>{activeIndex + 1}/{imageUrls.length}</Text>
+          </View>
+          <View style={styles.carouselDots}>
+            {imageUrls.map((url, index) => (
+              <View
+                key={`${url}-dot-${index}`}
+                style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -511,10 +562,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: palette.ink.onDarkSoft,
   },
-  heroImage: {
-    width: '100%',
+  carouselFrame: {
     aspectRatio: 1,
     borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  carouselImage: {
+    height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   heroImagePlaceholder: {
@@ -524,6 +579,40 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  imageCounter: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.54)',
+  },
+  imageCounterText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 11,
+    lineHeight: 14,
+    color: '#FFFFFF',
+  },
+  carouselDots: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  carouselDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.54)',
+  },
+  carouselDotActive: {
+    width: 16,
+    backgroundColor: '#FFFFFF',
   },
   cardFooter: {
     flexDirection: 'row',

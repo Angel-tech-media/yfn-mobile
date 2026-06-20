@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -103,7 +104,7 @@ function TopBar() {
   );
 }
 
-function ReelCard({ reel }: { reel: Reel; active: boolean }) {
+function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
   const liked = useIsLiked(reel.id);
   const saved = useIsSaved(reel.id);
   const toggleLike = useEngagement((state) => state.toggleLike);
@@ -111,7 +112,9 @@ function ReelCard({ reel }: { reel: Reel; active: boolean }) {
 
   return (
     <View style={[styles.card, { height: SCREEN_HEIGHT }]}>
-      {reel.coverUrl ? (
+      {reel.videoUrl ? (
+        <ReelVideo uri={reel.videoUrl} active={active} />
+      ) : reel.coverUrl ? (
         <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (
         <View style={styles.coverPlaceholder}>
@@ -180,6 +183,32 @@ function ReelCard({ reel }: { reel: Reel; active: boolean }) {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function ReelVideo({ uri, active }: { uri: string; active: boolean }) {
+  const player = useVideoPlayer(uri, (nextPlayer) => {
+    nextPlayer.loop = true;
+    if (active) nextPlayer.play();
+  });
+
+  useEffect(() => {
+    if (active) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [active, player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+      allowsFullscreen={false}
+      surfaceType="textureView"
+    />
   );
 }
 

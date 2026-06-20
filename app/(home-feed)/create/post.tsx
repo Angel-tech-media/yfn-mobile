@@ -37,6 +37,9 @@ export default function CreatePostScreen() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationResults, setLocationResults] = useState<SelectedLocation[]>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
   const [locating, setLocating] = useState(false);
   const [isUploading, setUploading] = useState(false);
   const { pick, pickMany } = useImagePicker();
@@ -94,6 +97,41 @@ export default function CreatePostScreen() {
       });
     } finally {
       setLocating(false);
+    }
+  };
+
+  const searchLocation = async () => {
+    const query = locationQuery.trim();
+    if (!query || locationSearching) return;
+    setLocationSearching(true);
+    try {
+      const matches = await Location.geocodeAsync(query);
+      const results = await Promise.all(
+        matches.slice(0, 5).map(async (match) => {
+          const [place] = await Location.reverseGeocodeAsync({
+            latitude: match.latitude,
+            longitude: match.longitude,
+          });
+          return {
+            label: locationLabelFor(place, match.latitude, match.longitude, query),
+            lat: match.latitude,
+            lng: match.longitude,
+          };
+        }),
+      );
+      setLocationResults(results);
+      if (!results.length) {
+        toast.error('No locations found', {
+          description: 'Try a more specific city, landmark, or address.',
+        });
+      }
+    } catch (err) {
+      console.error('[location] post composer location search failed', err);
+      toast.error('Could not search location', {
+        description: 'Please check the spelling and try again.',
+      });
+    } finally {
+      setLocationSearching(false);
     }
   };
 
@@ -244,6 +282,33 @@ export default function CreatePostScreen() {
 
       <BottomSheet visible={locationOpen} onClose={() => setLocationOpen(false)}>
         <Text style={styles.sheetTitle}>Location</Text>
+        <View style={styles.locationSearchWrap}>
+          <Ionicons name="search" size={18} color={palette.ink.onDarkMuted} />
+          <TextInput
+            value={locationQuery}
+            onChangeText={(value) => {
+              setLocationQuery(value);
+              if (!value.trim()) setLocationResults([]);
+            }}
+            onSubmitEditing={searchLocation}
+            returnKeyType="search"
+            placeholder="Search city, landmark, or address"
+            placeholderTextColor={palette.ink.onDarkMuted}
+            style={styles.locationSearchInput}
+          />
+          <Pressable
+            onPress={searchLocation}
+            disabled={!locationQuery.trim() || locationSearching}
+            hitSlop={8}
+            style={[styles.locationSearchBtn, (!locationQuery.trim() || locationSearching) && { opacity: 0.45 }]}>
+            {locationSearching ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            )}
+          </Pressable>
+        </View>
+
         <Pressable
           onPress={selectCurrentLocation}
           disabled={locating}
@@ -262,7 +327,33 @@ export default function CreatePostScreen() {
           <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
         </Pressable>
 
-        {LOCATION_PRESETS.map((label) => {
+        {locationResults.map((result) => {
+          const selected = selectedLocation?.label === result.label;
+          return (
+            <Pressable
+              key={`${result.label}-${result.lat ?? ''}-${result.lng ?? ''}`}
+              onPress={() => {
+                setSelectedLocation(result);
+                setLocationOpen(false);
+              }}
+              style={({ pressed }) => [styles.locationRow, pressed && { opacity: 0.82 }]}>
+              <View style={styles.locationIcon}>
+                <Ionicons name="pin" size={18} color={palette.brand.orange} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locationRowTitle} numberOfLines={1}>{result.label}</Text>
+                {result.lat && result.lng ? (
+                  <Text style={styles.locationRowMeta}>{result.lat.toFixed(4)}, {result.lng.toFixed(4)}</Text>
+                ) : null}
+              </View>
+              {selected ? (
+                <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+
+        {LOCATION_PRESETS.filter((label) => matchesLocationQuery(label, locationQuery)).map((label) => {
           const selected = selectedLocation?.label === label;
           return (
             <Pressable
@@ -348,6 +439,7 @@ function locationLabelFor(
   place: Location.LocationGeocodedAddress | undefined,
   latitude: number,
   longitude: number,
+  fallback?: string,
 ) {
   const parts = [
     place?.name,
@@ -358,7 +450,14 @@ function locationLabelFor(
   ].filter((part): part is string => Boolean(part));
 
   if (parts.length) return Array.from(new Set(parts)).slice(0, 3).join(', ');
+  if (fallback?.trim()) return fallback.trim();
   return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
+
+function matchesLocationQuery(label: string, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return label.toLowerCase().includes(normalized);
 }
 
 const styles = StyleSheet.create({
@@ -496,6 +595,35 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: palette.ink.onDarkStrong,
     marginBottom: spacing['3'],
+  },
+  locationSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    minHeight: 48,
+    paddingLeft: spacing['3'],
+    paddingRight: 6,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    marginBottom: spacing['2'],
+  },
+  locationSearchInput: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: typography.body.fontFamily,
+    fontSize: 14,
+    color: palette.ink.onDarkStrong,
+    paddingVertical: 0,
+  },
+  locationSearchBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.brand.orange,
   },
   emojiGrid: {
     flexDirection: 'row',

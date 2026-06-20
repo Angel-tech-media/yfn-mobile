@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -17,6 +17,8 @@ import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-me
 
 export default function CreateStoryScreen() {
   const [photo, setPhoto] = useState<PickedImage | null>(null);
+  const [caption, setCaption] = useState('');
+  const [textEditing, setTextEditing] = useState(false);
   const [isUploading, setUploading] = useState(false);
   const { pick } = useImagePicker();
   const createStory = useCreateStory();
@@ -79,7 +81,7 @@ export default function CreateStoryScreen() {
             <Ionicons name="close" size={22} color="#FFFFFF" />
           </Pressable>
           <View style={styles.toolStack}>
-            <Pressable hitSlop={8} style={styles.iconBtn}>
+            <Pressable onPress={() => setTextEditing(true)} hitSlop={8} style={[styles.iconBtn, (textEditing || caption) && styles.iconBtnActive]}>
               <Ionicons name="text" size={20} color="#FFFFFF" />
             </Pressable>
             <Pressable hitSlop={8} style={styles.iconBtn}>
@@ -91,7 +93,23 @@ export default function CreateStoryScreen() {
           </View>
         </View>
 
-        <View style={styles.captionWrap} />
+        <Pressable style={styles.captionWrap} onPress={() => setTextEditing(true)}>
+          {textEditing || caption ? (
+            <View style={styles.storyTextBox}>
+              <TextInput
+                value={caption}
+                onChangeText={setCaption}
+                autoFocus={textEditing}
+                multiline
+                maxLength={160}
+                placeholder="Add text"
+                placeholderTextColor="rgba(255,255,255,0.70)"
+                onBlur={() => setTextEditing(false)}
+                style={styles.storyTextInput}
+              />
+            </View>
+          ) : null}
+        </Pressable>
 
         <View style={styles.actions}>
           <Pressable
@@ -112,7 +130,10 @@ export default function CreateStoryScreen() {
               }
 
               try {
-                await createStory.mutateAsync({ mediaId });
+                await createStory.mutateAsync({
+                  mediaId,
+                  caption: caption.trim() || undefined,
+                });
                 toast.success('Story shared!', {
                   icon: 'sparkles',
                 });
@@ -122,6 +143,7 @@ export default function CreateStoryScreen() {
                   endpoint: 'POST /stories',
                   flow: 'story',
                   mediaId,
+                  captionLength: caption.trim().length,
                 });
                 toast.error('Could not share story', {
                   description: apiErrorMessage(err),
@@ -150,6 +172,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  iconBtnActive: {
+    backgroundColor: 'rgba(216, 149, 68, 0.78)',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: spacing['2'] },
   toolStack: { gap: spacing['2'] },
@@ -189,7 +214,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FFFFFF',
   },
-  captionWrap: { flex: 1 },
+  captionWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing['3'],
+  },
+  storyTextBox: {
+    minWidth: '66%',
+    maxWidth: '96%',
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['3'],
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+  },
+  storyTextInput: {
+    minHeight: 44,
+    maxHeight: 180,
+    padding: 0,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontFamily: typography.h2.fontFamily,
+    fontSize: 24,
+    lineHeight: 30,
+    color: '#FFFFFF',
+  },
   actions: { paddingBottom: spacing['4'] },
   shareBtn: {
     flexDirection: 'row',

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TextField } from '@/components/ui/TextField';
@@ -69,7 +69,7 @@ export default function CreateReelScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: video.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <ReelVideoPreview uri={video.uri} />
       <LinearGradient
         colors={['rgba(0,0,0,0.45)', 'transparent', 'rgba(0,0,0,0.85)']}
         locations={[0, 0.4, 1]}
@@ -150,6 +150,25 @@ export default function CreateReelScreen() {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function ReelVideoPreview({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (nextPlayer) => {
+    nextPlayer.loop = true;
+    nextPlayer.muted = true;
+    nextPlayer.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+      allowsFullscreen={false}
+      surfaceType="textureView"
+    />
   );
 }
 

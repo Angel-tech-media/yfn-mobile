@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HeartButton } from '@/components/ui/HeartButton';
@@ -53,7 +54,9 @@ export default function ReelScreen() {
 
   return (
     <View style={styles.root}>
-      {reel.coverUrl ? (
+      {reel.videoUrl ? (
+        <ReelVideo uri={reel.videoUrl} playing={playing} />
+      ) : reel.coverUrl ? (
         <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (
         <View style={styles.imagePlaceholder}>
@@ -104,6 +107,32 @@ export default function ReelScreen() {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function ReelVideo({ uri, playing }: { uri: string; playing: boolean }) {
+  const player = useVideoPlayer(uri, (nextPlayer) => {
+    nextPlayer.loop = true;
+    nextPlayer.play();
+  });
+
+  useEffect(() => {
+    if (playing) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [player, playing]);
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+      allowsFullscreen={false}
+      surfaceType="textureView"
+    />
   );
 }
 
