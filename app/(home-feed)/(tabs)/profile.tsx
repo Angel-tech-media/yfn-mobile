@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -67,67 +67,69 @@ function BuyerView() {
   const handle = me?.handle || me?.username || 'profile';
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-      <View style={styles.profileTop}>
-        <Avatar
-          size={86}
-          source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
-          initials={initialsFor(displayName)}
-        />
-        <View style={styles.statsRow}>
-          <StatColumn value={String(reposts.length)} label="Reposts" />
-          <StatColumn value={String(cartCount)} label="Cart" />
-          <StatColumn value={String(wishlistCount)} label="Wishlist" />
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vendorScroll}>
+      <View style={styles.buyerPadded}>
+        <View style={styles.profileTop}>
+          <Avatar
+            size={86}
+            source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
+            initials={initialsFor(displayName)}
+          />
+          <View style={styles.statsRow}>
+            <StatColumn value={String(reposts.length)} label="Reposts" />
+            <StatColumn value={String(cartCount)} label="Cart" />
+            <StatColumn value={String(wishlistCount)} label="Wishlist" />
+          </View>
+        </View>
+
+        <View style={styles.identity}>
+          <View style={styles.nameRow}>
+            <Text style={styles.displayName}>{displayName}</Text>
+            {me?.kycVerified ? (
+              <View style={styles.kycBadge}>
+                <Ionicons name="shield-checkmark" size={10} color="#fff" />
+                <Text style={styles.kycBadgeText}>YFN Verified</Text>
+              </View>
+            ) : null}
+          </View>
+          {me?.bio ? <Text style={styles.bio}>{me.bio}</Text> : null}
+          <Text style={styles.bioLink}>vibe.app/u/{handle}</Text>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <Pressable onPress={() => router.push('/account/edit')} style={styles.button}>
+            <Text style={styles.buttonLabel}>Edit profile</Text>
+          </Pressable>
+          <Pressable style={styles.button}>
+            <Text style={styles.buttonLabel}>Share profile</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/vendor-verify' as never)}
+            accessibilityLabel="Become a vendor"
+            style={styles.iconButton}>
+            <Ionicons name="storefront-outline" size={16} color={palette.brand.orange} />
+          </Pressable>
+        </View>
+
+        <View style={styles.quickRow}>
+          <QuickAction icon="cube-outline" label="Orders" onPress={() => router.push('/orders')} />
+          <QuickAction
+            icon="bag-outline"
+            label="Cart"
+            badge={cartCount ? String(cartCount) : undefined}
+            onPress={() => router.push('/cart')}
+          />
+          <QuickAction
+            icon="heart-outline"
+            label="Wishlist"
+            badge={wishlistCount ? String(wishlistCount) : undefined}
+            onPress={() => router.push('/wishlist')}
+          />
+          <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(tabs)/wallet' as never)} />
         </View>
       </View>
 
-      <View style={styles.identity}>
-        <View style={styles.nameRow}>
-          <Text style={styles.displayName}>{displayName}</Text>
-          {me?.kycVerified ? (
-            <View style={styles.kycBadge}>
-              <Ionicons name="shield-checkmark" size={10} color="#fff" />
-              <Text style={styles.kycBadgeText}>YFN Verified</Text>
-            </View>
-          ) : null}
-        </View>
-        {me?.bio ? <Text style={styles.bio}>{me.bio}</Text> : null}
-        <Text style={styles.bioLink}>vibe.app/u/{handle}</Text>
-      </View>
-
-      <View style={styles.buttonRow}>
-        <Pressable onPress={() => router.push('/account/edit')} style={styles.button}>
-          <Text style={styles.buttonLabel}>Edit profile</Text>
-        </Pressable>
-        <Pressable style={styles.button}>
-          <Text style={styles.buttonLabel}>Share profile</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push('/vendor-verify' as never)}
-          accessibilityLabel="Become a vendor"
-          style={styles.iconButton}>
-          <Ionicons name="storefront-outline" size={16} color={palette.brand.orange} />
-        </Pressable>
-      </View>
-
-      <View style={styles.quickRow}>
-        <QuickAction icon="cube-outline" label="Orders" onPress={() => router.push('/orders')} />
-        <QuickAction
-          icon="bag-outline"
-          label="Cart"
-          badge={cartCount ? String(cartCount) : undefined}
-          onPress={() => router.push('/cart')}
-        />
-        <QuickAction
-          icon="heart-outline"
-          label="Wishlist"
-          badge={wishlistCount ? String(wishlistCount) : undefined}
-          onPress={() => router.push('/wishlist')}
-        />
-        <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(tabs)/wallet' as never)} />
-      </View>
-
-      <Text style={styles.sectionTitle}>Product Reposts</Text>
+      <Text style={styles.sectionTitlePadded}>Product Reposts</Text>
       {reposts.length ? (
         <View style={styles.grid}>
           {reposts.map((repost) => (
@@ -135,10 +137,12 @@ function BuyerView() {
           ))}
         </View>
       ) : (
-        <EmptyState icon="cube-outline" title="No product reposts" />
+        <View style={styles.padded}>
+          <EmptyState icon="cube-outline" title="No product reposts" />
+        </View>
       )}
 
-      <Text style={styles.sectionTitle}>Reposted Posts</Text>
+      <Text style={styles.sectionTitlePadded}>Reposted Posts</Text>
       {repostedPosts.length ? (
         <View style={styles.grid}>
           {repostedPosts.map((post) => (
@@ -146,7 +150,9 @@ function BuyerView() {
           ))}
         </View>
       ) : (
-        <EmptyState icon="images-outline" title="No reposted posts yet" />
+        <View style={styles.padded}>
+          <EmptyState icon="images-outline" title="No reposted posts yet" />
+        </View>
       )}
     </ScrollView>
   );
@@ -325,6 +331,9 @@ function EmptyState({ icon, title }: { icon: keyof typeof Ionicons.glyphMap; tit
   );
 }
 
+const { width } = Dimensions.get('window');
+const TILE_SIZE = (width - 4) / 3;
+
 function compact(value: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
@@ -409,6 +418,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  buyerPadded: {
+    paddingHorizontal: spacing['5'],
+    gap: spacing['3'],
   },
   scroll: { paddingHorizontal: spacing['5'], paddingBottom: 100, gap: spacing['3'] },
   profileTop: {
@@ -513,7 +526,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   tile: {
-    width: '33.2%',
+    width: TILE_SIZE,
     aspectRatio: 1,
     overflow: 'hidden',
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
