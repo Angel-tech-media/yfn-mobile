@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, interpolateColor } from 'react-native-reanimated';
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -51,25 +52,49 @@ function TabIcon({ spec, focused }: { spec: TabSpec; focused: boolean }) {
   );
 }
 
-export default function TabLayout() {
-  const [createOpen, setCreateOpen] = useState(false);
+function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; onPress: () => void }) {
+  const progress = useSharedValue(focused ? 1 : 0);
 
-  const renderTab = (t: TabSpec, focused: boolean, onPress: () => void) => (
+  useEffect(() => {
+    progress.value = withTiming(focused ? 1 : 0, { duration: 250 });
+  }, [focused]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      progress.value,
+      [0, 1],
+      ['rgba(216, 149, 68, 0)', 'rgba(216, 149, 68, 0.18)']
+    );
+    return {
+      backgroundColor,
+    };
+  });
+
+  return (
     <Pressable
       key={t.key}
       accessibilityRole="button"
       accessibilityLabel={t.label}
       accessibilityState={{ selected: focused }}
       onPress={onPress}
-      style={[styles.slot, focused && styles.slotActive]}>
+      style={styles.slot}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.slotBackground, animatedStyle]} />
       <TabIcon spec={t} focused={focused} />
     </Pressable>
+  );
+}
+
+export default function TabLayout() {
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const renderTab = (t: TabSpec, focused: boolean, onPress: () => void) => (
+    <TabBarButton key={t.key} t={t} focused={focused} onPress={onPress} />
   );
 
   return (
     <>
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, animation: 'shift' }}
         tabBar={({ state, navigation }) => {
           const activeName = state.routes[state.index]?.name;
           return (
@@ -143,9 +168,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // to ensure background respects border radius
   },
-  slotActive: {
-    backgroundColor: 'rgba(216, 149, 68, 0.18)',
+  slotBackground: {
+    borderRadius: 999,
   },
   createBtn: {
     width: 42,
