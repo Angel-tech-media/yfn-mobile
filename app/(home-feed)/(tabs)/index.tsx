@@ -385,7 +385,9 @@ function FeedCard({ post }: { post: PostItem }) {
         </Pressable>
       </View>
 
-      <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
+      <Pressable onPress={() => router.push(`/post/${post.id}` as never)}>
+        <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
+      </Pressable>
 
       {post.imageUrls.length ? (
         <PostCarousel imageUrls={post.imageUrls} />

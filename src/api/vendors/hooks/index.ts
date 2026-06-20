@@ -63,6 +63,26 @@ export function useFollowVendor() {
     mutationFn: vendorsApi.follow,
     onSuccess: (_, handle) => {
       qc.invalidateQueries({ queryKey: queryKeys.vendors.detail(handle) });
+      qc.invalidateQueries({ queryKey: queryKeys.vendors.products(handle) });
     },
+  });
+}
+
+export function useBlockUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: vendorsApi.block,
+    onSuccess: (_, handle) => {
+      qc.invalidateQueries({ queryKey: queryKeys.vendors.detail(handle) });
+    },
+  });
+}
+
+export function useUserPosts(handle: string | undefined) {
+  return useQuery({
+    queryKey: [...queryKeys.vendors.detail(handle), 'posts'],
+    enabled: !!handle,
+    queryFn: () => vendorsApi.posts(handle!),
+    staleTime: 60_000,
   });
 }

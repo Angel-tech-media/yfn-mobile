@@ -28,8 +28,10 @@ export default function WishlistScreen() {
   const emptyPosts = bookmarkedPosts.length === 0;
 
   return (
-    <ScreenContainer variant="espresso">
-      <TopBar title="Wishlist" showBack />
+    <ScreenContainer variant="espresso" paddingHorizontal={0}>
+      <View style={{ paddingHorizontal: spacing['5'] }}>
+        <TopBar title="Wishlist" showBack />
+      </View>
 
       <View style={styles.tabsRow}>
         <Pressable
@@ -80,7 +82,7 @@ export default function WishlistScreen() {
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            <View style={styles.grid}>
+            <View style={styles.postGrid}>
               {bookmarkedPosts.map((post) => (
                 <PostTile key={post.id} post={post} />
               ))}
@@ -129,21 +131,29 @@ function PostTile({ post }: { post: Post }) {
   const imageUrl = post.imageUrls?.[0];
 
   return (
-    <View style={styles.card}>
-      <Pressable
-        onPress={() => router.push(`/post/${post.id}` as never)}
-        style={styles.imageWrap}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" />
-        ) : (
-          <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.image} />
-        )}
-      </Pressable>
-      <Text style={styles.name} numberOfLines={2}>{post.caption}</Text>
-      <Text style={styles.vendor} numberOfLines={1}>@{post.author.handle}</Text>
-    </View>
+    <Pressable
+      onPress={() => router.push(`/post/${post.id}` as never)}
+      style={styles.postTile}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.postImage} />
+      )}
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
+      <View style={styles.tileBadge}>
+        <Ionicons name="repeat" size={14} color="#fff" />
+      </View>
+      <View style={styles.tileMeta}>
+        <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
+      </View>
+    </Pressable>
   );
 }
+
+import { Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const TILE_SIZE = (width - 4) / 3;
 
 const styles = StyleSheet.create({
   tabsRow: {
@@ -200,7 +210,33 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing['3'],
     justifyContent: 'space-between',
+    paddingHorizontal: spacing['5'],
   },
+  postGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+    marginTop: 2,
+  },
+  postTile: {
+    width: TILE_SIZE,
+    aspectRatio: 1,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  postImage: { width: '100%', height: '100%' },
+  tileBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileMeta: { position: 'absolute', bottom: 8, left: 8, right: 8, gap: 1 },
+  tilePrice: { fontFamily: typography.bodyEmphasis.fontFamily, color: '#fff', fontSize: 13 },
   card: {
     width: '48%',
     gap: 4,

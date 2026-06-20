@@ -21,6 +21,14 @@ export function useFeed(params: FeedQuery = {}) {
   });
 }
 
+export function usePost(postId: Id | undefined) {
+  return useQuery({
+    queryKey: ['posts', postId],
+    enabled: !!postId,
+    queryFn: () => feedApi.getPost(postId!),
+  });
+}
+
 export function useMyBookmarkedPosts(params: PageQuery = {}) {
   return useQuery({
     queryKey: queryKeys.feed.bookmarks(params),

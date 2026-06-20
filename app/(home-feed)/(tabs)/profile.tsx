@@ -12,7 +12,7 @@ import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
 import { useMyRepostedPosts } from '@/src/api/feed/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
-import { useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
+import { useVendor, useVendorProducts, useVendorReviews, useUserPosts } from '@/src/api/vendors/hooks';
 import { useCartCount } from '@/src/store/cart';
 import { useWishlistCount } from '@/src/store/wishlist';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -65,6 +65,9 @@ function BuyerView() {
   const wishlistCount = useWishlistCount();
   const displayName = me?.name || me?.displayName || me?.username || 'Profile';
   const handle = me?.handle || me?.username || 'profile';
+  
+  const { data: userPostsData } = useUserPosts(me?.username);
+  const userPosts = userPostsData?.items ?? [];
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vendorScroll}>
@@ -129,6 +132,19 @@ function BuyerView() {
         </View>
       </View>
 
+      <Text style={styles.sectionTitlePadded}>My Posts</Text>
+      {userPosts.length ? (
+        <View style={styles.grid}>
+          {userPosts.map((post) => (
+            <PostTile key={post.id} post={post} />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.padded}>
+          <EmptyState icon="images-outline" title="No posts yet" />
+        </View>
+      )}
+
       <Text style={styles.sectionTitlePadded}>Product Reposts</Text>
       {reposts.length ? (
         <View style={styles.grid}>
@@ -163,6 +179,8 @@ function VendorView({ handle }: { handle?: string }) {
   const { data: vendor } = useVendor(handle);
   const { data: products = [] } = useVendorProducts(handle);
   const { data: reviews = [] } = useVendorReviews(handle);
+  const { data: userPostsData } = useUserPosts(handle || me?.username);
+  const userPosts = userPostsData?.items ?? [];
   const name = vendor?.storeName || me?.name || me?.displayName || 'Store';
   const avatarName = vendor?.name || name;
   const bannerUrl = vendor?.photos?.[0];
@@ -239,6 +257,19 @@ function VendorView({ handle }: { handle?: string }) {
       ) : (
         <View style={styles.padded}>
           <EmptyState icon="cube-outline" title="No products yet" />
+        </View>
+      )}
+
+      <Text style={styles.sectionTitlePadded}>My Posts</Text>
+      {userPosts.length ? (
+        <View style={styles.grid}>
+          {userPosts.map((post) => (
+            <PostTile key={post.id} post={post} />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.padded}>
+          <EmptyState icon="images-outline" title="No posts yet" />
         </View>
       )}
 

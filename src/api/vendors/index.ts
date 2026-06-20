@@ -8,6 +8,7 @@ import type {
   StoreSetupRequest,
   StoreSetupResponse,
   VendorProfile,
+  Post,
 } from '../types';
 
 export const vendorsApi = {
@@ -33,5 +34,13 @@ export const vendorsApi = {
 
   follow(handle: string) {
     return http.post<{ following: boolean }>(`/vendors/${handle}/follow`);
+  },
+
+  block(handle: string) {
+    return http.post<{ blocked: boolean }>(`/vendors/${handle}/block`);
+  },
+
+  posts(handle: string) {
+    return http.get<{ items: Post[]; nextCursor: string | null }>(`/users/${handle}/posts`);
   },
 };

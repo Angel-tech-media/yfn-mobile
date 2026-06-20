@@ -22,6 +22,10 @@ export const feedApi = {
     return http.get<FeedResponse>('/feed', { query });
   },
 
+  getPost(postId: Id) {
+    return http.get<Post>(`/posts/${postId}`);
+  },
+
   reels(query: PageQuery = {}) {
     return http.get<Reel[]>('/feed/reels', { query });
   },
