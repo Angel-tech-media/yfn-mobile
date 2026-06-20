@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: palette.line.divider,
-    marginHorizontal: spacing['5'],
+    marginTop: spacing['3'],
   },
   tab: {
     flex: 1,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -11,11 +12,13 @@ import { useMe } from '@/src/api/account/hooks';
 import { useSearch } from '@/src/api/search/hooks';
 import { useSearchHistory } from '@/src/store/search';
 import { palette, radius, spacing, typography } from '@/src/theme';
+
 import { formatKobo } from '@/src/utils/money';
 
 const TABS = ['Top', 'People', 'Products', 'Tags', 'Places'] as const;
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
+// eslint-disable-next-line complexity
 export default function SearchScreen() {
   const params = useLocalSearchParams<{ focus?: string }>();
   const [query, setQuery] = useState('');
@@ -67,20 +70,16 @@ export default function SearchScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           {history.length > 0 ? (
             <View style={styles.historyContainer}>
-              <View style={styles.historyHeader}>
-                <Text style={styles.historyTitle}>Recent Searches</Text>
-                <Pressable onPress={clearHistory} hitSlop={8}>
-                  <Text style={styles.clearHistoryText}>Clear</Text>
-                </Pressable>
-              </View>
               {history.map((h) => (
                 <View key={h} style={styles.historyRow}>
                   <Pressable onPress={() => setQuery(h)} style={styles.historyItem}>
-                    <Ionicons name="time-outline" size={18} color={palette.ink.onDarkMuted} />
+                    <View style={styles.historyIconWrapper}>
+                      <Ionicons name="time-outline" size={20} color={palette.ink.onDarkStrong} />
+                    </View>
                     <Text style={styles.historyText} numberOfLines={1}>{h}</Text>
                   </Pressable>
                   <Pressable onPress={() => removeHistory(h)} hitSlop={8}>
-                    <Ionicons name="close" size={18} color={palette.ink.onDarkMuted} />
+                    <Ionicons name="close-circle" size={24} color={palette.ink.onDarkMuted} />
                   </Pressable>
                 </View>
               ))}
@@ -373,5 +372,33 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.fontFamily,
     fontSize: 13,
     color: palette.ink.onDarkSoft,
+  },
+  historyContainer: {
+    paddingVertical: spacing['4'],
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: spacing['3'],
+  },
+  historyItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyText: {
+    ...typography.bodyLg,
+    color: palette.ink.onDarkStrong,
+    marginLeft: spacing['3'],
   },
 });

@@ -384,6 +384,8 @@ function RepostTile({ repost, handle }: { repost: Repost; handle: string }) {
 
 function PostTile({ post }: { post: Post }) {
   const imageUrl = post.imageUrls?.[0];
+  const { data: me } = useMe();
+  const isMine = post.author.id === me?.id;
 
   return (
     <Pressable
@@ -398,9 +400,11 @@ function PostTile({ post }: { post: Post }) {
       <View style={styles.tileBadge}>
         <Ionicons name="repeat" size={14} color="#fff" />
       </View>
-      <View style={styles.tileMeta}>
-        <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
-      </View>
+      {!isMine && (
+        <View style={styles.tileMeta}>
+          <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
