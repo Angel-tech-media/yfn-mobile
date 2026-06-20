@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +27,8 @@ import {
 } from '@/src/hooks/use-chat';
 import { useChatSocket } from '@/src/hooks/use-chat-socket';
 import { useAuth } from '@/src/store/auth';
+import { useImagePicker } from '@/src/hooks/useImagePicker';
+import { assetUploadErrorMessage, uploadLocalAsset } from '@/src/utils/upload-media';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function ThreadDetailScreen() {
@@ -39,8 +42,12 @@ export default function ThreadDetailScreen() {
   const markRead = useMarkConversationRead();
   useChatSocket(conversationId);
   const scrollRef = useRef<ScrollView>(null);
+  const [draft, setDraft] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [attachmentUploading, setAttachmentUploading] = useState(false);
   const insets = useSafeAreaInsets();
+  const { pick } = useImagePicker();
 
   useEffect(() => {
     if (conversationId) markRead.mutate(conversationId);
@@ -56,6 +63,27 @@ export default function ThreadDetailScreen() {
     if (!text) return;
     send.mutate({ kind: 'text', body: text });
     setDraft('');
+  };
+
+  const attachImage = async () => {
+    if (send.isPending || attachmentUploading) return;
+    setAttachmentError(null);
+    const image = await pick('library', { mediaTypes: ['images'] });
+    if (!image) return;
+
+    setAttachmentUploading(true);
+    try {
+      const uploaded = await uploadLocalAsset(image, 'chat');
+      await send.mutateAsync({
+        kind: 'image',
+        imageUrl: uploaded.publicUrl,
+        mediaId: uploaded.mediaId,
+      });
+    } catch (err) {
+      setAttachmentError(assetUploadErrorMessage(err));
+    } finally {
+      setAttachmentUploading(false);
+    }
   };
 
   const otherParticipant = conversation?.participants?.find((p) => p.userId !== me);
@@ -106,10 +134,9 @@ export default function ThreadDetailScreen() {
                           Product · {m.productId?.slice(0, 8) ?? 'unknown'}
                         </Text>
                       </View>
-                    ) : m.kind === 'image' ? (
-                      <View style={styles.imageBubble}>
-                        <Ionicons name="image" size={20} color={palette.ink.onDarkSoft} />
-                        <Text style={styles.imageBubbleText}>Image attachment</Text>
+                    ) : m.kind === 'image' && m.imageUrl ? (
+                      <View style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
+                        <Image source={{ uri: m.imageUrl }} style={styles.messageImage} contentFit="cover" />
                       </View>
                     ) : (
                       <View
@@ -140,9 +167,12 @@ export default function ThreadDetailScreen() {
               placeholder="Type a message…"
               value={draft}
               onChangeText={setDraft}
+              onAttach={attachImage}
+              attachDisabled={attachmentUploading || send.isPending}
               onSend={submit}
               onEmojiClick={() => setShowEmojiPicker(true)}
             />
+            {attachmentError ? <Text style={styles.composerError}>{attachmentError}</Text> : null}
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -231,19 +261,13 @@ const styles = StyleSheet.create({
     ...typography.bodyEmphasis,
     color: palette.ink.onDarkStrong,
   },
-  imageBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-    paddingHorizontal: spacing['3'],
-    paddingVertical: spacing['2'],
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+  mediaBubble: {
+    width: 180,
+    height: 180,
+    borderRadius: 18,
+    overflow: 'hidden',
   },
-  imageBubbleText: {
-    ...typography.caption,
-    color: palette.ink.onDarkSoft,
-  },
+  messageImage: { width: '100%', height: '100%' },
   time: {
     ...typography.small,
   },
@@ -253,4 +277,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingBottom: spacing['3'],
   },
+  composerError: { ...typography.caption, color: palette.status.danger },
 });

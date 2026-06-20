@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
@@ -21,7 +22,6 @@ import { logApiFailure } from '@/src/utils/api-logging';
 import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
-const EMOJIS = ['😀', '😂', '😍', '🥰', '😎', '🥳', '🔥', '✨', '🙌', '👏', '🙏', '💛', '🛍️', '📸', '🎶', '🍔', '☕', '🏆', '🌍', '📍'];
 const LOCATION_PRESETS = ['Yaba, Lagos', 'Lekki Phase 1', 'Victoria Island', 'Ikeja, Lagos', 'Abuja, Nigeria'];
 
 type SelectedLocation = {
@@ -266,19 +266,12 @@ export default function CreatePostScreen() {
         title="Add photos"
       />
 
-      <BottomSheet visible={emojiOpen} onClose={() => setEmojiOpen(false)}>
-        <Text style={styles.sheetTitle}>Feeling</Text>
-        <View style={styles.emojiGrid}>
-          {EMOJIS.map((emoji) => (
-            <Pressable
-              key={emoji}
-              onPress={() => addEmoji(emoji)}
-              style={({ pressed }) => [styles.emojiBtn, pressed && { opacity: 0.7 }]}>
-              <Text style={styles.emoji}>{emoji}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </BottomSheet>
+      {emojiOpen && (
+        <EmojiPicker
+          onEmojiSelected={addEmoji}
+          onClose={() => setEmojiOpen(false)}
+        />
+      )}
 
       <BottomSheet visible={locationOpen} onClose={() => setLocationOpen(false)}>
         <Text style={styles.sheetTitle}>Location</Text>
@@ -624,22 +617,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: palette.brand.orange,
-  },
-  emojiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing['2'],
-  },
-  emojiBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  emoji: {
-    fontSize: 24,
   },
   locationRow: {
     flexDirection: 'row',
