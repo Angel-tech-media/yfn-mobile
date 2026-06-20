@@ -431,7 +431,10 @@ function FeedCard({ post }: { post: PostItem }) {
             <Pressable
               onPress={() => {
                 setOptionsOpen(false);
-                router.push(`/post/${post.id}/edit` as never);
+                router.push({
+                  pathname: `/post/[id]/edit`,
+                  params: { id: post.id, initialCaption: post.caption },
+                } as never);
               }}
               style={styles.optionsActionRow}>
               <Ionicons name="pencil-outline" size={20} color={palette.ink.onDarkStrong} />

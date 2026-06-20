@@ -101,3 +101,12 @@ export function useDeletePost() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
   });
 }
+
+export function useEditPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, input }: { postId: Id; input: { caption?: string; mediaIds?: string[]; productId?: string | null } }) =>
+      feedApi.editPost(postId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
+  });
+}

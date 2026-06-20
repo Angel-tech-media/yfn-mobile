@@ -115,8 +115,8 @@ function TopBar() {
 function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
   const liked = useIsLiked(reel.id);
   const saved = useIsSaved(reel.id);
-  const toggleLike = useEngagement((state) => state.toggleLike);
-  const toggleSave = useEngagement((state) => state.toggleSave);
+  const setLike = useEngagement((state) => state.setLike);
+  const setSave = useEngagement((state) => state.setSave);
   const [playing, setPlaying] = useState(active);
 
   useEffect(() => {
@@ -175,7 +175,7 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
           </View>
 
           <View style={styles.actionRail}>
-            <HeartButton liked={liked} onToggle={() => toggleLike(reel.id)} size={32} />
+            <HeartButton liked={liked} onToggle={() => setLike(reel.id, !liked)} size={32} />
             <Pressable
               onPress={() => router.push(`/post/${reel.id}/comments` as never)}
               hitSlop={6}
@@ -185,7 +185,7 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
             <Pressable hitSlop={6} style={styles.rail}>
               <Ionicons name="paper-plane-outline" size={30} color="#FFFFFF" style={styles.iconDropShadow} />
             </Pressable>
-            <Pressable onPress={() => toggleSave(reel.id)} hitSlop={6} style={styles.rail}>
+            <Pressable onPress={() => setSave(reel.id, !saved)} hitSlop={6} style={styles.rail}>
               <Ionicons
                 name={saved ? 'bookmark' : 'bookmark-outline'}
                 size={30}

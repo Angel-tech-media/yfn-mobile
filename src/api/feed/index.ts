@@ -62,6 +62,10 @@ export const feedApi = {
     return http.delete<{ success: boolean }>(`/posts/${postId}`);
   },
 
+  editPost(postId: Id, input: { caption?: string; mediaIds?: string[]; productId?: string | null }) {
+    return http.patch<Post>(`/posts/${postId}`, input);
+  },
+
   bookmarkPost(postId: Id) {
     return http.post<PostActionState>(`/posts/${postId}/bookmark`);
   },
