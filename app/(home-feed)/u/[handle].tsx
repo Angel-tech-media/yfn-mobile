@@ -4,7 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -76,6 +76,10 @@ export default function PublicProfileScreen() {
       { cancelable: true }
     );
   };
+
+  if (isMe) {
+    return <Redirect href="/(home-feed)/(tabs)/profile" />;
+  }
 
   return (
     <EspressoBackground variant="espresso">
