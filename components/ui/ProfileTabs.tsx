@@ -1,5 +1,9 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+
 import { palette, spacing } from '@/src/theme';
 
 export type TabKey = 'posts' | 'products' | 'reposts';
@@ -13,6 +17,21 @@ export function ProfileTabs({
   onTabChange: (tab: any) => void;
   tabs?: string[];
 }) {
+  const activeIndex = tabs.indexOf(activeTab) !== -1 ? tabs.indexOf(activeTab) : 0;
+  const tabWidth = 100 / tabs.length;
+  const offset = useSharedValue(activeIndex * 100);
+
+  useEffect(() => {
+    offset.value = withTiming(activeIndex * 100, { duration: 250, easing: Easing.out(Easing.ease) });
+  }, [activeIndex, offset]);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    // using number + '%' string conversion for translateX
+    return {
+      transform: [{ translateX: `${offset.value}%` as any }],
+    };
+  });
+
   return (
     <View style={styles.container}>
       {tabs.map((tab) => {
@@ -27,7 +46,7 @@ export function ProfileTabs({
           <Pressable
             key={tab}
             onPress={() => onTabChange(tab)}
-            style={[styles.tab, isActive && styles.tabActive]}>
+            style={styles.tab}>
             <Ionicons
               name={iconName}
               size={24}
@@ -36,6 +55,7 @@ export function ProfileTabs({
           </Pressable>
         );
       })}
+      <Animated.View style={[styles.indicator, { width: `${tabWidth}%` }, indicatorStyle]} />
     </View>
   );
 }
@@ -53,11 +73,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing['3'],
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    marginBottom: -1, // overlap the container bottom border
   },
-  tabActive: {
-    borderBottomColor: palette.brand.orange,
+  indicator: {
+    position: 'absolute',
+    bottom: -1,
+    height: 3,
+    backgroundColor: palette.brand.orange,
   },
 });

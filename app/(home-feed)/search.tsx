@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useMe } from '@/src/api/account/hooks';
 import { useSearch } from '@/src/api/search/hooks';
+import { useSearchHistory } from '@/src/store/search';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
 
@@ -24,10 +25,17 @@ export default function SearchScreen() {
   const { data: me } = useMe();
   const { data, isLoading, isError } = useSearch({ q: query.trim(), limit: 20 });
 
+  const { history, addHistory, removeHistory, clearHistory } = useSearchHistory();
+
   const people = data?.people ?? [];
   const products = data?.products ?? [];
   const tags = data?.tags ?? [];
   const places = data?.places ?? [];
+
+  const handleResultClick = (action: () => void) => {
+    if (query.trim()) addHistory(query.trim());
+    action();
+  };
 
   return (
     <ScreenContainer variant="espresso" edges={['top']}>
@@ -43,6 +51,8 @@ export default function SearchScreen() {
             placeholderTextColor={palette.ink.onDarkMuted}
             value={query}
             onChangeText={setQuery}
+            onSubmitEditing={() => query.trim() && addHistory(query.trim())}
+            returnKeyType="search"
             style={styles.searchInput}
           />
           {query ? (
@@ -55,11 +65,33 @@ export default function SearchScreen() {
 
       {!query ? (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <View style={styles.empty}>
-            <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
-            <Text style={styles.emptyTitle}>Search Vibe</Text>
-            <Text style={styles.emptySub}>Type to search people, products, tags, and places.</Text>
-          </View>
+          {history.length > 0 ? (
+            <View style={styles.historyContainer}>
+              <View style={styles.historyHeader}>
+                <Text style={styles.historyTitle}>Recent Searches</Text>
+                <Pressable onPress={clearHistory} hitSlop={8}>
+                  <Text style={styles.clearHistoryText}>Clear</Text>
+                </Pressable>
+              </View>
+              {history.map((h) => (
+                <View key={h} style={styles.historyRow}>
+                  <Pressable onPress={() => setQuery(h)} style={styles.historyItem}>
+                    <Ionicons name="time-outline" size={18} color={palette.ink.onDarkMuted} />
+                    <Text style={styles.historyText} numberOfLines={1}>{h}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => removeHistory(h)} hitSlop={8}>
+                    <Ionicons name="close" size={18} color={palette.ink.onDarkMuted} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
+              <Text style={styles.emptyTitle}>Search Vibe</Text>
+              <Text style={styles.emptySub}>Type to search people, products, tags, and places.</Text>
+            </View>
+          )}
         </ScrollView>
       ) : (
         <>
@@ -89,13 +121,13 @@ export default function SearchScreen() {
                 {people.map((p) => (
                   <Pressable
                     key={p.handle}
-                    onPress={() => {
+                    onPress={() => handleResultClick(() => {
                       if (me?.username === p.handle || me?.handle === p.handle) {
                         router.push('/profile');
                       } else {
                         router.push(`/u/${p.handle}` as never);
                       }
-                    }}
+                    })}
                     style={styles.peopleRow}>
                     <Avatar size={44} source={p.avatarUrl ? { uri: p.avatarUrl } : undefined} initials={p.name[0]} />
                     <View style={{ flex: 1 }}>
@@ -114,7 +146,7 @@ export default function SearchScreen() {
                 {products.map((p) => (
                   <Pressable
                     key={p.id}
-                    onPress={() => router.push(`/product/${p.id}` as never)}
+                    onPress={() => handleResultClick(() => router.push(`/product/${p.id}` as never))}
                     style={styles.productRow}>
                     <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.productImg} contentFit="cover" />
                     <View style={{ flex: 1 }}>
@@ -131,7 +163,7 @@ export default function SearchScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tags</Text>
                 {tags.map((t) => (
-                  <Pressable key={t.tag} style={styles.trendingRow}>
+                  <Pressable key={t.tag} style={styles.trendingRow} onPress={() => handleResultClick(() => setQuery(t.tag))}>
                     <View style={styles.tagBadge}>
                       <Text style={styles.tagBadgeText}>#</Text>
                     </View>
@@ -150,13 +182,7 @@ export default function SearchScreen() {
                 {places.map((place) => (
                   <Pressable
                     key={place.id}
-                    onPress={() => {
-                      if (me?.username === place.handle || me?.handle === place.handle) {
-                        router.push('/profile');
-                      } else {
-                        router.push(`/u/${place.handle}` as never);
-                      }
-                    }}
+                    onPress={() => handleResultClick(() => router.push(`/place/${place.id}` as never))}
                     style={styles.peopleRow}>
                     <Avatar size={44} initials={place.storeName[0]} />
                     <View style={{ flex: 1 }}>
