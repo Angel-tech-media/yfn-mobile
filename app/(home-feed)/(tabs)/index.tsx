@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 
 import {
+  Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -18,14 +19,21 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
 import { Avatar } from '@/components/ui/Avatar';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RepostSheet } from '@/components/ui/RepostSheet';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
-import { useFeed, useStoriesInbox } from '@/src/api/feed/hooks';
+import {
+  useFeed,
+  useStoriesInbox,
+  useToggleLikePost,
+  useToggleBookmarkPost,
+  useDeletePost,
+} from '@/src/api/feed/hooks';
+import { useToast } from '@/src/hooks/use-toast';
 import {
   useEngagement,
   useIsLiked,
@@ -235,12 +243,56 @@ function formatCompact(value: number) {
 }
 
 function FeedCard({ post }: { post: PostItem }) {
-  const liked = useIsLiked(post.id) || !!post.likedByMe;
-  const saved = useIsSaved(post.id) || !!post.savedByMe;
+  const localLike = useIsLiked(post.id);
+  const localSave = useIsSaved(post.id);
+  const liked = localLike !== undefined ? localLike : !!post.likedByMe;
+  const saved = localSave !== undefined ? localSave : !!post.savedByMe;
   const reposted = useIsReposted(post.id);
-  const toggleLike = useEngagement((s) => s.toggleLike);
-  const toggleSave = useEngagement((s) => s.toggleSave);
+  const setLike = useEngagement((s) => s.setLike);
+  const setSave = useEngagement((s) => s.setSave);
   const [repostOpen, setRepostOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+
+  const toast = useToast();
+  const likeMutation = useToggleLikePost();
+  const bookmarkMutation = useToggleBookmarkPost();
+  const deleteMutation = useDeletePost();
+  const { data: me } = useMe();
+  const isMine = me?.handle === post.authorHandle;
+
+  const handleToggleLike = () => {
+    const nextLiked = !liked;
+    setLike(post.id, nextLiked);
+    likeMutation.mutate({ postId: post.id, isLiked: liked });
+  };
+
+  const handleToggleSave = () => {
+    const nextSaved = !saved;
+    setSave(post.id, nextSaved);
+    bookmarkMutation.mutate({ postId: post.id, isSaved: saved });
+    toast.show({ variant: 'success', title: nextSaved ? 'Post bookmarked' : 'Bookmark removed' });
+  };
+
+  const handleDelete = () => {
+    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Delete', 
+        style: 'destructive',
+        onPress: () => {
+          setOptionsOpen(false);
+          deleteMutation.mutate(post.id, {
+            onSuccess: () => {
+              toast.show({ variant: 'success', title: 'Post deleted' });
+            },
+            onError: () => {
+              toast.show({ variant: 'error', title: 'Failed to delete post' });
+            }
+          });
+        }
+      }
+    ]);
+  };
 
   return (
     <View style={styles.cardWrap}>
@@ -262,7 +314,7 @@ function FeedCard({ post }: { post: PostItem }) {
             {post.badge ? <VerifiedCheck tone="success" size={14} /> : null}
           </View>
         </Pressable>
-        <Pressable hitSlop={8}>
+        <Pressable hitSlop={8} onPress={() => setOptionsOpen(true)}>
           <Ionicons name="ellipsis-horizontal" size={18} color={palette.ink.onDarkSoft} />
         </Pressable>
       </View>
@@ -278,13 +330,13 @@ function FeedCard({ post }: { post: PostItem }) {
       )}
 
       <View style={styles.engagementRow}>
-        <Pressable onPress={() => toggleLike(post.id)} hitSlop={6} style={styles.engageBtn}>
+        <Pressable onPress={handleToggleLike} hitSlop={6} style={styles.engageBtn}>
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={22}
             color={liked ? '#FF3B47' : palette.ink.onDarkStrong}
           />
-          <Text style={styles.engageCount}>{formatCompact(post.likes + (liked && !post.likedByMe ? 1 : 0))}</Text>
+          <Text style={styles.engageCount}>{formatCompact(post.likes + (liked && !post.likedByMe ? 1 : (!liked && post.likedByMe ? -1 : 0)))}</Text>
         </Pressable>
         <Pressable
           onPress={() => router.push(`/post/${post.id}/comments` as never)}
@@ -308,7 +360,7 @@ function FeedCard({ post }: { post: PostItem }) {
           <Ionicons name="paper-plane-outline" size={22} color={palette.ink.onDarkStrong} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={() => toggleSave(post.id)} hitSlop={6}>
+        <Pressable onPress={handleToggleSave} hitSlop={6}>
           <Ionicons
             name={saved ? 'bookmark' : 'bookmark-outline'}
             size={22}
@@ -328,6 +380,20 @@ function FeedCard({ post }: { post: PostItem }) {
           vendorId: post.authorHandle,
         }}
       />
+
+      <BottomSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)}>
+        {isMine ? (
+          <Pressable onPress={handleDelete} style={styles.optionsActionRow}>
+            <Ionicons name="trash-outline" size={20} color="#FF3B47" />
+            <Text style={[styles.optionsActionText, { color: '#FF3B47' }]}>Delete post</Text>
+          </Pressable>
+        ) : (
+          <Pressable onPress={() => setOptionsOpen(false)} style={styles.optionsActionRow}>
+            <Ionicons name="flag-outline" size={20} color={palette.ink.onDarkStrong} />
+            <Text style={styles.optionsActionText}>Report post</Text>
+          </Pressable>
+        )}
+      </BottomSheet>
 
       {post.product ? (
         <View style={styles.cardFooter}>
@@ -706,5 +772,16 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
+  },
+  optionsActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    paddingVertical: spacing['3'],
+  },
+  optionsActionText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 16,
+    color: palette.ink.onDarkStrong,
   },
 });
