@@ -33,6 +33,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { PostRepostSheet } from '@/components/ui/PostRepostSheet';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
+import { useConversations } from '@/src/api/chat/hooks';
 import {
   useFeed,
   useStoriesInbox,
@@ -79,7 +80,15 @@ export default function HomeFeedScreen() {
   const { data, isError, isFetching, refetch } = useFeed({ limit: 30 });
   const { data: storiesData = [], refetch: refetchStories } = useStoriesInbox();
   const { data: me } = useMe();
+  const { data: threads = [] } = useConversations();
   const [refreshing, setRefreshing] = useState(false);
+
+  const unreadCount = threads.filter((t) => {
+    const meParticipant = t.participants?.find((p) => p.userId === me?.id);
+    if (!meParticipant) return false;
+    if (!meParticipant.lastReadAt) return true;
+    return new Date(t.updatedAt).getTime() > new Date(meParticipant.lastReadAt).getTime();
+  }).length;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -181,7 +190,11 @@ export default function HomeFeedScreen() {
                 hitSlop={6}
                 style={styles.notifBtn}>
                 <Ionicons name="paper-plane-outline" size={20} color={palette.ink.onDarkStrong} />
-                <View style={styles.notifDot} />
+                {unreadCount > 0 && (
+                  <View style={styles.notifBadge}>
+                    <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                  </View>
+                )}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -601,6 +614,26 @@ const styles = StyleSheet.create({
     backgroundColor: palette.brand.orange,
     borderWidth: 1.5,
     borderColor: palette.bg.espressoEnd,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: palette.brand.orange,
+    borderWidth: 1.5,
+    borderColor: palette.bg.espressoEnd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notifBadgeText: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 9,
+    lineHeight: 12,
+    color: '#fff',
   },
   profileBubble: {
     position: 'relative',

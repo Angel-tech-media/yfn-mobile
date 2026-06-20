@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { NewMessageModal } from '@/components/ui/NewMessageModal';
 import { useAuth } from '@/src/store/auth';
 import { useConversations } from '@/src/api/chat/hooks';
 import { palette, spacing, typography } from '@/src/theme';
@@ -13,13 +15,19 @@ import { palette, spacing, typography } from '@/src/theme';
 export default function InboxScreen() {
   const me = useAuth((s) => s.user?.id);
   const { data: threads = [], isLoading, isError, refetch, isFetching } = useConversations();
+  const [newMsgOpen, setNewMsgOpen] = useState(false);
 
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>Inbox</Text>
-          <Pressable accessibilityRole="button" hitSlop={8}>
+          <View style={styles.headerLeft}>
+            <Pressable hitSlop={8} onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={24} color={palette.ink.onDarkStrong} />
+            </Pressable>
+            <Text style={styles.title}>Inbox</Text>
+          </View>
+          <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setNewMsgOpen(true)} style={styles.iconBtn}>
             <Ionicons name="create-outline" size={22} color={palette.ink.onDarkStrong} />
           </Pressable>
         </View>
@@ -61,6 +69,7 @@ export default function InboxScreen() {
           ))}
         </ScrollView>
       </SafeAreaView>
+      <NewMessageModal visible={newMsgOpen} onClose={() => setNewMsgOpen(false)} />
     </EspressoBackground>
   );
 }
@@ -77,8 +86,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing['5'],
+    paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   title: {
     fontFamily: typography.h1.fontFamily,
