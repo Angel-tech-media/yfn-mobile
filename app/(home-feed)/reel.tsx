@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEvent } from 'expo';
 import { router, useLocalSearchParams } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,7 +54,7 @@ export default function ReelScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <Pressable style={styles.root} onPress={() => setPlaying((value) => !value)}>
       {reel.videoUrl ? (
         <ReelVideo uri={reel.videoUrl} playing={playing} />
       ) : reel.coverUrl ? (
@@ -73,14 +74,14 @@ export default function ReelScreen() {
         style={[StyleSheet.absoluteFill, { top: '40%' }]}
       />
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']} pointerEvents="box-none">
         <TopRow />
 
-        <View style={styles.centerWrap}>
-          <PlayButton playing={playing} onToggle={() => setPlaying((value) => !value)} />
+        <View style={styles.centerWrap} pointerEvents="none">
+          {!playing && <PlayButton playing={playing} onToggle={() => setPlaying((value) => !value)} />}
         </View>
 
-        <View style={styles.bottomContainer}>
+        <View style={styles.bottomContainer} pointerEvents="box-none">
           <View style={styles.bottomLeft}>
             <StoryAuthorInfo
               avatar={reel.author.avatarUrl ? { uri: reel.author.avatarUrl } : undefined}
@@ -108,15 +109,17 @@ export default function ReelScreen() {
           </View>
         </View>
       </SafeAreaView>
-    </View>
+    </Pressable>
   );
 }
 
 function ReelVideo({ uri, playing }: { uri: string; playing: boolean }) {
   const player = useVideoPlayer(uri, (nextPlayer) => {
     nextPlayer.loop = true;
-    nextPlayer.play();
+    if (playing) nextPlayer.play();
   });
+
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
 
   useEffect(() => {
     if (playing) {
@@ -127,14 +130,21 @@ function ReelVideo({ uri, playing }: { uri: string; playing: boolean }) {
   }, [player, playing]);
 
   return (
-    <VideoView
-      player={player}
-      style={StyleSheet.absoluteFill}
-      contentFit="cover"
-      nativeControls={false}
-      allowsFullscreen={false}
-      surfaceType="textureView"
-    />
+    <>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+        surfaceType="textureView"
+      />
+      {status === 'loading' && (
+        <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
+    </>
   );
 }
 
@@ -219,7 +229,7 @@ const styles = StyleSheet.create({
     paddingRight: spacing['4'],
   },
   actionRail: {
-    gap: spacing['4'],
+    gap: spacing['6'],
     alignItems: 'center',
     paddingBottom: spacing['2'],
   },

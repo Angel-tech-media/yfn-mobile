@@ -6,11 +6,13 @@ import {
   StyleSheet,
   Text,
   View,
+  ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useEvent } from 'expo';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -19,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
+import { PlayButton } from '@/components/ui/PlayButton';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useFeedReels } from '@/src/api/feed/hooks';
 import type { Reel } from '@/src/api/types';
@@ -114,11 +117,16 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
   const saved = useIsSaved(reel.id);
   const toggleLike = useEngagement((state) => state.toggleLike);
   const toggleSave = useEngagement((state) => state.toggleSave);
+  const [playing, setPlaying] = useState(active);
+
+  useEffect(() => {
+    setPlaying(active);
+  }, [active]);
 
   return (
-    <View style={[styles.card, { height: SCREEN_HEIGHT }]}>
+    <Pressable style={[styles.card, { height: SCREEN_HEIGHT }]} onPress={() => active && setPlaying(!playing)}>
       {reel.videoUrl ? (
-        <ReelVideo uri={reel.videoUrl} active={active} />
+        <ReelVideo uri={reel.videoUrl} playing={playing} />
       ) : reel.coverUrl ? (
         <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
       ) : (
@@ -132,12 +140,14 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']} pointerEvents="box-none">
         <TopBar />
 
-        <View style={{ flex: 1 }} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+          {!playing && active && <PlayButton playing={playing} onToggle={() => {}} />}
+        </View>
 
-        <View style={styles.bottomContainer}>
+        <View style={styles.bottomContainer} pointerEvents="box-none">
           <View style={styles.bottomLeft}>
             <Pressable
               onPress={() => router.push(`/u/${reel.author.handle}` as never)}
@@ -190,33 +200,42 @@ function ReelCard({ reel, active }: { reel: Reel; active: boolean }) {
           </View>
         </View>
       </SafeAreaView>
-    </View>
+    </Pressable>
   );
 }
 
-function ReelVideo({ uri, active }: { uri: string; active: boolean }) {
+function ReelVideo({ uri, playing }: { uri: string; playing: boolean }) {
   const player = useVideoPlayer(uri, (nextPlayer) => {
     nextPlayer.loop = true;
-    if (active) nextPlayer.play();
+    if (playing) nextPlayer.play();
   });
 
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
+
   useEffect(() => {
-    if (active) {
+    if (playing) {
       player.play();
     } else {
       player.pause();
     }
-  }, [active, player]);
+  }, [player, playing]);
 
   return (
-    <VideoView
-      player={player}
-      style={StyleSheet.absoluteFill}
-      contentFit="cover"
-      nativeControls={false}
-      allowsFullscreen={false}
-      surfaceType="textureView"
-    />
+    <>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+        surfaceType="textureView"
+      />
+      {status === 'loading' && (
+        <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
+    </>
   );
 }
 
@@ -302,7 +321,7 @@ const styles = StyleSheet.create({
     paddingRight: spacing['4'],
   },
   actionRail: {
-    gap: spacing['4'],
+    gap: spacing['6'],
     alignItems: 'center',
     paddingBottom: spacing['2'],
   },
