@@ -94,7 +94,9 @@ export default function HomeFeedScreen() {
 
   const translateY = useSharedValue(0);
   const lastScrollY = useSharedValue(0);
-  const headerHeight = 180; // approximate height of header + stories
+  const topBarHeight = 60;
+  const storiesHeight = 115;
+  const headerHeight = topBarHeight + storiesHeight;
   const insets = useSafeAreaInsets();
 
   const scrollHandler = useAnimatedScrollHandler({
@@ -108,7 +110,7 @@ export default function HomeFeedScreen() {
       }
       const diff = currentScrollY - lastScrollY.value;
       let nextTranslate = translateY.value - diff;
-      nextTranslate = Math.max(Math.min(nextTranslate, 0), -(headerHeight + insets.top));
+      nextTranslate = Math.max(Math.min(nextTranslate, 0), -storiesHeight);
       translateY.value = nextTranslate;
       lastScrollY.value = currentScrollY;
     },
@@ -117,11 +119,6 @@ export default function HomeFeedScreen() {
   const animatedHeaderStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: translateY.value }],
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 20,
     };
   });
 
@@ -160,7 +157,7 @@ export default function HomeFeedScreen() {
           </View>
         </Animated.ScrollView>
 
-        <Animated.View style={[animatedHeaderStyle, { paddingTop: insets.top }]}>
+        <View style={[styles.fixedTopBar, { paddingTop: insets.top }]}>
           <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
           <View style={styles.header}>
             <Text style={styles.title}>Feed</Text>
@@ -204,7 +201,10 @@ export default function HomeFeedScreen() {
               </Pressable>
             </View>
           </View>
+        </View>
 
+        <Animated.View style={[animatedHeaderStyle, { position: 'absolute', left: 0, right: 0, zIndex: 20, top: insets.top + topBarHeight }]}>
+          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
           <View style={styles.storiesWrap}>
             <ScrollView
               horizontal
@@ -523,6 +523,14 @@ function PostCarousel({ imageUrls }: { imageUrls: string[] }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  fixedTopBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    overflow: 'hidden',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
