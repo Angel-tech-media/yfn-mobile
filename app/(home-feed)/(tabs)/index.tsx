@@ -17,7 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -86,65 +91,121 @@ export default function HomeFeedScreen() {
     { key: 'add', name: 'Your story', isAdd: true },
     ...storiesData.map(toStoryTile),
   ];
+
+  const translateY = useSharedValue(0);
+  const lastScrollY = useSharedValue(0);
+  const headerHeight = 180; // approximate height of header + stories
+  const insets = useSafeAreaInsets();
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const currentScrollY = event.contentOffset.y;
+      // Over-scroll rubber banding on iOS
+      if (currentScrollY <= 0) {
+        translateY.value = 0;
+        lastScrollY.value = currentScrollY;
+        return;
+      }
+      const diff = currentScrollY - lastScrollY.value;
+      let nextTranslate = translateY.value - diff;
+      nextTranslate = Math.max(Math.min(nextTranslate, 0), -(headerHeight + insets.top));
+      translateY.value = nextTranslate;
+      lastScrollY.value = currentScrollY;
+    },
+  });
+
+  const animatedHeaderStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 20,
+    };
+  });
+
   return (
     <EspressoBackground variant="espresso">
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Feed</Text>
-          <View style={styles.headerActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Search people and hashtags"
-              onPress={() => router.push('/search?focus=people')}
-              hitSlop={6}
-              style={styles.notifBtn}>
-              <Ionicons name="search" size={20} color={palette.ink.onDarkStrong} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Messages"
-              onPress={() => router.push('/inbox' as never)}
-              hitSlop={6}
-              style={styles.notifBtn}>
-              <Ionicons name="paper-plane-outline" size={20} color={palette.ink.onDarkStrong} />
-              <View style={styles.notifDot} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              onPress={() => router.push('/notifications')}
-              hitSlop={6}
-              style={styles.notifBtn}>
-              <Ionicons name="notifications-outline" size={20} color={palette.ink.onDarkStrong} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open profile"
-              onPress={() => router.push('/(tabs)/profile' as never)}
-              style={styles.profileBubble}>
-              <Avatar
-                size={32}
-                source={profileAvatar}
-                initials={initialsFor(profileName)}
-              />
-              <View style={styles.statusDot} />
-            </Pressable>
-          </View>
-        </View>
-
-        <ScrollView
+      <View style={styles.safe}>
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingTop: headerHeight + insets.top }]}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing || isFetching}
               onRefresh={onRefresh}
               tintColor={palette.brand.orange}
               colors={[palette.brand.orange]}
+              progressViewOffset={headerHeight + insets.top}
             />
           }>
+          <View style={styles.feed}>
+            {isError ? (
+              <View style={styles.emptyFeed}>
+                <Text style={styles.emptyFeedText}>Could not load feed from the backend.</Text>
+                <PrimaryButton label="Retry" onPress={() => refetch()} style={styles.retryBtn} />
+              </View>
+            ) : null}
+            {!isError && !feedPosts.length ? (
+              <View style={styles.emptyFeed}>
+                <Text style={styles.emptyFeedText}>No feed posts yet.</Text>
+              </View>
+            ) : null}
+            {feedPosts.map((item) => (
+              <FeedCard key={item.id} post={item} />
+            ))}
+          </View>
+        </Animated.ScrollView>
+
+        <Animated.View style={[animatedHeaderStyle, { paddingTop: insets.top }]}>
+          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          <View style={styles.header}>
+            <Text style={styles.title}>Feed</Text>
+            <View style={styles.headerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Search people and hashtags"
+                onPress={() => router.push('/search?focus=people')}
+                hitSlop={6}
+                style={styles.notifBtn}>
+                <Ionicons name="search" size={20} color={palette.ink.onDarkStrong} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Messages"
+                onPress={() => router.push('/inbox' as never)}
+                hitSlop={6}
+                style={styles.notifBtn}>
+                <Ionicons name="paper-plane-outline" size={20} color={palette.ink.onDarkStrong} />
+                <View style={styles.notifDot} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+                onPress={() => router.push('/notifications')}
+                hitSlop={6}
+                style={styles.notifBtn}>
+                <Ionicons name="notifications-outline" size={20} color={palette.ink.onDarkStrong} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open profile"
+                onPress={() => router.push('/(tabs)/profile' as never)}
+                style={styles.profileBubble}>
+                <Avatar
+                  size={32}
+                  source={profileAvatar}
+                  initials={initialsFor(profileName)}
+                />
+                <View style={styles.statusDot} />
+              </Pressable>
+            </View>
+          </View>
+
           <View style={styles.storiesWrap}>
-            <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -168,25 +229,8 @@ export default function HomeFeedScreen() {
               ))}
             </ScrollView>
           </View>
-
-          <View style={styles.feed}>
-            {isError ? (
-              <View style={styles.emptyFeed}>
-                <Text style={styles.emptyFeedText}>Could not load feed from the backend.</Text>
-                <PrimaryButton label="Retry" onPress={() => refetch()} style={styles.retryBtn} />
-              </View>
-            ) : null}
-            {!isError && !feedPosts.length ? (
-              <View style={styles.emptyFeed}>
-                <Text style={styles.emptyFeedText}>No feed posts yet.</Text>
-              </View>
-            ) : null}
-            {feedPosts.map((item) => (
-              <FeedCard key={item.id} post={item} />
-            ))}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+        </Animated.View>
+      </View>
     </EspressoBackground>
   );
 }
