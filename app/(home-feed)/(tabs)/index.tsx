@@ -11,6 +11,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  Share,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ import Animated, {
 
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { ImageViewerModal } from '@/components/ui/ImageViewerModal';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RepostSheet } from '@/components/ui/RepostSheet';
@@ -317,6 +319,20 @@ function FeedCard({ post }: { post: PostItem }) {
     toast.show({ variant: 'success', title: nextSaved ? 'Post bookmarked' : 'Bookmark removed' });
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title: 'Share Post',
+        message: `${post.author} posted: ${post.caption} - https://yfn.app/post/${post.id}`,
+        url: `https://yfn.app/post/${post.id}` // url only works on iOS, so included in message for Android
+      });
+    } catch (error: any) {
+      if (error.message !== 'User did not share') {
+        console.log('Error sharing:', error);
+      }
+    }
+  };
+
   const handleDelete = () => {
     Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
       { text: 'Cancel', style: 'cancel' },
@@ -400,7 +416,7 @@ function FeedCard({ post }: { post: PostItem }) {
           />
           {reposted ? <Text style={styles.engageCount}>Reposted</Text> : null}
         </Pressable>
-        <Pressable hitSlop={6} style={styles.engageBtn}>
+        <Pressable hitSlop={6} style={styles.engageBtn} onPress={handleShare}>
           <Ionicons name="paper-plane-outline" size={22} color={palette.ink.onDarkStrong} />
         </Pressable>
         <View style={{ flex: 1 }} />
@@ -476,6 +492,7 @@ function FeedCard({ post }: { post: PostItem }) {
 function PostCarousel({ imageUrls }: { imageUrls: string[] }) {
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [viewerVisible, setViewerVisible] = useState(false);
   const mediaWidth = Math.max(width - spacing['5'] * 2 - spacing['3'] * 2, 240);
   const hasMultiple = imageUrls.length > 1;
 
@@ -485,39 +502,48 @@ function PostCarousel({ imageUrls }: { imageUrls: string[] }) {
   };
 
   return (
-    <View style={[styles.carouselFrame, { width: mediaWidth }]}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleMomentumEnd}>
-        {imageUrls.map((url, index) => (
-          <Image
-            key={`${url}-${index}`}
-            source={{ uri: url }}
-            style={[styles.carouselImage, { width: mediaWidth }]}
-            contentFit="cover"
-          />
-        ))}
-      </ScrollView>
-
-      {hasMultiple ? (
-        <>
-          <View style={styles.imageCounter}>
-            <Text style={styles.imageCounterText}>{activeIndex + 1}/{imageUrls.length}</Text>
-          </View>
-          <View style={styles.carouselDots}>
-            {imageUrls.map((url, index) => (
-              <View
-                key={`${url}-dot-${index}`}
-                style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
+    <>
+      <View style={[styles.carouselFrame, { width: mediaWidth }]}>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleMomentumEnd}>
+          {imageUrls.map((url, index) => (
+            <Pressable key={`${url}-${index}`} onPress={() => setViewerVisible(true)}>
+              <Image
+                source={{ uri: url }}
+                style={[styles.carouselImage, { width: mediaWidth }]}
+                contentFit="cover"
               />
-            ))}
-          </View>
-        </>
-      ) : null}
-    </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {hasMultiple ? (
+          <>
+            <View style={styles.imageCounter}>
+              <Text style={styles.imageCounterText}>{activeIndex + 1}/{imageUrls.length}</Text>
+            </View>
+            <View style={styles.carouselDots}>
+              {imageUrls.map((url, index) => (
+                <View
+                  key={`${url}-dot-${index}`}
+                  style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
+                />
+              ))}
+            </View>
+          </>
+        ) : null}
+      </View>
+      <ImageViewerModal
+        visible={viewerVisible}
+        onClose={() => setViewerVisible(false)}
+        imageUrls={imageUrls}
+        initialIndex={activeIndex}
+      />
+    </>
   );
 }
 
