@@ -16,6 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmojiPicker } from '@/components/ui/EmojiPicker';
+import { ImageViewerModal } from '@/components/ui/ImageViewerModal';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { InputBar } from '@/components/ui/InputBar';
@@ -44,6 +45,7 @@ export default function ThreadDetailScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [draft, setDraft] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const insets = useSafeAreaInsets();
@@ -135,9 +137,11 @@ export default function ThreadDetailScreen() {
                         </Text>
                       </View>
                     ) : m.kind === 'image' && m.imageUrl ? (
-                      <View style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}>
+                      <Pressable
+                        style={[styles.mediaBubble, mine ? styles.bubbleMeStyle : styles.bubbleThemStyle]}
+                        onPress={() => m.imageUrl && setActiveImage(m.imageUrl)}>
                         <Image source={{ uri: m.imageUrl }} style={styles.messageImage} contentFit="cover" />
-                      </View>
+                      </Pressable>
                     ) : (
                       <View
                         style={[
@@ -182,6 +186,11 @@ export default function ThreadDetailScreen() {
           onClose={() => setShowEmojiPicker(false)}
         />
       )}
+      <ImageViewerModal
+        visible={!!activeImage}
+        imageUrls={activeImage ? [activeImage] : []}
+        onClose={() => setActiveImage(null)}
+      />
     </EspressoBackground>
   );
 }
