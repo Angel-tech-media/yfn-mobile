@@ -21,7 +21,13 @@ export default function StoryViewerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: stories = [], isError, isLoading, refetch } = useStoriesInbox();
   const { data: me } = useMe();
-  const story = stories.find((item) => item.id === id);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const authorStories = stories
+    .filter((item) => item.author.id === id)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  
+  const story = authorStories[currentIndex];
   const isMine = me?.handle === story?.author.handle;
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
@@ -60,10 +66,16 @@ export default function StoryViewerScreen() {
       useNativeDriver: false,
     });
     anim.start(({ finished }) => {
-      if (finished) router.back();
+      if (finished) {
+        if (currentIndex < authorStories.length - 1) {
+          setCurrentIndex((c) => c + 1);
+        } else {
+          router.back();
+        }
+      }
     });
     return () => anim.stop();
-  }, [paused, progress, story?.id]);
+  }, [paused, progress, story?.id, currentIndex, authorStories.length]);
 
   if (isLoading) {
     return <StateView label="Loading story..." />;
@@ -88,32 +100,52 @@ export default function StoryViewerScreen() {
 
       <Pressable
         style={styles.tapLeft}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (currentIndex > 0) {
+            setCurrentIndex((c) => c - 1);
+            progress.setValue(0);
+          } else {
+            router.back();
+          }
+        }}
         onLongPress={() => setPaused(true)}
         onPressOut={() => setPaused(false)}
       />
       <Pressable
         style={styles.tapRight}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (currentIndex < authorStories.length - 1) {
+            setCurrentIndex((c) => c + 1);
+            progress.setValue(0);
+          } else {
+            router.back();
+          }
+        }}
         onLongPress={() => setPaused(true)}
         onPressOut={() => setPaused(false)}
       />
 
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <View style={styles.segments}>
-          <View style={styles.segmentTrack}>
-            <Animated.View
-              style={[
-                styles.segmentFill,
-                {
-                  width: progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
-          </View>
+          {authorStories.map((_, i) => (
+            <View key={i} style={styles.segmentTrack}>
+              {i < currentIndex ? (
+                <View style={[styles.segmentFill, { width: '100%' }]} />
+              ) : i === currentIndex ? (
+                <Animated.View
+                  style={[
+                    styles.segmentFill,
+                    {
+                      width: progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
+              ) : null}
+            </View>
+          ))}
         </View>
 
         <View style={styles.headerRow}>

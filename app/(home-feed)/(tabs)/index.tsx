@@ -100,9 +100,22 @@ export default function HomeFeedScreen() {
   const profileName = profileNameFor(me);
   const profileAvatar = profileAvatarFor(me);
 
+  const groupedStories = Array.from(
+    storiesData.reduce((acc, story) => {
+      if (!acc.has(story.author.id)) {
+        acc.set(story.author.id, story.author);
+      }
+      return acc;
+    }, new Map<string, Story['author']>()).values()
+  );
+
   const STORIES_VIEW: StoryTile[] = [
     { key: 'add', name: 'Your story', isAdd: true },
-    ...storiesData.map(toStoryTile),
+    ...groupedStories.map((author) => ({
+      key: author.id,
+      name: author.name,
+      avatarUrl: author.avatarUrl,
+    })),
   ];
 
   const translateY = useSharedValue(0);
