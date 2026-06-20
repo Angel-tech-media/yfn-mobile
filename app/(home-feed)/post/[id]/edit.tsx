@@ -189,9 +189,15 @@ export default function EditPostScreen() {
         title="Edit post"
         showBack
         rightAction={
-          <Pressable disabled={!canPost || isSubmitting} hitSlop={8} onPress={handleEdit}>
-            <Text style={[styles.postBtn, (!canPost || isSubmitting) && { opacity: 0.5 }]}>
-              {isSubmitting ? 'Saving' : 'Save'}
+          <Pressable
+            disabled={!canPost || isSubmitting}
+            hitSlop={8}
+            onPress={handleEdit}
+            style={[{ flexDirection: 'row', alignItems: 'center', gap: 6 }, (!canPost || isSubmitting) && { opacity: 0.5 }]}
+          >
+            {isSubmitting && <ActivityIndicator size="small" color={palette.brand.orange} />}
+            <Text style={styles.postBtn}>
+              {isSubmitting ? 'Saving...' : 'Save'}
             </Text>
           </Pressable>
         }

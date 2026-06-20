@@ -108,7 +108,11 @@ export default function EditProductScreen() {
         showBack
         rightAction={
           <Pressable hitSlop={8} disabled={deleteProduct.isPending} onPress={removeProduct}>
-            <Ionicons name="trash-outline" size={20} color={palette.status.danger} />
+            {deleteProduct.isPending ? (
+              <ActivityIndicator size="small" color={palette.status.danger} />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color={palette.status.danger} />
+            )}
           </Pressable>
         }
       />

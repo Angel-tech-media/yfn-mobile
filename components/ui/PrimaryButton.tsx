@@ -28,13 +28,12 @@ export function PrimaryButton({ label, onPress, variant = 'primary', loading, di
         pressed && styles.pressed,
         style,
       ]}>
-      {loading ? (
+      {loading && (
         <ActivityIndicator color={isPrimary ? palette.ink.onLightStrong : palette.ink.onDarkStrong} />
-      ) : (
-        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelGhost]}>
-          {label}
-        </Text>
       )}
+      <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelGhost]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -42,6 +41,8 @@ export function PrimaryButton({ label, onPress, variant = 'primary', loading, di
 const styles = StyleSheet.create({
   base: {
     height: 56,
+    flexDirection: 'row',
+    gap: spacing['2'],
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',

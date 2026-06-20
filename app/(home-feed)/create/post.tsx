@@ -182,10 +182,17 @@ export default function CreatePostScreen() {
         title="New post"
         showBack
         rightAction={
-          <Pressable disabled={!canPost || isSubmitting} hitSlop={8} onPress={handlePost}>
-            <Text style={[styles.postBtn, (!canPost || isSubmitting) && { opacity: 0.5 }]}>
-              {isSubmitting ? 'Posting' : 'Post'}
-            </Text>
+          <Pressable
+            disabled={!canPost || isSubmitting}
+            hitSlop={8}
+            onPress={handlePost}
+            style={[{ flexDirection: 'row', alignItems: 'center', gap: 6 }, (!canPost || isSubmitting) && { opacity: 0.5 }]}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color={palette.brand.orange} />
+            ) : (
+              <Text style={styles.postBtn}>Post</Text>
+            )}
           </Pressable>
         }
       />

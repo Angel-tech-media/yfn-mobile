@@ -6,12 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { useMe } from '@/src/api/account/hooks';
+import { useAuth } from '@/src/store/auth';
 import { useConversations } from '@/src/api/chat/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
 export default function InboxScreen() {
-  const { data: me } = useMe();
+  const me = useAuth((s) => s.user?.id);
   const { data: threads = [], isLoading, isError, refetch, isFetching } = useConversations();
 
   return (
@@ -50,7 +50,7 @@ export default function InboxScreen() {
               <Avatar size={48} initials="C" />
               <View style={styles.body}>
                 <Text style={styles.name}>
-                  {t.orderId ? `Order ${t.orderId}` : t.productId ? `Product ${t.productId}` : (t.participants?.find(p => p.userId !== me?.id)?.name || t.participants?.find(p => p.userId !== me?.id)?.username || `Conversation ${t.id.slice(0, 8)}`)}
+                  {t.orderId ? `Order ${t.orderId}` : t.productId ? `Product ${t.productId}` : (t.participants?.find(p => p.userId !== me)?.name || t.participants?.find(p => p.userId !== me)?.username || `Conversation ${t.id.slice(0, 8)}`)}
                 </Text>
                 <Text style={styles.preview} numberOfLines={1}>{t.lastMessagePreview ?? 'No messages yet'}</Text>
               </View>
