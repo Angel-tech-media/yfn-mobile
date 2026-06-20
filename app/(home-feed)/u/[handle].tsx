@@ -12,8 +12,11 @@ import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
+import { useStartConversation } from '@/src/api/chat/hooks';
 import { useBlockUser, useFollowVendor, useUserPosts, useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
-import type { Post, RankedProduct } from '@/src/api/types';
+import { useUserRepostedPosts } from '@/src/api/feed/hooks';
+import { useUserReposts } from '@/src/api/reposts/hooks';
+import type { Post, RankedProduct, Repost } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
 
@@ -30,6 +33,13 @@ export default function PublicProfileScreen() {
   const { data: me } = useMe();
   const isMe = me?.username === userHandle || me?.handle === userHandle;
   const [activeTab, setActiveTab] = useState<TabKey>('posts');
+
+  const { data: reposts = [] } = useUserReposts(userHandle);
+  const { data: repostedPostsData } = useUserRepostedPosts(userHandle);
+  const repostedPosts = repostedPostsData?.items ?? [];
+  const startConversation = useStartConversation();
+  const [repostType, setRepostType] = useState<'post' | 'product'>('post');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleOptions = () => {
     Alert.alert(
@@ -132,8 +142,20 @@ export default function PublicProfileScreen() {
                       {vendor.isFollowing ? 'Following' : followVendor.isPending ? 'Following...' : 'Follow'}
                     </Text>
                   </Pressable>
-                  <Pressable style={styles.actionBtn}>
-                    <Text style={styles.actionText}>Message</Text>
+                  <Pressable
+                    onPress={() => {
+                      if (vendor.id) {
+                        startConversation.mutate(
+                          { participantUserId: vendor.id },
+                          {
+                            onSuccess: (conv) => router.push(`/messages/${conv.id}` as never),
+                          }
+                        );
+                      }
+                    }}
+                    disabled={startConversation.isPending}
+                    style={styles.actionBtn}>
+                    <Text style={styles.actionText}>{startConversation.isPending ? 'Starting...' : 'Message'}</Text>
                   </Pressable>
                 </>
               )}
@@ -182,7 +204,78 @@ export default function PublicProfileScreen() {
               )}
 
               {activeTab === 'reposts' && (
-                <EmptyState label="No reposts yet." />
+                <View style={{ zIndex: 10 }}>
+                  <Pressable
+                    onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={styles.dropdownToggle}>
+                    <Text style={styles.dropdownToggleText}>
+                      {repostType === 'product' ? 'Product Reposts' : 'Reposted Posts'}
+                    </Text>
+                    <Ionicons
+                      name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={palette.ink.onDarkStrong}
+                    />
+                  </Pressable>
+
+                  {isDropdownOpen && (
+                    <View style={styles.dropdownMenu}>
+                      <Pressable
+                        onPress={() => {
+                          setRepostType('post');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={styles.dropdownItem}>
+                        <Text style={[styles.dropdownItemText, repostType === 'post' && styles.dropdownItemTextActive]}>
+                          Reposted Posts
+                        </Text>
+                        {repostType === 'post' && (
+                          <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
+                        )}
+                      </Pressable>
+                      <View style={styles.dropdownDivider} />
+                      <Pressable
+                        onPress={() => {
+                          setRepostType('product');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={styles.dropdownItem}>
+                        <Text style={[styles.dropdownItemText, repostType === 'product' && styles.dropdownItemTextActive]}>
+                          Product Reposts
+                        </Text>
+                        {repostType === 'product' && (
+                          <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
+                        )}
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {repostType === 'product' ? (
+                    reposts.length ? (
+                      <View style={styles.grid}>
+                        {reposts.map((repost) => (
+                          <RepostTile key={repost.id} repost={repost} handle={userHandle} />
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.padded}>
+                        <EmptyState label="No product reposts yet." />
+                      </View>
+                    )
+                  ) : (
+                    repostedPosts.length ? (
+                      <View style={styles.grid}>
+                        {repostedPosts.map((post) => (
+                          <PostTile key={post.id} post={post} />
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.padded}>
+                        <EmptyState label="No reposted posts yet." />
+                      </View>
+                    )
+                  )}
+                </View>
               )}
             </View>
           </ScrollView>
@@ -219,6 +312,25 @@ function ProductTile({ product }: { product: RankedProduct }) {
       <View style={styles.tileMeta}>
         <Text style={styles.tilePrice}>{formatKobo(product.price)}</Text>
         <Text style={styles.tileCategory} numberOfLines={1}>{product.category}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function RepostTile({ repost, handle }: { repost: Repost; handle: string }) {
+  return (
+    <Pressable
+      onPress={() => router.push(`/product/${repost.productId}?via=${handle}` as never)}
+      style={styles.tile}>
+      <LinearGradient colors={['#3a2818', '#1f1108']} style={StyleSheet.absoluteFill} />
+      <View style={[styles.tileBadge, { backgroundColor: palette.brand.orange }]}>
+        <Ionicons name="repeat" size={12} color="#fff" />
+      </View>
+      <View style={styles.tileMeta}>
+        <Text style={styles.tilePrice}>+{formatKobo(repost.earnings)}</Text>
+        <Text style={styles.tileCategory} numberOfLines={1}>
+          {repost.clicks} clicks · {repost.conversions} sales
+        </Text>
       </View>
     </Pressable>
   );
@@ -386,4 +498,59 @@ const styles = StyleSheet.create({
   reviewAuthor: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
   reviewRating: { ...typography.bodyEmphasis, color: palette.brand.orange },
   reviewText: { ...typography.body, color: palette.ink.onDarkSoft },
+  padded: { paddingHorizontal: spacing['5'] },
+  dropdownToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['5'],
+    paddingBottom: spacing['4'],
+  },
+  dropdownToggleText: {
+    ...typography.h2,
+    color: palette.ink.onDarkStrong,
+    marginRight: spacing['2'],
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 36,
+    left: spacing['5'],
+    width: 220,
+    backgroundColor: palette.bg.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 20,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing['4'],
+  },
+  dropdownItemText: {
+    ...typography.bodyEmphasis,
+    color: palette.ink.onDarkStrong,
+  },
+  dropdownItemTextActive: {
+    color: palette.brand.orange,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: palette.line.divider,
+  },
+  tileBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

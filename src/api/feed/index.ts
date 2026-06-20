@@ -38,6 +38,10 @@ export const feedApi = {
     return http.get<FeedResponse>('/posts/reposts/me', { query });
   },
 
+  userReposts(handle: string, query: PageQuery = {}) {
+    return http.get<FeedResponse>(`/users/${handle}/posts/reposts`, { query });
+  },
+
   createPost(input: CreatePostRequest) {
     return http.post<Post>('/posts', input);
   },

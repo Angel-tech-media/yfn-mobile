@@ -14,6 +14,10 @@ export const repostsApi = {
     return http.get<Repost[]>('/reposts/me');
   },
 
+  userReposts(handle: string) {
+    return http.get<Repost[]>(`/users/${handle}/reposts`);
+  },
+
   create(input: CreateRepostRequest) {
     return http.post<Repost>('/reposts', input);
   },

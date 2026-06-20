@@ -12,6 +12,14 @@ export const useMyReposts = () =>
     staleTime: 30_000,
   });
 
+export const useUserReposts = (handle: string) =>
+  useQuery({
+    queryKey: queryKeys.reposts.user(handle),
+    queryFn: () => repostsApi.userReposts(handle),
+    staleTime: 30_000,
+    enabled: !!handle,
+  });
+
 export function useCreateRepost() {
   const qc = useQueryClient();
   return useMutation({

@@ -30,6 +30,7 @@ export const queryKeys = {
   },
   reposts: {
     me: ['reposts', 'me'] as const,
+    user: (handle: string) => ['reposts', 'user', handle] as const,
   },
   feed: {
     list: (params?: unknown) => ['feed', params ?? {}] as const,
@@ -38,6 +39,7 @@ export const queryKeys = {
       ['posts', postId, 'comments', params ?? {}] as const,
     bookmarks: (params?: unknown) => ['feed', 'bookmarks', params ?? {}] as const,
     reposts: (params?: unknown) => ['feed', 'reposts', params ?? {}] as const,
+    userReposts: (handle: string, params?: unknown) => ['feed', 'reposts', 'user', handle, params ?? {}] as const,
     storiesInbox: ['stories', 'inbox'] as const,
   },
   chat: {

@@ -45,6 +45,15 @@ export function useMyRepostedPosts(params: PageQuery = {}) {
   });
 }
 
+export function useUserRepostedPosts(handle: string, params: PageQuery = {}) {
+  return useQuery({
+    queryKey: queryKeys.feed.userReposts(handle, params),
+    queryFn: () => feedApi.userReposts(handle, params),
+    staleTime: 15_000,
+    enabled: !!handle,
+  });
+}
+
 export function useFeedReels(params: PageQuery = {}) {
   return useQuery({
     queryKey: queryKeys.feed.reels(params),
@@ -103,8 +112,9 @@ export function useCreateReel() {
 export function useToggleLikePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, isLiked }: { postId: Id; isLiked: boolean }) =>
-      isLiked ? feedApi.unlikePost(postId) : feedApi.likePost(postId),
+    mutationFn: ({ postId, isLiked }: { postId: Id; isLiked: boolean }) => {
+      return isLiked ? feedApi.unlikePost(postId) : feedApi.likePost(postId);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
   });
 }
@@ -112,8 +122,9 @@ export function useToggleLikePost() {
 export function useToggleBookmarkPost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, isSaved }: { postId: Id; isSaved: boolean }) =>
-      isSaved ? feedApi.unbookmarkPost(postId) : feedApi.bookmarkPost(postId),
+    mutationFn: ({ postId, isSaved }: { postId: Id; isSaved: boolean }) => {
+      return isSaved ? feedApi.unbookmarkPost(postId) : feedApi.bookmarkPost(postId);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
   });
 }
@@ -138,8 +149,9 @@ export function useEditPost() {
 export function useToggleRepostPost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, isReposted, input }: { postId: Id; isReposted: boolean; input?: { caption?: string; visibility?: 'public' | 'mutuals' | 'close-friends' } }) =>
-      isReposted ? feedApi.unrepostPost(postId) : feedApi.repostPost(postId, input),
+    mutationFn: ({ postId, isReposted, input }: { postId: Id; isReposted: boolean; input?: { caption?: string; visibility?: 'public' | 'mutuals' | 'close-friends' } }) => {
+      return isReposted ? feedApi.unrepostPost(postId) : feedApi.repostPost(postId, input);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.list() }),
   });
 }

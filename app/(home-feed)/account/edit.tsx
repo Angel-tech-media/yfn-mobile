@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -13,17 +14,25 @@ import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useMe, useUpdateMe } from '@/src/api/account/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useToast } from '@/src/hooks/use-toast';
+import { queryKeys } from '@/src/api/query-keys';
+import type { MeResponse } from '@/src/api/types';
 import { palette, spacing, typography } from '@/src/theme';
+import { assetUploadErrorMessage } from '@/src/utils/upload-media';
+import { accountApi } from '@/src/api/account';
 
 export default function EditProfileScreen() {
   const { data: me, isLoading } = useMe();
   const updateMe = useUpdateMe();
+  const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
   const [bio, setBio] = useState('');
   const [photo, setPhoto] = useState<PickedImage | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const { pick } = useImagePicker();
+  const toast = useToast();
 
   useEffect(() => {
     if (!me) return;
@@ -37,14 +46,88 @@ export default function EditProfileScreen() {
     if (img) setPhoto(img);
   };
 
-  const save = () => {
+  const updateFeedCache = (updatedMe: MeResponse) => {
+    queryClient.setQueriesData({ predicate: (q) => q.queryKey[0] === 'feed' || q.queryKey[0] === 'posts' }, (oldData: any) => {
+      if (!oldData) return oldData;
+
+      const updateAuthor = (author: any) => {
+        if (!author || author.handle !== me?.handle) return author;
+        return {
+          ...author,
+          name: updatedMe.name || updatedMe.displayName || author.name,
+          handle: updatedMe.handle || updatedMe.username || author.handle,
+          avatarUrl: updatedMe.avatarUrl
+        };
+      };
+
+      if (oldData.items && Array.isArray(oldData.items)) {
+        return {
+          ...oldData,
+          items: oldData.items.map((item: any) => ({
+            ...item,
+            author: updateAuthor(item.author)
+          }))
+        };
+      }
+      if (Array.isArray(oldData)) {
+        return oldData.map((item: any) => ({
+          ...item,
+          author: updateAuthor(item.author)
+        }));
+      }
+      if (oldData.comments && Array.isArray(oldData.comments)) {
+        return {
+          ...oldData,
+          comments: oldData.comments.map((item: any) => ({
+            ...item,
+            author: updateAuthor(item.author)
+          }))
+        };
+      }
+      
+      // Single post or story object
+      if (oldData.author && oldData.id && typeof oldData.id === 'string') {
+        return {
+          ...oldData,
+          author: updateAuthor(oldData.author)
+        };
+      }
+
+      return oldData;
+    });
+  };
+
+  const save = async () => {
+    setIsUploading(true);
+
+    if (photo) {
+      try {
+        const result = await accountApi.updateProfileAvatar(photo);
+        queryClient.setQueryData(queryKeys.account.me, result);
+        updateFeedCache(result);
+      } catch (err) {
+        toast.error('Upload failed', {
+          description: assetUploadErrorMessage(err),
+        });
+        setIsUploading(false);
+        return;
+      }
+    }
+
     updateMe.mutate(
       {
         displayName: name.trim(),
         username: handle.trim(),
         bio: bio.trim(),
       },
-      { onSuccess: () => router.back() },
+      {
+        onSuccess: (updatedMe) => {
+          updateFeedCache(updatedMe);
+          setIsUploading(false);
+          router.back();
+        },
+        onError: () => setIsUploading(false),
+      },
     );
   };
 
@@ -106,8 +189,8 @@ export default function EditProfileScreen() {
       <View style={styles.actions}>
         <PrimaryButton
           label="Save changes"
-          loading={updateMe.isPending}
-          disabled={!name.trim() || !handle.trim() || updateMe.isPending}
+          loading={updateMe.isPending || isUploading}
+          disabled={!name.trim() || !handle.trim() || updateMe.isPending || isUploading}
           onPress={save}
         />
       </View>

@@ -23,6 +23,15 @@ export const accountApi = {
     return http.patch<MeResponse>('/me', input);
   },
 
+  updateProfileAvatar(asset: import('@/src/utils/upload-media').LocalAsset) {
+    const { createMultipartFile } = require('@/src/utils/upload-media');
+    const form = new FormData();
+    form.append('avatar', createMultipartFile(asset));
+    return http.post<MeResponse>('/uploads/profile-avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   addresses() {
     return http.get<Address[]>('/me/addresses');
   },
