@@ -621,6 +621,7 @@ export type Story = {
   author: FeedAuthor;
   imageUrl: string;
   caption?: string | null;
+  viewsCount?: number;
   createdAt: ISODateTime;
   expiresAt: ISODateTime;
 };

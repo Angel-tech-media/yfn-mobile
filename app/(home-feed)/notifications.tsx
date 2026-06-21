@@ -20,6 +20,7 @@ const ICON_BY_KIND: Record<string, { icon: keyof typeof Ionicons.glyphMap; tint:
   comment: { icon: 'chatbubble', tint: 'rgba(155, 139, 232, 0.22)' },
   sale: { icon: 'pricetag', tint: 'rgba(216, 149, 68, 0.22)' },
   referral: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
+  repost: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
   escrow: { icon: 'lock-closed', tint: 'rgba(91, 168, 232, 0.20)' },
   bot: { icon: 'sparkles', tint: 'rgba(155, 139, 232, 0.22)' },
   news: { icon: 'newspaper', tint: 'rgba(63, 201, 192, 0.20)' },

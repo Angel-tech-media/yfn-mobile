@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -8,10 +8,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { useMe } from '@/src/api/account/hooks';
 import { chatApi } from '@/src/api/chat';
-import { useStoriesInbox } from '@/src/api/feed/hooks';
+import { useDeleteStory, useEditStory, useStoriesInbox, useViewStory } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
 const SLIDE_DURATION = 5000;
@@ -32,9 +33,17 @@ export default function StoryViewerScreen() {
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
 
+  const viewStory = useViewStory();
+  const deleteStory = useDeleteStory();
+  const editStory = useEditStory();
+
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editCaption, setEditCaption] = useState('');
 
   const handleSend = async () => {
     const body = draft.trim();
@@ -59,6 +68,8 @@ export default function StoryViewerScreen() {
 
   useEffect(() => {
     if (!story || paused) return;
+    if (!isMine) viewStory.mutate(story.id);
+    
     progress.setValue(0);
     const anim = Animated.timing(progress, {
       toValue: 1,
@@ -75,7 +86,44 @@ export default function StoryViewerScreen() {
       }
     });
     return () => anim.stop();
-  }, [paused, progress, story?.id, currentIndex, authorStories.length]);
+  }, [paused, progress, story?.id, currentIndex, authorStories.length, isMine]);
+
+  const handleDelete = () => {
+    Alert.alert('Delete Story', 'Are you sure you want to delete this story?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setPaused(false);
+          deleteStory.mutate(story.id, {
+            onSuccess: () => {
+              if (authorStories.length === 1) router.back();
+              else if (currentIndex > 0) setCurrentIndex((c) => c - 1);
+            },
+          });
+          setOptionsOpen(false);
+        },
+      },
+    ]);
+  };
+
+  const handleEdit = () => {
+    setEditCaption(story.caption ?? '');
+    setEditing(true);
+    setOptionsOpen(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (story) {
+      editStory.mutate({ storyId: story.id, input: { caption: editCaption } }, {
+        onSuccess: () => {
+          setEditing(false);
+          setPaused(false);
+        }
+      });
+    }
+  };
 
   if (isLoading) {
     return <StateView label="Loading story..." />;
@@ -186,10 +234,17 @@ export default function StoryViewerScreen() {
           <View style={styles.ownFooter}>
             <View style={styles.viewsRow}>
               <Ionicons name="eye-outline" size={20} color="#fff" />
-              <Text style={styles.viewsCount}>0 Viewers</Text>
+              <Text style={styles.viewsCount}>{story.viewsCount || 0} Viewers</Text>
             </View>
             <View style={{ flex: 1 }} />
-            <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="More">
+            <Pressable
+              hitSlop={8}
+              style={styles.iconBtn}
+              accessibilityLabel="More"
+              onPress={() => {
+                setPaused(true);
+                setOptionsOpen(true);
+              }}>
               <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
             </Pressable>
           </View>
@@ -223,7 +278,7 @@ export default function StoryViewerScreen() {
           </>
         )}
       </SafeAreaView>
-      {showEmojiPicker && (
+      {showEmojiPicker && !editing && (
         <EmojiPicker
           onEmojiSelected={(emoji) => setDraft((d) => d + emoji)}
           onClose={() => {
@@ -232,6 +287,50 @@ export default function StoryViewerScreen() {
           }}
         />
       )}
+
+      {editing && (
+        <View style={styles.editOverlay}>
+          <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+            <View style={styles.editHeaderRow}>
+              <Pressable onPress={() => { setEditing(false); setPaused(false); }} hitSlop={8}>
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleSaveEdit} hitSlop={8}>
+                <Text style={styles.editSaveText}>Done</Text>
+              </Pressable>
+            </View>
+            <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: spacing['4'] }}>
+              <TextInput
+                style={styles.editInput}
+                value={editCaption}
+                onChangeText={setEditCaption}
+                placeholder="Write a caption..."
+                placeholderTextColor="rgba(255,255,255,0.65)"
+                autoFocus
+                multiline
+              />
+            </View>
+          </SafeAreaView>
+        </View>
+      )}
+
+      <BottomSheet
+        visible={optionsOpen}
+        onClose={() => {
+          setOptionsOpen(false);
+          setPaused(false);
+        }}>
+        <View style={{ paddingBottom: spacing['4'] }}>
+          <Pressable style={styles.optionRow} onPress={handleEdit}>
+            <Ionicons name="pencil-outline" size={24} color="#000" />
+            <Text style={styles.optionText}>Edit Story</Text>
+          </Pressable>
+          <Pressable style={styles.optionRow} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            <Text style={[styles.optionText, { color: '#EF4444' }]}>Delete Story</Text>
+          </Pressable>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -406,5 +505,45 @@ const styles = StyleSheet.create({
     ...typography.bodyEmphasis,
     color: '#fff',
     fontSize: 15,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+    paddingVertical: spacing['4'],
+    paddingHorizontal: spacing['4'],
+  },
+  optionText: {
+    ...typography.bodyEmphasis,
+    fontSize: 16,
+    color: '#000',
+  },
+  editOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    zIndex: 10,
+  },
+  editHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['3'],
+  },
+  editCancelText: {
+    ...typography.body,
+    fontSize: 17,
+    color: '#fff',
+  },
+  editSaveText: {
+    ...typography.bodyEmphasis,
+    fontSize: 17,
+    color: palette.brand.orange,
+  },
+  editInput: {
+    ...typography.title,
+    fontSize: 24,
+    color: '#fff',
+    textAlign: 'center',
   },
 });

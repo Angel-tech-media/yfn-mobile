@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleThemStyle: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: palette.bg.surface,
     borderBottomLeftRadius: 4,
   },
   bubbleText: {

@@ -101,6 +101,31 @@ export function useCreateStory() {
   });
 }
 
+export function useViewStory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: Id) => feedApi.viewStory(storyId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
+  });
+}
+
+export function useEditStory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ storyId, input }: { storyId: Id; input: { caption?: string } }) =>
+      feedApi.editStory(storyId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
+  });
+}
+
+export function useDeleteStory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: Id) => feedApi.deleteStory(storyId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
+  });
+}
+
 export function useCreateReel() {
   const qc = useQueryClient();
   return useMutation({

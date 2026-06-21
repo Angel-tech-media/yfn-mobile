@@ -62,6 +62,18 @@ export const feedApi = {
     return http.get<Story[]>('/stories/inbox');
   },
 
+  viewStory(storyId: Id) {
+    return http.post<{ success: boolean }>(`/stories/${storyId}/view`);
+  },
+
+  editStory(storyId: Id, input: { caption?: string }) {
+    return http.patch<{ success: boolean }>(`/stories/${storyId}`, input);
+  },
+
+  deleteStory(storyId: Id) {
+    return http.delete<{ success: boolean }>(`/stories/${storyId}`);
+  },
+
   createReel(input: CreateReelRequest) {
     return http.post<Reel>('/reels', input);
   },
