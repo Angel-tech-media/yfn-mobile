@@ -6,6 +6,7 @@ import { authSessionStorage } from '@/src/lib/auth-session-storage';
 import { setAuthTokenProvider } from '@/src/lib/auth-token-provider';
 
 import { useUser } from './user';
+import { resetAllStores } from './reset';
 
 import type { AuthUserPayload } from '@/src/api/types';
 
@@ -170,6 +171,7 @@ async function validateStoredSession(fallbackRole: AuthUser['role']): Promise<Au
   } catch (error) {
     if (isInvalidSessionError(error)) {
       await clearStoredAuthSession();
+      resetAllStores();
       useAuth.setState({ accessToken: null, refreshToken: null, user: null });
       syncRole(null);
     }
@@ -238,6 +240,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     } catch (error) {
       if (isInvalidSessionError(error)) {
         await clearStoredAuthSession();
+        resetAllStores();
         set({
           accessToken: null,
           refreshToken: null,
@@ -290,6 +293,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
     set({ loading: true });
     try {
+      // Clear out the previous user's data before signing in
+      resetAllStores();
+
       const result = await authBackend.login({ email, password });
       const session = createSession(result, role);
       await persistAuthSession(session);
@@ -312,6 +318,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   signOut: async () => {
     const logout = authBackend.logout().catch(() => undefined);
     await clearStoredAuthSession();
+    resetAllStores();
     set({ accessToken: null, refreshToken: null, user: null, hydrated: true });
     syncRole(null);
     await logout;
@@ -335,6 +342,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     } catch (error) {
       if (isInvalidSessionError(error)) {
         await clearStoredAuthSession();
+        resetAllStores();
         set({ accessToken: null, refreshToken: null, user: null });
         syncRole(null);
       }
