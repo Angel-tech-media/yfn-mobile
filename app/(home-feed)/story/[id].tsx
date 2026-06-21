@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { EmojiPicker } from '@/components/ui/EmojiPicker';
+import { FloatingHearts } from '@/src/components/ui/FloatingHearts';
 import { useMe } from '@/src/api/account/hooks';
 import { chatApi } from '@/src/api/chat';
 import { useDeleteStory, useEditStory, useLikeStory, useStoriesInbox, useUnlikeStory, useViewStory } from '@/src/api/feed/hooks';
@@ -237,6 +238,14 @@ export default function StoryViewerScreen() {
             <View style={styles.viewsRow}>
               <Ionicons name="eye-outline" size={20} color="#fff" />
               <Text style={styles.viewsCount}>{story.viewsCount || 0} Viewers</Text>
+              
+              {story.likesCount && story.likesCount > 0 ? (
+                <>
+                  <View style={{ width: 12 }} />
+                  <Ionicons name="heart" size={20} color="#EF4444" />
+                  <Text style={styles.viewsCount}>{story.likesCount}</Text>
+                </>
+              ) : null}
             </View>
             <View style={{ flex: 1 }} />
             <Pressable
@@ -293,6 +302,8 @@ export default function StoryViewerScreen() {
           </>
         )}
       </SafeAreaView>
+
+      {isMine && story.likesCount && story.likesCount > 0 ? <FloatingHearts count={story.likesCount} /> : null}
       {showEmojiPicker && !editing && (
         <EmojiPicker
           onEmojiSelected={(emoji) => setDraft((d) => d + emoji)}
