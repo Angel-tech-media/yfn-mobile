@@ -622,6 +622,8 @@ export type Story = {
   imageUrl: string;
   caption?: string | null;
   viewsCount?: number;
+  likesCount?: number;
+  likedByMe?: boolean;
   createdAt: ISODateTime;
   expiresAt: ISODateTime;
 };

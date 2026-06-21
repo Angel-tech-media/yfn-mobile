@@ -11,6 +11,7 @@ import type {
   FeedQuery,
   Id,
   PageQuery,
+  Story,
 } from '../../types';
 
 export function useFeed(params: FeedQuery = {}) {
@@ -106,6 +107,60 @@ export function useViewStory() {
   return useMutation({
     mutationFn: (storyId: Id) => feedApi.viewStory(storyId),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
+  });
+}
+
+export function useLikeStory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: Id) => feedApi.likeStory(storyId),
+    onMutate: async (storyId) => {
+      await qc.cancelQueries({ queryKey: queryKeys.feed.storiesInbox });
+      const previousStories = qc.getQueryData<Story[]>(queryKeys.feed.storiesInbox);
+      if (previousStories) {
+        qc.setQueryData<Story[]>(queryKeys.feed.storiesInbox, (old) =>
+          old?.map((s) =>
+            s.id === storyId
+              ? { ...s, likedByMe: true, likesCount: (s.likesCount || 0) + 1 }
+              : s
+          )
+        );
+      }
+      return { previousStories };
+    },
+    onError: (_err, _storyId, context) => {
+      if (context?.previousStories) {
+        qc.setQueryData(queryKeys.feed.storiesInbox, context.previousStories);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
+  });
+}
+
+export function useUnlikeStory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: Id) => feedApi.unlikeStory(storyId),
+    onMutate: async (storyId) => {
+      await qc.cancelQueries({ queryKey: queryKeys.feed.storiesInbox });
+      const previousStories = qc.getQueryData<Story[]>(queryKeys.feed.storiesInbox);
+      if (previousStories) {
+        qc.setQueryData<Story[]>(queryKeys.feed.storiesInbox, (old) =>
+          old?.map((s) =>
+            s.id === storyId
+              ? { ...s, likedByMe: false, likesCount: Math.max(0, (s.likesCount || 1) - 1) }
+              : s
+          )
+        );
+      }
+      return { previousStories };
+    },
+    onError: (_err, _storyId, context) => {
+      if (context?.previousStories) {
+        qc.setQueryData(queryKeys.feed.storiesInbox, context.previousStories);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.feed.storiesInbox }),
   });
 }
 

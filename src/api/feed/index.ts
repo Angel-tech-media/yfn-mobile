@@ -66,6 +66,14 @@ export const feedApi = {
     return http.post<{ success: boolean }>(`/stories/${storyId}/view`);
   },
 
+  likeStory(storyId: Id) {
+    return http.post<{ success: boolean }>(`/stories/${storyId}/like`);
+  },
+
+  unlikeStory(storyId: Id) {
+    return http.delete<{ success: boolean }>(`/stories/${storyId}/like`);
+  },
+
   editStory(storyId: Id, input: { caption?: string }) {
     return http.patch<{ success: boolean }>(`/stories/${storyId}`, input);
   },

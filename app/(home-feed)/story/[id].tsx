@@ -12,7 +12,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { EmojiPicker } from '@/components/ui/EmojiPicker';
 import { useMe } from '@/src/api/account/hooks';
 import { chatApi } from '@/src/api/chat';
-import { useDeleteStory, useEditStory, useStoriesInbox, useViewStory } from '@/src/api/feed/hooks';
+import { useDeleteStory, useEditStory, useLikeStory, useStoriesInbox, useUnlikeStory, useViewStory } from '@/src/api/feed/hooks';
 import { palette, spacing, typography } from '@/src/theme';
 
 const SLIDE_DURATION = 5000;
@@ -36,6 +36,8 @@ export default function StoryViewerScreen() {
   const viewStory = useViewStory();
   const deleteStory = useDeleteStory();
   const editStory = useEditStory();
+  const likeStory = useLikeStory();
+  const unlikeStory = useUnlikeStory();
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -272,8 +274,21 @@ export default function StoryViewerScreen() {
                 <Ionicons name="happy-outline" size={22} color="rgba(255,255,255,0.75)" />
               </Pressable>
             </View>
+            <Pressable
+              hitSlop={8}
+              style={styles.iconBtn}
+              accessibilityLabel={story.likedByMe ? "Unlike story" : "Like story"}
+              onPress={() => {
+                if (story.likedByMe) {
+                  unlikeStory.mutate(story.id);
+                } else {
+                  likeStory.mutate(story.id);
+                }
+              }}>
+              <Ionicons name={story.likedByMe ? "heart" : "heart-outline"} size={26} color={story.likedByMe ? "#EF4444" : "#fff"} />
+            </Pressable>
             <Pressable hitSlop={8} style={styles.iconBtn} accessibilityLabel="DM" onPress={handleSend} disabled={sending}>
-              <Ionicons name="paper-plane-outline" size={24} color={draft.trim() && !sending ? "#fff" : "rgba(255,255,255,0.5)"} />
+              <Ionicons name="paper-plane-outline" size={24} color={draft.trim() && !sending ? "#fff" : "rgba(255,255,255,0.85)"} />
             </Pressable>
           </>
         )}
