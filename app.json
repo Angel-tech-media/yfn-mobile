@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vibe",
     "slug": "vibe",
-    "owner": "angel-tech-media",
+    "owner": "davidokpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -22,7 +22,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -58,8 +61,10 @@
       "reactCompiler": true
     },
     "extra": {
+      "apiUrl": "http://192.168.3.9:4000",
+      "router": {},
       "eas": {
-        "projectId": "116cc263-138f-403f-a093-093600f685b0"
+        "projectId": "1a1e0e87-189e-43ef-a2af-fd6d21364223"
       }
     }
   }

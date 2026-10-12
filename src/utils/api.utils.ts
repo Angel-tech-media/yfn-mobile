@@ -10,18 +10,15 @@ import {
 
 type ApiError = Error;
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://192.168.3.9:4000/api/v1';
 
 function buildApiUrl(path: string) {
   if (/^https?:\/\//u.test(path)) {
     return path;
   }
 
-  if (!API_BASE_URL) {
-    throw new Error('EXPO_PUBLIC_API_BASE_URL is not defined.');
-  }
-
-  return new URL(path, API_BASE_URL).toString();
+  const base = API_BASE_URL || 'http://192.168.3.9:4000/api/v1';
+  return new URL(path, base).toString();
 }
 
 export async function fetchFromApi<TData>(path: string, init: RequestInit = {}) {
