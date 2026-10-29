@@ -23,8 +23,8 @@ export function ToastViewport({ toasts, onDismiss, onExited }: Props) {
       <View
         pointerEvents="box-none"
         style={[styles.stack, styles.topStack, { paddingTop: Math.max(insets.top, spacing['4']) }]}>
-        {topToasts.map((toast) => (
-          <ToastCard key={toast.id} toast={toast} onDismiss={onDismiss} onExited={onExited} />
+        {topToasts.map((toast, idx) => (
+          <ToastCard key={toast.id ? `toast-bot-${toast.id}-${idx}` : `toast-bot-${idx}`} toast={toast} onDismiss={onDismiss} onExited={onExited} />
         ))}
       </View>
 
@@ -35,8 +35,8 @@ export function ToastViewport({ toasts, onDismiss, onExited }: Props) {
           styles.bottomStack,
           { paddingBottom: Math.max(insets.bottom, spacing['4']) },
         ]}>
-        {bottomToasts.map((toast) => (
-          <ToastCard key={toast.id} toast={toast} onDismiss={onDismiss} onExited={onExited} />
+        {bottomToasts.map((toast, idx) => (
+          <ToastCard key={toast.id ? `toast-bot-${toast.id}-${idx}` : `toast-bot-${idx}`} toast={toast} onDismiss={onDismiss} onExited={onExited} />
         ))}
       </View>
     </View>

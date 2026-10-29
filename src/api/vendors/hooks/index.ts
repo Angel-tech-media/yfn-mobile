@@ -86,3 +86,15 @@ export function useUserPosts(handle: string | undefined) {
     staleTime: 60_000,
   });
 }
+
+export function useUpdateLocationSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: vendorsApi.updateLocationSettings,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      qc.invalidateQueries({ queryKey: ['vendors'] });
+      qc.invalidateQueries({ queryKey: ['search'] });
+    },
+  });
+}

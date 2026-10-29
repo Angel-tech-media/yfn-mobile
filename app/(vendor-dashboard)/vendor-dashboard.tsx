@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -9,8 +10,11 @@ import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
+import { useConversations } from '@/src/api/chat/hooks';
 import { useOrders } from '@/src/api/orders/hooks';
+import { useVendor, useUpdateLocationSettings } from '@/src/api/vendors/hooks';
 import { useWallet } from '@/src/api/wallet/hooks';
+import { vibeHaptics } from '@/src/lib/haptics';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
 
@@ -18,11 +22,32 @@ const QUICK_TILES: Array<{ key: string; label: string; icon: keyof typeof Ionico
   { key: 'products', label: 'Products', icon: 'pricetags-outline', href: '/vendor-dashboard/products' },
   { key: 'orders', label: 'Orders', icon: 'cube-outline', href: '/orders' },
   { key: 'sales', label: 'Sales', icon: 'stats-chart-outline', href: '/vendor-dashboard/sales' },
-  { key: 'store', label: 'My Store', icon: 'storefront-outline', href: '/vendor-store' },
+  { key: 'store', label: 'Store', icon: 'storefront-outline', href: '/vendor-store' },
 ];
 
 export default function VendorDashboardScreen() {
   const { data: me } = useMe();
+  const { data: vendor } = useVendor(me?.handle || me?.username);
+  const updateLocation = useUpdateLocationSettings();
+
+  const [showOnMap, setShowOnMap] = useState<boolean | null>(null);
+  const [showExactLocation, setShowExactLocation] = useState<boolean | null>(null);
+
+  const effectiveShowOnMap = showOnMap !== null ? showOnMap : (vendor?.showOnMap ?? true);
+  const effectiveShowExactLocation = showExactLocation !== null ? showExactLocation : (vendor?.showExactLocation ?? true);
+
+  const handleToggleShowOnMap = (val: boolean) => {
+    setShowOnMap(val);
+    vibeHaptics.selection();
+    updateLocation.mutate({ showOnMap: val });
+  };
+
+  const handleToggleShowExactLocation = (val: boolean) => {
+    setShowExactLocation(val);
+    vibeHaptics.selection();
+    updateLocation.mutate({ showExactLocation: val });
+  };
+
   const { data: wallet } = useWallet();
   const { data: orders = [] } = useOrders({ role: 'vendor', limit: 20 });
   const chart = buildOrderChart(orders);
@@ -47,13 +72,13 @@ export default function VendorDashboardScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <View style={styles.balanceCard}>
             <View style={styles.balanceTop}>
-              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Text style={styles.balanceLabel}>Available balance</Text>
             </View>
             <Text style={styles.balanceValue}>{formatKobo(wallet?.balance ?? 0)}</Text>
             <View style={styles.balanceActions}>
               <View style={{ flex: 1 }}>
                 <PrimaryButton
-                  label="+ Add Product"
+                  label="Add product"
                   onPress={() => router.push('/products/add' as never)}
                 />
               </View>
@@ -81,38 +106,58 @@ export default function VendorDashboardScreen() {
             ))}
           </View>
 
+          {/* Store visibility */}
+          <View style={styles.privacyCard}>
+            <Text style={styles.privacyTitle}>Store visibility</Text>
+
+            <View style={styles.privacyRow}>
+              <View style={{ flex: 1, paddingRight: 12, gap: 2 }}>
+                <Text style={styles.privacyRowTitle}>Show on map</Text>
+                <Text style={styles.privacyRowDesc}>
+                  {effectiveShowOnMap ? 'Buyers nearby can find your store.' : 'Hidden. Buyers reach you by link or handle only.'}
+                </Text>
+              </View>
+              <Switch
+                value={effectiveShowOnMap}
+                onValueChange={handleToggleShowOnMap}
+                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#2F6BFF' }}
+                thumbColor="#F5F1EA"
+              />
+            </View>
+
+            <View style={styles.privacyDivider} />
+
+            <View style={styles.privacyRow}>
+              <View style={{ flex: 1, paddingRight: 12, gap: 2 }}>
+                <Text style={styles.privacyRowTitle}>Approximate location</Text>
+                <Text style={styles.privacyRowDesc}>
+                  {!effectiveShowExactLocation ? 'Buyers see your area, not your exact address.' : 'Buyers see your exact address.'}
+                </Text>
+              </View>
+              <Switch
+                value={!effectiveShowExactLocation}
+                onValueChange={(masked) => handleToggleShowExactLocation(!masked)}
+                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#2F6BFF' }}
+                thumbColor="#F5F1EA"
+              />
+            </View>
+          </View>
+
           <Pressable onPress={() => router.push('/vendor-dashboard/sales' as never)} style={styles.sectionCard}>
             <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Sales Analytics</Text>
-              <View style={styles.legendRow}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: palette.brand.orange }]} />
-                  <Text style={styles.legendLabel}>Sales</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#FFFFFF' }]} />
-                  <Text style={styles.legendLabel}>Buyers</Text>
-                </View>
-              </View>
+              <Text style={styles.sectionTitle}>Sales, last 7 days</Text>
             </View>
             <View style={styles.chartWrap}>
               <View style={styles.bars}>
                 {chart.map((d) => (
-                  <View key={d.label} style={styles.barCol}>
+                  <View key={`bar-${d.key}`} style={styles.barCol}>
                     <View style={[styles.bar, { height: `${Math.max(8, (d.total / maxDayTotal) * 100)}%`, backgroundColor: palette.brand.orange }]} />
-                    <View
-                      style={[
-                        styles.bar,
-                        styles.barOverlay,
-                        { height: `${Math.max(6, (d.count / Math.max(...chart.map((day) => day.count), 1)) * 100)}%`, backgroundColor: 'rgba(255,255,255,0.55)' },
-                      ]}
-                    />
                   </View>
                 ))}
               </View>
               <View style={styles.daysRow}>
                 {chart.map((d) => (
-                  <Text key={d.label} style={styles.dayLabel}>{d.label}</Text>
+                  <Text key={`day-${d.key}`} style={styles.dayLabel}>{d.label}</Text>
                 ))}
               </View>
             </View>
@@ -120,7 +165,7 @@ export default function VendorDashboardScreen() {
 
           <View style={styles.section}>
             <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>Recent Orders</Text>
+              <Text style={styles.sectionTitle}>Recent orders</Text>
               <Pressable onPress={() => router.push('/orders' as never)}>
                 <Text style={styles.seeAll}>See all</Text>
               </Pressable>
@@ -130,9 +175,9 @@ export default function VendorDashboardScreen() {
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>No recent orders yet.</Text>
                 </View>
-              ) : orders.slice(0, 3).map((o) => (
+              ) : orders.slice(0, 3).map((o, idx) => (
                 <Pressable
-                  key={o.id}
+                  key={o.id ? `order-${o.id}-${idx}` : `order-${idx}`}
                   onPress={() => router.push(`/orders/${o.id}` as never)}
                   style={styles.recentRow}>
                   <View style={styles.thumb}>
@@ -151,25 +196,6 @@ export default function VendorDashboardScreen() {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>My Stories</Text>
-              <Pressable>
-                <Text style={styles.seeAll}>See all</Text>
-              </Pressable>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesRow}>
-              <Pressable style={styles.storyAdd}>
-                <Ionicons name="add" size={28} color={palette.ink.onDarkStrong} />
-              </Pressable>
-              <View style={styles.storyCard}>
-                <View style={styles.storyImage}>
-                  <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.30)" />
-                </View>
-                <Text style={styles.storyDate}>No stories</Text>
-              </View>
-            </ScrollView>
-          </View>
         </ScrollView>
       </SafeAreaView>
     </EspressoBackground>
@@ -221,15 +247,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(47, 107, 255, 0.12)',
   },
   scroll: { paddingHorizontal: spacing['5'], paddingBottom: 40, gap: spacing['4'] },
   balanceCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['3'],
   },
   balanceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -264,9 +290,9 @@ const styles = StyleSheet.create({
     flex: 1,
     aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing['1'],
@@ -277,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(47, 107, 255, 0.12)',
   },
   tileLabel: {
     fontFamily: typography.caption.fontFamily,
@@ -287,9 +313,9 @@ const styles = StyleSheet.create({
   sectionCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['3'],
   },
   sectionHead: {
@@ -302,14 +328,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     color: palette.ink.onDarkStrong,
-  },
-  legendRow: { flexDirection: 'row', gap: spacing['3'] },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkSoft,
   },
   chartWrap: { gap: 6 },
   bars: {
@@ -328,7 +346,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   bar: { width: 6, borderRadius: 3 },
-  barOverlay: { opacity: 0.6 },
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -356,7 +373,7 @@ const styles = StyleSheet.create({
   emptyState: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: '#1A2244',
   },
   emptyText: {
     fontFamily: typography.body.fontFamily,
@@ -369,15 +386,15 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
   },
   thumb: {
     width: 44,
     height: 44,
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(47, 107, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -401,36 +418,38 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: palette.brand.orange,
   },
-  storiesRow: { gap: spacing['2'] },
-  storyAdd: {
-    width: 84,
-    aspectRatio: 0.75,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(0, 0, 0, 0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  privacyCard: {
+    padding: spacing['4'],
+    borderRadius: radius.lg,
+    backgroundColor: '#121833',
+    borderWidth: 1,
+    borderColor: 'rgba(47, 107, 255, 0.16)',
+    gap: spacing['3'],
   },
-  storyCard: {
-    width: 84,
-    aspectRatio: 0.75,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    justifyContent: 'flex-end',
-  },
-  storyImage: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  storyDate: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 10,
+  privacyTitle: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 15,
+    lineHeight: 20,
     color: palette.ink.onDarkStrong,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  },
+  privacyDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  privacyRowTitle: {
+    ...typography.bodyEmphasis,
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  privacyRowDesc: {
+    ...typography.caption,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontSize: 11,
+    lineHeight: 16,
   },
 });

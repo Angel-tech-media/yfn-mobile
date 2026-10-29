@@ -99,7 +99,7 @@ export function FloatingHearts({ count }: { count: number }) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     zIndex: 5,
   },

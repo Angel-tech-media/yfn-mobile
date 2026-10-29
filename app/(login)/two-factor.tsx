@@ -58,7 +58,7 @@ export default function TwoFactorScreen() {
               description: 'Two-factor authentication complete',
               icon: 'shield-checkmark',
             });
-            router.replace('/(tabs)' as never);
+            router.replace('/(home-feed)/(tabs)' as never);
           }}
         />
       </View>

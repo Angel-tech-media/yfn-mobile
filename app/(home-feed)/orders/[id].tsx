@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PLATFORM_FEE_LABEL } from '@/src/config/fees';
 import { useConfirmOrder, useOrder } from '@/src/api/orders/hooks';
+import { useStartConversation } from '@/src/api/chat/hooks';
 import type { OrderStatus } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
@@ -50,6 +51,7 @@ export default function OrderDetailScreen() {
   const orderId = String(id ?? '');
   const { data: order, isLoading, isError, refetch, isFetching } = useOrder(orderId);
   const confirmOrder = useConfirmOrder();
+  const startConversation = useStartConversation();
   const currentStatus = asOrderStatus(order?.status) ?? 'paid';
   const currentIdx = STATUS_TO_STAGE_INDEX[currentStatus] ?? 0;
   const shipTo = useMemo(() => (order ? formatShipTo(order.shipTo) : ''), [order]);
@@ -155,7 +157,13 @@ export default function OrderDetailScreen() {
               <Text style={styles.vendorMeta}>@{order.vendorHandle}</Text>
             </View>
             <Pressable
-              onPress={() => router.push(`/messages/${order.vendorHandle}` as never)}
+              disabled={startConversation.isPending}
+              onPress={() =>
+                startConversation.mutate(
+                  { participantUserId: order.vendorUserId, orderId: order.id },
+                  { onSuccess: (conversation) => router.push(`/threads/${conversation.id}` as never) },
+                )
+              }
               style={styles.msgBtn}>
               <Ionicons
                 name="chatbubble-outline"
@@ -371,7 +379,7 @@ const styles = StyleSheet.create({
   statusCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     shadowColor: 'rgba(40, 26, 16, 0.18)',
@@ -402,7 +410,7 @@ const styles = StyleSheet.create({
     marginTop: spacing['3'],
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68, 0.14)',
+    backgroundColor: 'rgba(47, 107, 255, 0.14)',
   },
   trackLabel: {
     ...typography.bodyEmphasis,
@@ -460,7 +468,7 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     marginTop: spacing['3'],
@@ -479,7 +487,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(216, 149, 68, 0.14)',
+    backgroundColor: 'rgba(47, 107, 255, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -489,9 +497,9 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(216, 149, 68, 0.10)',
+    backgroundColor: 'rgba(47, 107, 255, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68, 0.28)',
+    borderColor: 'rgba(47, 107, 255, 0.28)',
     marginTop: spacing['2'],
   },
   referrerText: {
@@ -535,9 +543,9 @@ const styles = StyleSheet.create({
     marginTop: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['1'],
   },
   totalRow: {
@@ -570,9 +578,9 @@ const styles = StyleSheet.create({
   shipCard: {
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['2'],
   },
   shipRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

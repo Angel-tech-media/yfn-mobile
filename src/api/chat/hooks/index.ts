@@ -13,13 +13,14 @@ import type {
   StartConversationRequest,
 } from '../../types';
 
-const MESSAGE_POLL_MS = 4000;
+const MESSAGE_POLL_MS = 2000;
 
 export function useConversations(params: ListConversationsQuery = { limit: 50 }) {
   return useQuery({
     queryKey: queryKeys.chat.conversations(params),
     queryFn: () => chatApi.listConversations(params),
-    staleTime: 10_000,
+    staleTime: 2_000,
+    refetchInterval: 3_000,
   });
 }
 

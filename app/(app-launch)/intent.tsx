@@ -70,7 +70,7 @@ export default function IntentScreen() {
                 cornerRadius={radius.lg}
                 borderColor={isSelected ? palette.brand.orange : 'rgba(0, 0, 0, 0.06)'}
                 style={[styles.card, isSelected && styles.cardSelected]}>
-                <Image source={opt.icon} style={styles.iconImage} contentFit="contain" />
+                <Image source={opt.icon as any} style={styles.iconImage} contentFit="contain" />
                 <Text style={styles.cardTitle}>{opt.title}</Text>
                 <Text style={styles.cardSubtitle} numberOfLines={2}>{opt.subtitle}</Text>
               </GlassCard>

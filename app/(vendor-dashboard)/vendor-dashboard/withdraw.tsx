@@ -142,9 +142,9 @@ const styles = StyleSheet.create({
   balanceCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.30)',
+    borderColor: 'rgba(47, 107, 255,0.30)',
     gap: 4,
   },
   balanceLabel: {
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   summary: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     gap: spacing['1'],
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },

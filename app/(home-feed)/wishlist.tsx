@@ -42,14 +42,14 @@ export default function WishlistScreen() {
             <Ionicons name="cart-outline" size={40} color={palette.ink.onDarkMuted} />
             <Text style={styles.emptyTitle}>No saved products</Text>
             <Text style={styles.emptyText}>Products you heart from the backend catalog will appear here.</Text>
-            <PrimaryButton label="Browse shop" onPress={() => router.replace('/(tabs)/shop' as never)} />
+            <PrimaryButton label="Browse shop" onPress={() => router.replace('/(home-feed)/(tabs)/shop' as never)} />
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
             <View style={styles.grid}>
-              {items.map((p) => (
+              {items.map((p, idx) => (
                 <Card
-                  key={p.id}
+                  key={p.id ? `wishlist-item-${p.id}-${idx}` : `wishlist-item-${idx}`}
                   product={p}
                   onTap={() => router.push(`/product/${p.id}` as never)}
                   onRemove={() => remove(p.id)}
@@ -69,8 +69,8 @@ export default function WishlistScreen() {
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
             <View style={styles.postGrid}>
-              {bookmarkedPosts.map((post) => (
-                <PostTile key={post.id} post={post} />
+              {bookmarkedPosts.map((post, idx) => (
+                <PostTile key={post.id ? `wishlist-post-${post.id}-${idx}` : `wishlist-post-${idx}`} post={post} />
               ))}
             </View>
           </ScrollView>
@@ -94,7 +94,7 @@ function Card({
   return (
     <View style={styles.card}>
       <Pressable onPress={onTap} style={styles.imageWrap}>
-        <Image source={product.image} style={styles.image} contentFit="cover" />
+        <Image source={product.image as any} style={styles.image} contentFit="cover" />
         {onRemove ? (
           <Pressable onPress={onRemove} hitSlop={6} style={styles.removeBtn}>
             <Ionicons name="heart" size={16} color="#FF3B47" />
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     alignItems: 'center',
     justifyContent: 'center',
   },

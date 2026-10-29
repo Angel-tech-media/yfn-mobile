@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 
-import { InteractionManager, Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,7 +31,7 @@ export function UploadSheet({ visible, onClose, onCamera, onGallery, title = 'Ad
       onClose();
 
       if (Platform.OS !== 'ios') {
-        InteractionManager.runAfterInteractions(runPendingAction);
+        setTimeout(runPendingAction, 0);
       }
     },
     [onClose, runPendingAction],
@@ -79,6 +79,10 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['4'],
     borderRadius: radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: spacing['2'],
   },
   label: {
     fontFamily: typography.bodyLg.fontFamily,
@@ -87,18 +91,18 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkStrong,
   },
   cancel: {
-    height: 56,
+    height: 54,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing['2'],
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   cancelLabel: {
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
-    color: palette.ink.onDarkStrong,
+    color: '#FFFFFF',
   },
 });

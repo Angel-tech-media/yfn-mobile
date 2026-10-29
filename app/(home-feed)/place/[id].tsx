@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -8,7 +8,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { useFollowVendor, useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
+import { useStartConversation } from '@/src/api/chat/hooks';
 import type { RankedProduct } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo } from '@/src/utils/money';
@@ -20,7 +22,20 @@ export default function PlaceScreen() {
   const { data: products = [] } = useVendorProducts(handle);
   const { data: reviews = [] } = useVendorReviews(handle);
   const followVendor = useFollowVendor();
+  const startConversation = useStartConversation();
   const heroUrl = vendor?.photos?.[0];
+
+  const handleMessageVendor = () => {
+    if (!vendor?.userId) return;
+    startConversation.mutate(
+      { participantUserId: vendor.userId },
+      {
+        onSuccess: (conv) => {
+          router.push(`/threads/${conv.id}` as never);
+        },
+      }
+    );
+  };
 
   return (
     <EspressoBackground variant="espresso">
@@ -39,16 +54,29 @@ export default function PlaceScreen() {
               )}
               <LinearGradient colors={['rgba(0,0,0,0.35)', 'transparent']} style={styles.heroOverlayTop} />
               <View style={styles.heroTopBar}>
-                <Pressable onPress={() => router.back()} accessibilityLabel="Back" style={styles.heroIconBtn}>
+                <PressableScale
+                  onPress={() => router.back()}
+                  accessibilityLabel="Back"
+                  haptic="light"
+                  scaleTo={0.9}
+                  style={styles.heroIconBtn}>
                   <Ionicons name="chevron-back" size={20} color="#fff" />
-                </Pressable>
+                </PressableScale>
                 <View style={{ flexDirection: 'row', gap: spacing['2'] }}>
-                  <Pressable accessibilityLabel="Save" style={styles.heroIconBtn}>
+                  <PressableScale
+                    accessibilityLabel="Save"
+                    haptic="selection"
+                    scaleTo={0.9}
+                    style={styles.heroIconBtn}>
                     <Ionicons name="bookmark-outline" size={18} color="#fff" />
-                  </Pressable>
-                  <Pressable accessibilityLabel="Share" style={styles.heroIconBtn}>
+                  </PressableScale>
+                  <PressableScale
+                    accessibilityLabel="Share"
+                    haptic="light"
+                    scaleTo={0.9}
+                    style={styles.heroIconBtn}>
                     <Ionicons name="share-outline" size={18} color="#fff" />
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </View>
             </View>
@@ -81,20 +109,36 @@ export default function PlaceScreen() {
               </View>
 
               <View style={styles.actions}>
-                <Pressable
+                <PressableScale
                   onPress={() => followVendor.mutate(vendor.handle)}
                   disabled={followVendor.isPending}
+                  haptic="medium"
+                  scaleTo={0.94}
                   style={[styles.actionBtn, styles.actionPrimary]}>
                   <Ionicons name={vendor.isFollowing ? 'checkmark' : 'add'} size={16} color="#fff" />
                   <Text style={styles.actionPrimaryText}>
                     {vendor.isFollowing ? 'Following' : followVendor.isPending ? 'Following...' : 'Follow'}
                   </Text>
-                </Pressable>
+                </PressableScale>
+                <PressableScale
+                  onPress={handleMessageVendor}
+                  disabled={startConversation.isPending || !vendor.userId}
+                  haptic="medium"
+                  scaleTo={0.94}
+                  style={styles.actionBtn}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color={palette.ink.onDarkStrong} />
+                  <Text style={styles.actionText}>
+                    {startConversation.isPending ? 'Opening...' : 'Message'}
+                  </Text>
+                </PressableScale>
                 {vendor.phone ? (
-                  <Pressable style={styles.actionBtn}>
+                  <PressableScale
+                    haptic="light"
+                    scaleTo={0.94}
+                    style={styles.actionBtn}>
                     <Ionicons name="call-outline" size={16} color={palette.ink.onDarkStrong} />
                     <Text style={styles.actionText}>Call</Text>
-                  </Pressable>
+                  </PressableScale>
                 ) : null}
               </View>
 
@@ -161,9 +205,9 @@ function StateView({ label, onRetry }: { label: string; onRetry?: () => void }) 
     <View style={styles.center}>
       <Text style={styles.stateText}>{label}</Text>
       {onRetry ? (
-        <Pressable onPress={onRetry} style={styles.retryBtn}>
+        <PressableScale onPress={onRetry} haptic="medium" style={styles.retryBtn}>
           <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -191,7 +235,11 @@ function ProductCard({ product }: { product: RankedProduct }) {
   const imageUrl = product.media?.find((media) => media.type === 'image')?.url;
 
   return (
-    <Pressable onPress={() => router.push(`/product/${product.id}` as never)} style={styles.productCard}>
+    <PressableScale
+      onPress={() => router.push(`/product/${product.id}` as never)}
+      haptic="light"
+      scaleTo={0.96}
+      style={styles.productCard}>
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.productImage} contentFit="cover" />
       ) : (
@@ -199,7 +247,7 @@ function ProductCard({ product }: { product: RankedProduct }) {
       )}
       <Text style={styles.productName} numberOfLines={2}>{product.title}</Text>
       <Text style={styles.productPrice}>{formatKobo(product.price)}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -255,7 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['2'],
     height: 28,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68,0.16)',
+    backgroundColor: 'rgba(47, 107, 255,0.16)',
   },
   rankText: { ...typography.small, color: palette.brand.orange, fontFamily: typography.bodyEmphasis.fontFamily },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['2'] },
@@ -280,7 +328,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.50)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
   },
   actionPrimary: { backgroundColor: palette.brand.orange, borderColor: palette.brand.orange },
   actionText: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
@@ -301,7 +349,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['1'],
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing['2'] },

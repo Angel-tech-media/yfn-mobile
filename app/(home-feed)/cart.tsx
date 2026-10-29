@@ -28,7 +28,7 @@ export default function CartScreen() {
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Browse the shop and add items you love.</Text>
           <View style={styles.emptyAction}>
-            <PrimaryButton label="Start shopping" onPress={() => router.replace('/(tabs)/shop' as never)} />
+            <PrimaryButton label="Start shopping" onPress={() => router.replace('/(home-feed)/(tabs)/shop' as never)} />
           </View>
         </View>
       ) : (
@@ -36,7 +36,7 @@ export default function CartScreen() {
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
             {lines.map((l) => (
               <View key={l.id + (l.color ?? '')} style={styles.row}>
-                <Image source={l.image} style={styles.thumb} contentFit="cover" />
+                <Image source={l.image as any} style={styles.thumb} contentFit="cover" />
                 <View style={styles.rowBody}>
                   <Text style={styles.name} numberOfLines={2}>{l.name}</Text>
                   <Text style={styles.vendor}>{l.vendor}{l.color ? ` · ${l.color}` : ''}</Text>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     shadowColor: 'rgba(40, 26, 16, 0.18)',

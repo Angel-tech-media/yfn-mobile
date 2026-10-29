@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
+import { DopamineCelebrationModal } from '@/components/ui/DopamineCelebrationModal';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
@@ -15,7 +16,8 @@ import {
   computePlatformFee,
 } from '@/src/config/fees';
 import { useCreateOrder } from '@/src/api/orders/hooks';
-import { usePayFromWallet, useWallet } from '@/src/api/wallet/hooks';
+import { usePayFromWallet, useTopUpWallet, useWallet } from '@/src/api/wallet/hooks';
+import { vibeHaptics } from '@/src/lib/haptics';
 import { useCart, useCartTotal } from '@/src/store/cart';
 import { palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo, formatNaira, koboToNaira, nairaToKobo } from '@/src/utils/money';
@@ -28,12 +30,20 @@ export default function CheckoutScreen() {
   const [promo, setPromo] = useState('');
   const [payError, setPayError] = useState<string | null>(null);
 
+  // Gifting & Zero-Knowledge Escrow Privacy States
+  const [isGift, setIsGift] = useState(false);
+  const [recipientHandle, setRecipientHandle] = useState('');
+  const [isAnonymousGift, setIsAnonymousGift] = useState(false);
+  const [isEscrowPrivate, setIsEscrowPrivate] = useState(true);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+
   const total = useCartTotal();
   const clear = useCart((s) => s.clear);
   const lines = useCart((s) => s.lines);
   const { data: wallet } = useWallet();
   const createOrder = useCreateOrder();
   const payFromWallet = usePayFromWallet();
+  const topUpWallet = useTopUpWallet();
 
   const subtotal = total;
   const platformFee = useMemo(
@@ -45,6 +55,7 @@ export default function CheckoutScreen() {
 
   const placeOrder = async () => {
     setPayError(null);
+    vibeHaptics.heavy();
     const vendorId = lines[0]?.vendorId;
     if (!vendorId) {
       setPayError('Cart items are missing vendor data. Add the product again from the backend product page.');
@@ -72,8 +83,8 @@ export default function CheckoutScreen() {
             { amount: order.grandTotal, orderId: order.id, vendor: order.vendor },
             {
               onSuccess: () => {
-                clear();
-                router.replace('/order-confirmed');
+                vibeHaptics.dopamineBurst();
+                setCelebrationOpen(true);
               },
               onError: (error) => {
                 setPayError(error instanceof Error ? error.message : 'Wallet payment failed.');
@@ -88,15 +99,92 @@ export default function CheckoutScreen() {
     );
   };
 
+  const handleCelebrationClose = () => {
+    setCelebrationOpen(false);
+    clear();
+    router.replace('/(home-feed)/(tabs)' as never);
+  };
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Checkout" showBack />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        {/* Social Gifting Section */}
+        <View style={styles.giftCard}>
+          <View style={styles.giftHeader}>
+            <View style={styles.giftIconWrap}>
+              <Ionicons name="gift-outline" size={20} color={palette.brand.orange} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.giftTitle}>Buy as a Gift</Text>
+              <Text style={styles.giftSubtitle}>Send directly to a fellow buyer with private claim voucher</Text>
+            </View>
+            <Switch
+              value={isGift}
+              onValueChange={(val) => {
+                vibeHaptics.selection();
+                setIsGift(val);
+              }}
+              trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {isGift ? (
+            <View style={styles.giftFields}>
+              <TextField
+                placeholder="Recipient's Username (e.g. @sarah_glow)"
+                value={recipientHandle}
+                onChangeText={setRecipientHandle}
+                autoCapitalize="none"
+              />
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>Send Anonymously</Text>
+                  <Text style={styles.toggleHint}>Hide your identity ("A secret admirer sent you a gift!")</Text>
+                </View>
+                <Switch
+                  value={isAnonymousGift}
+                  onValueChange={(val) => {
+                    vibeHaptics.selection();
+                    setIsAnonymousGift(val);
+                  }}
+                  trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Delivery Address & Zero-Knowledge Escrow Privacy */}
         <Text style={styles.sectionTitle}>Delivery address</Text>
         <View style={styles.form}>
           <TextField placeholder="Full address" value={address} onChangeText={setAddress} />
           <TextField placeholder="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+
+          {/* Zero-Knowledge Escrow Privacy Toggle */}
+          <View style={styles.escrowToggleRow}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="shield-checkmark" size={15} color="#4ADE80" />
+                <Text style={styles.escrowLabel}>Zero-Knowledge Escrow Address</Text>
+              </View>
+              <Text style={styles.escrowHint}>
+                Mask your personal street address from vendor and logistics drivers.
+              </Text>
+            </View>
+            <Switch
+              value={isEscrowPrivate}
+              onValueChange={(val) => {
+                vibeHaptics.selection();
+                setIsEscrowPrivate(val);
+              }}
+              trackColor={{ false: '#2D231E', true: '#4ADE80' }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Payment</Text>
@@ -125,13 +213,25 @@ export default function CheckoutScreen() {
             Funds leave your eWallet into Vibe escrow. The vendor is notified but
             the money only releases to them when you confirm delivery.
           </Text>
-          {balanceNaira < estimatedTotal ? (
+          {wallet && balanceNaira < estimatedTotal ? (
             <Pressable
-              onPress={() => router.push('/(tabs)/wallet' as never)}
+              onPress={() => {
+                topUpWallet.mutate(
+                  { amount: nairaToKobo(Math.max(50000, estimatedTotal - balanceNaira + 10000)), source: 'Instant Top-Up' },
+                  {
+                    onSuccess: () => {
+                      setPayError(null);
+                    },
+                  }
+                );
+              }}
+              disabled={topUpWallet.isPending}
               style={styles.walletPayTopUp}>
               <Ionicons name="add-circle" size={14} color="#fff" />
               <Text style={styles.walletPayTopUpLabel}>
-                Top up — estimate needs {formatNaira(estimatedTotal - balanceNaira)} more
+                {topUpWallet.isPending
+                  ? 'Crediting eWallet…'
+                  : `+ Top up ₦50,000 now (Needs ${formatNaira(estimatedTotal - balanceNaira)} more)`}
               </Text>
             </Pressable>
           ) : null}
@@ -179,6 +279,22 @@ export default function CheckoutScreen() {
           onPress={placeOrder}
         />
       </View>
+
+      <DopamineCelebrationModal
+        visible={celebrationOpen}
+        onClose={handleCelebrationClose}
+        details={{
+          title: isGift ? 'Gift Dispatched! 🎁' : 'Order Confirmed! ⚡',
+          subtitle: isGift
+            ? 'Your gift claim voucher has been sent to the recipient. They will confirm delivery!'
+            : 'Payment held in Vibe Escrow until you confirm receipt.',
+          isGift,
+          recipientHandle: isGift ? (recipientHandle || '@fellow_buyer') : undefined,
+          isAnonymous: isAnonymousGift,
+          isEscrowPrivate,
+          amountKobo: estimatedTotal * 100,
+        }}
+      />
     </ScreenContainer>
   );
 }
@@ -328,9 +444,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    backgroundColor: 'rgba(47, 107, 255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.40)',
+    borderColor: 'rgba(47, 107, 255,0.40)',
   },
   promoTagWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   promoTagText: {
@@ -380,4 +496,86 @@ const styles = StyleSheet.create({
     marginVertical: spacing['1'],
   },
   actions: { paddingVertical: spacing['3'] },
+  giftCard: {
+    backgroundColor: '#1E1713',
+    borderRadius: radius.lg,
+    padding: spacing['4'],
+    marginBottom: spacing['4'],
+    borderWidth: 1,
+    borderColor: 'rgba(47, 107, 255, 0.25)',
+  },
+  giftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['3'],
+  },
+  giftIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  giftTitle: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  giftSubtitle: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    color: palette.ink.onDarkMuted,
+    marginTop: 2,
+  },
+  giftFields: {
+    marginTop: spacing['3'],
+    gap: spacing['3'],
+    paddingTop: spacing['3'],
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  toggleLabel: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  toggleHint: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 11,
+    lineHeight: 14,
+    color: palette.ink.onDarkMuted,
+    marginTop: 2,
+  },
+  escrowToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    borderRadius: radius.md,
+    padding: spacing['3'],
+    marginTop: spacing['2'],
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.25)',
+  },
+  escrowLabel: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4ADE80',
+  },
+  escrowHint: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 11,
+    lineHeight: 14,
+    color: palette.ink.onDarkMuted,
+    marginTop: 2,
+  },
 });

@@ -63,7 +63,7 @@ export function InputBar({
           hitSlop={8}
           onPress={onSend}
           style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.7 }]}>
-          <Ionicons name="send" size={16} color={palette.ink.onDarkStrong} />
+          <Ionicons name="send" size={16} color="#FFFFFF" />
         </Pressable>
       ) : null}
     </View>
@@ -77,9 +77,9 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: radius.pill,
     paddingHorizontal: spacing['3'],
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: palette.line.onDark,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['2'],
   },
   lead: {
@@ -101,11 +101,11 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   sendBtn: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: palette.brand.orange,
   },
 });

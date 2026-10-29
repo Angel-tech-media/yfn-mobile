@@ -30,6 +30,30 @@ export const feedApi = {
     return http.get<Reel[]>('/feed/reels', { query });
   },
 
+  likeReel(reelId: Id) {
+    return http.post<{ success: boolean; liked: boolean }>(`/feed/reels/${reelId}/like`, {});
+  },
+
+  unlikeReel(reelId: Id) {
+    return http.delete<{ success: boolean; liked: boolean }>(`/feed/reels/${reelId}/like`);
+  },
+
+  bookmarkReel(reelId: Id) {
+    return http.post<{ success: boolean; bookmarked: boolean }>(`/feed/reels/${reelId}/bookmark`, {});
+  },
+
+  unbookmarkReel(reelId: Id) {
+    return http.delete<{ success: boolean; bookmarked: boolean }>(`/feed/reels/${reelId}/bookmark`);
+  },
+
+  reelComments(reelId: Id, query: FeedQuery = {}) {
+    return http.get<CommentsResponse>(`/feed/reels/${reelId}/comments`, { query });
+  },
+
+  createReelComment(reelId: Id, input: CreateCommentRequest) {
+    return http.post<Comment>(`/feed/reels/${reelId}/comments`, input);
+  },
+
   myBookmarks(query: PageQuery = {}) {
     return http.get<FeedResponse>('/posts/bookmarks/me', { query });
   },

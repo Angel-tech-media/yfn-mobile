@@ -48,7 +48,13 @@ export default function VendorStoreScreen() {
         </Pressable>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <Image source={vendor?.photos?.[0] ? { uri: vendor.photos[0] } : BANNER} style={styles.banner} contentFit="cover" />
+          <Pressable onPress={() => router.push('/vendor-store-setup/store-details')} style={styles.bannerWrap}>
+            <Image source={vendor?.photos?.[0] ? { uri: vendor.photos[0] } : BANNER} style={styles.banner} contentFit="cover" />
+            <View style={styles.editBannerPill}>
+              <Ionicons name="camera" size={13} color="#FFFFFF" />
+              <Text style={styles.editBannerText}>Edit Store Banner</Text>
+            </View>
+          </Pressable>
           <View style={styles.profileBlock}>
             <View style={styles.avatarRing}>
               <Avatar size={84} source={vendor?.photos?.[1] ? { uri: vendor.photos[1] } : undefined} initials={(vendor?.storeName ?? me?.name ?? 'V')[0]} />
@@ -68,7 +74,9 @@ export default function VendorStoreScreen() {
                 style={({ pressed }) => [styles.followBtn, styles.notFollowing, pressed && { opacity: 0.85 }]}>
                 <Text style={styles.followLabel}>Add product</Text>
               </Pressable>
-              <Pressable style={({ pressed }) => [styles.msgBtn, pressed && { opacity: 0.85 }]}>
+              <Pressable
+                onPress={() => router.push('/vendor-store-setup/store-details')}
+                style={({ pressed }) => [styles.msgBtn, pressed && { opacity: 0.85 }]}>
                 <Ionicons name="settings-outline" size={16} color={palette.ink.onDarkStrong} />
                 <Text style={styles.msgLabel}>Edit store</Text>
               </Pressable>
@@ -119,9 +127,9 @@ export default function VendorStoreScreen() {
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>No products found.</Text>
               </View>
-            ) : filteredProducts.map((p) => (
+            ) : filteredProducts.map((p, idx) => (
               <Pressable
-                key={p.id}
+                key={p.id ? `store-prod-${p.id}-${idx}` : `store-prod-${idx}`}
                 onPress={() => router.push(`/product/${p.id}` as never)}
                 style={styles.tile}>
                 <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.tileImage} contentFit="cover" />
@@ -148,13 +156,35 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     zIndex: 5,
   },
   backBtn: { left: 16 },
   shareBtn: { right: 16 },
   scroll: { paddingBottom: 100 },
-  banner: { height: 160 },
+  bannerWrap: {
+    height: 160,
+    width: '100%',
+    position: 'relative',
+  },
+  banner: { height: 160, width: '100%' },
+  editBannerPill: {
+    position: 'absolute',
+    right: 14,
+    bottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  editBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   profileBlock: { alignItems: 'center', gap: spacing['1'], marginTop: -42 },
   avatarRing: {
     padding: 3,
@@ -263,7 +293,7 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     paddingHorizontal: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },

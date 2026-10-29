@@ -41,9 +41,9 @@ export default function HelpScreen() {
           </View>
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={styles.heroTitle}>How can we help?</Text>
-            <Text style={styles.heroSub}>Browse topics or chat with our team</Text>
+            <Text style={styles.heroSub}>Browse topics or open your messages</Text>
           </View>
-          <Pressable onPress={() => router.push('/messages/support' as never)} style={styles.chatBtn}>
+          <Pressable onPress={() => router.push('/threads' as never)} style={styles.chatBtn}>
             <Ionicons name="chatbubble-ellipses" size={18} color={palette.ink.onLightStrong} />
           </Pressable>
         </View>
@@ -62,11 +62,11 @@ export default function HelpScreen() {
 
         <Text style={styles.sectionTitle}>Frequently asked</Text>
         <View style={styles.faqList}>
-          {FAQ.map((f) => {
+          {FAQ.map((f, idx) => {
             const open = openId === f.id;
             return (
               <Pressable
-                key={f.id}
+                key={f.id ? `faq-${f.id}-${idx}` : `faq-${idx}`}
                 onPress={() => setOpenId(open ? null : f.id)}
                 style={styles.faqItem}>
                 <View style={styles.faqHead}>
@@ -105,15 +105,15 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.40)',
+    borderColor: 'rgba(47, 107, 255,0.40)',
   },
   heroIcon: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: 'rgba(216, 149, 68,0.20)',
+    backgroundColor: 'rgba(47, 107, 255,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
   },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(216, 149, 68,0.18)',
+    backgroundColor: 'rgba(47, 107, 255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['3'],
     paddingHorizontal: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
     gap: spacing['2'],

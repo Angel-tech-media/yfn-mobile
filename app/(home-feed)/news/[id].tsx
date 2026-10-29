@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   body: { paddingHorizontal: spacing['5'], paddingTop: spacing['5'] },
   headline: {
-    fontFamily: 'Manrope_800ExtraBold',
+    fontFamily: 'Inter_700Bold',
     fontSize: 30,
     lineHeight: 38,
     color: palette.ink.onLightStrong,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
   excerpt: {
-    fontFamily: 'Manrope_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontStyle: 'italic',
     fontSize: 18,
     lineHeight: 28,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['4'],
   },
   paragraph: {
-    fontFamily: 'Manrope_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: 17,
     lineHeight: 28,
     color: palette.ink.onLightStrong,

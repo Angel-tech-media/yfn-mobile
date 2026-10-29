@@ -528,9 +528,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.32)',
+    borderColor: 'rgba(47, 107, 255,0.32)',
   },
   locationText: {
     flexShrink: 1,
@@ -565,9 +565,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.40)',
+    borderColor: 'rgba(47, 107, 255,0.40)',
   },
   tagText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -593,9 +593,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   toolBtnActive: {
-    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    backgroundColor: 'rgba(47, 107, 255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.28)',
+    borderColor: 'rgba(47, 107, 255,0.28)',
   },
   toolLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     marginBottom: spacing['2'],
   },
   locationSearchInput: {
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    backgroundColor: 'rgba(47, 107, 255,0.12)',
   },
   locationRowTitle: {
     fontFamily: typography.bodyEmphasis.fontFamily,

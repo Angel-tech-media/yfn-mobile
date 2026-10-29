@@ -105,10 +105,10 @@ const styles = StyleSheet.create({
   tile: {
     width: '31%',
     aspectRatio: 0.85,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     padding: spacing['2'],
     alignItems: 'center',
     justifyContent: 'space-between',

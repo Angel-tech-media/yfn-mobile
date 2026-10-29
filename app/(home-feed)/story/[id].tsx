@@ -142,7 +142,7 @@ export default function StoryViewerScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: story.imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <Image source={{ uri: story.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
       <LinearGradient
         colors={['rgba(0, 0, 0, 0.55)', 'transparent', 'transparent', 'rgba(0, 0, 0, 0.65)']}
         locations={[0, 0.18, 0.65, 1]}
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   editOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.85)',
     zIndex: 10,
   },

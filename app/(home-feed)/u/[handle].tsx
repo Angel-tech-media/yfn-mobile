@@ -149,9 +149,9 @@ export default function PublicProfileScreen() {
                     onPress={() => {
                       if (vendor.id) {
                         startConversation.mutate(
-                          { participantUserId: vendor.id },
+                          { participantUserId: vendor.userId },
                           {
-                            onSuccess: (conv) => router.push(`/messages/${conv.id}` as never),
+                            onSuccess: (conv) => router.push(`/threads/${conv.id}` as never),
                           }
                         );
                       }
@@ -291,9 +291,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
   },
   actionPrimary: { backgroundColor: palette.brand.orange, borderColor: palette.brand.orange },
   actionText: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
@@ -304,9 +304,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
   },
 
   reviewList: { gap: spacing['2'] },
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['1'],
   },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between' },

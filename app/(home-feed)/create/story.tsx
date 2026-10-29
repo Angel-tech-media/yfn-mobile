@@ -156,7 +156,7 @@ export default function CreateStoryScreen() {
               }
             }}
             style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}>
-            <Ionicons name="paper-plane" size={18} color={palette.ink.onLightStrong} />
+            <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
             <Text style={styles.shareLabel}>{createStory.isPending || isUploading ? 'Sharing' : 'Share to Story'}</Text>
           </Pressable>
         </View>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
   iconBtnActive: {
-    backgroundColor: 'rgba(216, 149, 68, 0.78)',
+    backgroundColor: 'rgba(47, 107, 255, 0.78)',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: spacing['2'] },
   toolStack: { gap: spacing['2'] },
@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.brand.orange,
   },
   shareLabel: {
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
-    color: palette.ink.onLightStrong,
+    color: '#FFFFFF',
   },
 });

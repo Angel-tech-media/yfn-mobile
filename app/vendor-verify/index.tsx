@@ -81,9 +81,9 @@ const styles = StyleSheet.create({
   checklistCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['1'],
   },
   checklistTitle: {

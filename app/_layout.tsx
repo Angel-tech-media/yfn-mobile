@@ -1,8 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { useColorScheme } from 'react-native';
-
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,12 +7,15 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
+import { VibeAiCopilot } from '@/components/ai/VibeAiCopilot';
+import { useGlobalChatNotifications } from '@/src/hooks/use-global-chat';
 import { QueryProvider } from '@/src/providers/query-provider';
 import { ToastProvider } from '@/src/providers/toast-provider';
 import { useAuth } from '@/src/store/auth';
+import { useEffectiveMode } from '@/src/store/theme';
 import { appFonts } from '@/src/theme/fonts';
 
-SplashScreen.preventAutoHideAsync();
+// Splash auto-hide enabled for immediate rendering
 
 export const unstable_settings = {
   anchor: 'index',
@@ -26,8 +26,13 @@ export const unstable_settings = {
  * (or a utility route). Per-section options live in the section's own
  * `_layout.tsx`. See `app/architecture.md` for the full Figma → code map.
  */
+function GlobalChatListener() {
+  useGlobalChatNotifications();
+  return null;
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const effectiveMode = useEffectiveMode();
   const [fontsLoaded, fontError] = useFonts(appFonts);
   const bootstrapAuth = useAuth((s) => s.bootstrap);
   const authHydrated = useAuth((s) => s.hydrated);
@@ -36,36 +41,44 @@ export default function RootLayout() {
     void bootstrapAuth();
   }, [bootstrapAuth]);
 
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && authHydrated) {
-      SplashScreen.hideAsync();
-    }
-  }, [authHydrated, fontsLoaded, fontError]);
+  const [forceReady, setForceReady] = useState(false);
 
-  if ((!fontsLoaded && !fontError) || !authHydrated) {
-    return null;
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => setForceReady(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const isReady = (fontsLoaded || fontError || forceReady) && (authHydrated || forceReady);
+
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [isReady]);
+
+  // Immediate render - fallback fonts and default auth state mount immediately
+  SplashScreen.hideAsync().catch(() => undefined);
 
   return (
     <SafeAreaProvider>
       <QueryProvider>
         <ToastProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
+          <GlobalChatListener />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
 
-              {/* Figma sections — each is a route group */}
-              <Stack.Screen name="(app-launch)" />
-              <Stack.Screen name="(login)" />
-              <Stack.Screen name="(buyer-signup)" />
-              <Stack.Screen name="(vendor-signup)" />
-              <Stack.Screen name="(vendor-dashboard)" />
-              <Stack.Screen name="(home-feed)" />
+            {/* Figma sections — each is a route group */}
+            <Stack.Screen name="(app-launch)" />
+            <Stack.Screen name="(login)" />
+            <Stack.Screen name="(buyer-signup)" />
+            <Stack.Screen name="(vendor-signup)" />
+            <Stack.Screen name="(vendor-dashboard)" />
+            <Stack.Screen name="(home-feed)" />
 
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
-            <StatusBar style="dark" />
-          </ThemeProvider>
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <VibeAiCopilot />
+          <StatusBar style={effectiveMode === 'dark' ? 'light' : 'dark'} />
         </ToastProvider>
       </QueryProvider>
     </SafeAreaProvider>

@@ -195,6 +195,7 @@ export function assetUploadErrorMessage(error: unknown): string {
     if (error.storage?.code === 'NoSuchBucket') return 'Upload storage is not configured correctly. Please try again later.';
     if (error.status === 403) return 'The upload link expired. Please try again.';
     if (error.status === 404) return 'Upload storage could not be found. Please try again later.';
+    if (error.status === 413) return 'The video file exceeds the maximum size limit.';
     if (error.status === 400) return 'The selected media could not be uploaded. Please try again.';
     if (error.status && error.status >= 500) return 'Storage is temporarily unavailable. Please try again.';
     return 'Could not upload media. Please try again.';

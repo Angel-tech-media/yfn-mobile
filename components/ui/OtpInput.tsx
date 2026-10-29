@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function OtpInput({ length = 6, value, onChange, autoFocus, style }: Props) {
-  const refs = useRef<Array<TextInput | null>>([]);
+  const refs = useRef<Array<any>>([]);
 
   useEffect(() => {
     if (autoFocus) refs.current[0]?.focus();
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     color: palette.ink.onDarkStrong,
     textAlign: 'center',
     fontFamily: typography.h2.fontFamily,
