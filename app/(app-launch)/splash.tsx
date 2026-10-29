@@ -34,7 +34,7 @@ export default function SplashScreen() {
 
     const t = setTimeout(() => {
       if (!hydrated) return;
-      router.replace((authed ? '/(tabs)' : '/welcome') as never);
+      router.replace((authed ? '/(home-feed)/(tabs)' : '/welcome') as never);
     }, 1900);
     return () => clearTimeout(t);
   }, [authed, fade, hydrated, lift]);

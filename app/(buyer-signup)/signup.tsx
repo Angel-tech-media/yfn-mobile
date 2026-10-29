@@ -47,7 +47,10 @@ export default function SignupScreen() {
   const { role } = useLocalSearchParams<{ role?: 'vendor' | 'buyer' }>();
   const toast = useToast();
   const signUp = useAuth((s) => s.signUp);
-  const isVendor = role === 'vendor';
+  const [selectedRole, setSelectedRole] = useState<'buyer' | 'vendor'>(
+    role === 'vendor' ? 'vendor' : 'buyer',
+  );
+  const isVendor = selectedRole === 'vendor';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -128,6 +131,33 @@ export default function SignupScreen() {
           <Text style={styles.title}>
             {isVendor ? 'Start selling\non Vibe' : 'Create your\naccount'}
           </Text>
+        </View>
+
+        <View style={styles.roleToggle}>
+          <Pressable
+            onPress={() => setSelectedRole('buyer')}
+            style={[styles.roleTab, !isVendor && styles.roleTabActive]}>
+            <Ionicons
+              name="person"
+              size={15}
+              color={!isVendor ? palette.brand.orange : palette.ink.onDarkMuted}
+            />
+            <Text style={[styles.roleTabText, !isVendor && styles.roleTabTextActive]}>
+              Buyer (Shop)
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setSelectedRole('vendor')}
+            style={[styles.roleTab, isVendor && styles.roleTabActive]}>
+            <Ionicons
+              name="storefront"
+              size={15}
+              color={isVendor ? palette.brand.orange : palette.ink.onDarkMuted}
+            />
+            <Text style={[styles.roleTabText, isVendor && styles.roleTabTextActive]}>
+              Vendor (Sell)
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.form}>
@@ -283,6 +313,40 @@ const styles = StyleSheet.create({
     color: palette.ink.onDarkStrong,
     textAlign: 'center',
   },
+  roleToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#1E1916',
+    borderRadius: radius.pill,
+    padding: 4,
+    gap: 4,
+    marginBottom: spacing['4'],
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+  },
+  roleTabActive: {
+    backgroundColor: '#2A201B',
+    borderWidth: 1,
+    borderColor: 'rgba(47, 107, 255, 0.4)',
+  },
+  roleTabText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 13,
+    color: palette.ink.onDarkMuted,
+  },
+  roleTabTextActive: {
+    fontFamily: typography.bodyEmphasis.fontFamily,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   form: {
     gap: spacing['3'],
   },
@@ -385,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   sheetRowSelected: {
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
   },
   sheetLabel: {
     fontFamily: typography.bodyLg.fontFamily,

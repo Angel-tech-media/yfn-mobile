@@ -79,7 +79,7 @@ function renderNews(articles: Article[]) {
           <Ionicons name="newspaper" size={14} color={palette.brand.orange} />
           <Text style={styles.sectionTitleInline}>Latest</Text>
         </View>
-        <Pressable hitSlop={8} onPress={() => router.push('/(tabs)/news' as never)}>
+        <Pressable hitSlop={8} onPress={() => router.push('/(home-feed)/(tabs)/news' as never)}>
           <Text style={styles.seeAllLink}>See all</Text>
         </Pressable>
       </View>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     padding: spacing['3'],
     backgroundColor: 'rgba(255,255,255,0.28)',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     gap: spacing['2'],
   },
   categoryEmojiWrap: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: '#1A2244',
   },
   emptyText: { ...typography.body, color: palette.ink.onDarkSoft },
   trendingRow: {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: '#1A2244',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
     flexDirection: 'row',

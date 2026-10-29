@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
+import { vibeHaptics } from '@/src/lib/haptics';
 import { palette } from '@/src/theme';
 
 export type TabKey = 'home' | 'shop' | 'reels' | 'inbox' | 'profile';
@@ -38,7 +39,10 @@ export function BottomTabBar({ active, onChange }: Props) {
               accessibilityRole="button"
               accessibilityLabel={item.label}
               accessibilityState={{ selected: isActive }}
-              onPress={() => onChange(item.key)}
+              onPress={() => {
+                vibeHaptics.selection();
+                onChange(item.key);
+              }}
               style={({ pressed }) => [
                 styles.slot,
                 isActive && styles.slotActive,
@@ -70,9 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: '#161210',
     borderWidth: 1,
-    borderColor: palette.line.onDark,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   slot: {
     width: 48,

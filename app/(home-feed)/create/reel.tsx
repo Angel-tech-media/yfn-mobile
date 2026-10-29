@@ -169,7 +169,6 @@ function ReelVideoPreview({ uri }: { uri: string }) {
       style={StyleSheet.absoluteFill}
       contentFit="cover"
       nativeControls={false}
-      allowsFullscreen={false}
       surfaceType="textureView"
     />
   );

@@ -39,10 +39,11 @@ type AuthState = {
     gender?: 'female' | 'male' | 'non-binary' | 'prefer-not';
   }) => Promise<{ ok: true } | { ok: false; reason: string }>;
   signIn: (input: {
-    email: string;
+    usernameOrEmail?: string;
+    email?: string;
     password: string;
-    role: 'buyer' | 'vendor';
-  }) => Promise<{ ok: true } | { ok: false; reason: string }>;
+    role?: 'buyer' | 'vendor';
+  }) => Promise<{ ok: true; user?: AuthUser } | { ok: false; reason: string }>;
   signOut: () => Promise<void>;
   /** Refresh expired access token. */
   refresh: () => Promise<string | null>;
@@ -217,26 +218,34 @@ export const useAuth = create<AuthState>((set, get) => ({
         accessToken: storedSession.accessToken,
         refreshToken: storedSession.refreshToken,
         user: storedSession.user,
+        loading: false,
+        bootstrapping: false,
+        hydrated: true,
       });
       syncRole(storedSession.user);
 
-      const validatedUser = await validateStoredSession(storedSession.user.role);
-      if (validatedUser) {
-        const { accessToken, refreshToken } = get();
-        const session: StoredAuthSession = {
-          version: AUTH_SESSION_VERSION,
-          accessToken: accessToken ?? storedSession.accessToken,
-          refreshToken: refreshToken ?? storedSession.refreshToken,
-          user: validatedUser,
-        };
-        await persistAuthSession(session);
-        set({
-          accessToken: session.accessToken,
-          refreshToken: session.refreshToken,
-          user: session.user,
-        });
-        syncRole(session.user);
-      }
+      // Validate session in background so initial app boot is instantaneous
+      void validateStoredSession(storedSession.user.role)
+        .then(async (validatedUser) => {
+          if (validatedUser) {
+            const { accessToken, refreshToken } = get();
+            const session: StoredAuthSession = {
+              version: AUTH_SESSION_VERSION,
+              accessToken: accessToken ?? storedSession.accessToken,
+              refreshToken: refreshToken ?? storedSession.refreshToken,
+              user: validatedUser,
+            };
+            await persistAuthSession(session);
+            set({
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+              user: session.user,
+            });
+            syncRole(session.user);
+          }
+        })
+        .catch(() => undefined);
+      return;
     } catch (error) {
       if (isInvalidSessionError(error)) {
         await clearStoredAuthSession();
@@ -287,16 +296,21 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 
-  signIn: async ({ email, password, role }) => {
-    if (!email || !password || password.length < 8) {
-      return { ok: false, reason: 'Email and 8+ character password required.' };
+  signIn: async ({ usernameOrEmail, email, password, role = 'buyer' }) => {
+    const identifier = (usernameOrEmail || email || '').trim();
+    if (!identifier || !password || password.length < 8) {
+      return { ok: false, reason: 'Username or email and 8+ character password required.' };
     }
     set({ loading: true });
     try {
       // Clear out the previous user's data before signing in
       resetAllStores();
 
-      const result = await authBackend.login({ email, password });
+      const result = await authBackend.login({
+        identifier,
+        email: identifier,
+        password,
+      });
       const session = createSession(result, role);
       await persistAuthSession(session);
       set({
@@ -307,7 +321,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         hydrated: true,
       });
       syncRole(session.user);
-      return { ok: true };
+      return { ok: true, user: session.user };
     } catch (error) {
       set({ loading: false });
       const reason = error instanceof Error ? error.message : 'Sign-in failed.';

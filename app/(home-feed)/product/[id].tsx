@@ -18,13 +18,63 @@ import { useAddresses } from '@/src/api/account/hooks';
 import { useCreateOrder } from '@/src/api/orders/hooks';
 import { useProduct } from '@/src/api/products/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
-import { usePayFromWallet, useWallet } from '@/src/api/wallet/hooks';
+import { usePayFromWallet, useTopUpWallet, useWallet } from '@/src/api/wallet/hooks';
+import { useAuth } from '@/src/store/auth';
 import { useCart } from '@/src/store/cart';
 import { useIsWishlisted, useWishlist } from '@/src/store/wishlist';
+import { vibeHaptics } from '@/src/lib/haptics';
 import { palette, radius, spacing, typography } from '@/src/theme';
-import { formatKobo, formatNaira, koboToNaira } from '@/src/utils/money';
+import { formatKobo, formatNaira, koboToNaira, nairaToKobo } from '@/src/utils/money';
 
 const HERO = require('@/assets/figma/product-sample.png');
+
+interface ColorVariant {
+  key: string;
+  name: string;
+  hex: string;
+}
+
+const COLOR_MAP: Record<string, string> = {
+  black: '#1A1A1A',
+  white: '#F5F5F5',
+  silver: '#C0C0C0',
+  gold: '#D4AF37',
+  navy: '#001F3F',
+  crimson: '#DC143C',
+  red: '#DC143C',
+  blue: '#1E88E5',
+  green: '#43A047',
+  tan: '#D2B48C',
+  brown: '#8D6E63',
+  orange: '#FF8A00',
+  purple: '#8E24AA',
+  yellow: '#FBC02D',
+  grey: '#757575',
+  gray: '#757575',
+};
+
+function resolveColor(c: any, index: number): ColorVariant {
+  if (typeof c === 'string') {
+    const lower = c.toLowerCase();
+    let foundHex = '#888888';
+    for (const [name, hex] of Object.entries(COLOR_MAP)) {
+      if (lower.includes(name)) {
+        foundHex = hex;
+        break;
+      }
+    }
+    return {
+      key: `color-${c}-${index}`,
+      name: c,
+      hex: foundHex,
+    };
+  }
+  return {
+    key: String(c?.key ?? c?.name ?? `color-${index}`),
+    name: String(c?.name ?? c?.key ?? `Color ${index + 1}`),
+    hex: String(c?.hex ?? '#888888'),
+  };
+}
 
 export default function ProductDetailScreen() {
   const { id, via } = useLocalSearchParams<{ id: string; via?: string }>();
@@ -33,20 +83,25 @@ export default function ProductDetailScreen() {
   const { data: wallet } = useWallet();
   const { data: addresses = [] } = useAddresses();
   const { data: reposts = [] } = useMyReposts();
+  const user = useAuth((s) => s.user);
   const createOrder = useCreateOrder();
   const payFromWallet = usePayFromWallet();
+  const topUpWallet = useTopUpWallet();
   const [activeColor, setActiveColor] = useState('');
   const [activeSize, setActiveSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const liked = useIsWishlisted(String(id));
   const toggleWishlist = useWishlist((s) => s.toggle);
   const [repostOpen, setRepostOpen] = useState(false);
-  const [payState, setPayState] = useState<'idle' | 'paid' | 'low' | 'address'>('idle');
+  const [payState, setPayState] = useState<'idle' | 'paid' | 'low' | 'address' | 'error'>('idle');
+  const [payErrorMsg, setPayErrorMsg] = useState<string | null>(null);
   const reposted = reposts.some((repost) => repost.productId === productId);
   const addToCart = useCart((s) => s.add);
   const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
-  const colors = product?.variants?.colors ?? [];
-  const sizes = product?.variants?.sizes ?? [];
+  const colors: ColorVariant[] = (product?.variants?.colors ?? []).map(resolveColor);
+  const sizes: string[] = (product?.variants?.sizes ?? []).map((s: any, idx: number) =>
+    typeof s === 'string' ? s : String(s?.name ?? s?.label ?? s?.size ?? `Size ${idx + 1}`)
+  );
   const priceNaira = koboToNaira(product?.price ?? 0);
   const total = priceNaira * quantity;
   const platformFee = computePlatformFee(total);
@@ -60,10 +115,27 @@ export default function ProductDetailScreen() {
 
   const handlePay = () => {
     if (!product) return;
+    setPayErrorMsg(null);
+
+    // If no default address saved, send to Checkout screen so user can enter address directly
     if (!defaultAddress) {
-      setPayState('address');
+      addToCart(
+        {
+          id: product.id,
+          name: product.title,
+          price: priceNaira,
+          priceKobo: product.price,
+          image: imageSource,
+          vendor: product.vendor.storeName,
+          vendorId: product.vendorId,
+          color: activeColor,
+        },
+        quantity,
+      );
+      router.push('/checkout');
       return;
     }
+
     createOrder.mutate(
       {
         vendorId: product.vendorId,
@@ -86,11 +158,27 @@ export default function ProductDetailScreen() {
                 setPayState('paid');
                 router.replace('/order-confirmed' as never);
               },
-              onError: () => setPayState('low'),
+              onError: (err: any) => {
+                const msg = err?.message || '';
+                if (msg.includes('Insufficient') || msg.includes('balance')) {
+                  setPayState('low');
+                } else {
+                  setPayErrorMsg(msg || 'Payment failed.');
+                  setPayState('error');
+                }
+              },
             },
           );
         },
-        onError: () => setPayState('low'),
+        onError: (err: any) => {
+          const msg = err?.message || '';
+          if (msg.includes('Insufficient') || msg.includes('balance')) {
+            setPayState('low');
+          } else {
+            setPayErrorMsg(msg || 'Could not place order.');
+            setPayState('error');
+          }
+        },
       },
     );
   };
@@ -204,6 +292,20 @@ export default function ProductDetailScreen() {
               </View>
             </Pressable>
 
+            {/* Google Business Map & Proximity discovery */}
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/search',
+                  params: { focus: 'map', q: product.title },
+                } as never)
+              }
+              style={styles.findNearbyBtn}>
+              <Ionicons name="map-outline" size={14} color={palette.brand.orange} />
+              <Text style={styles.findNearbyText}>Find Nearby Vendors on Map</Text>
+              <Ionicons name="chevron-forward" size={13} color={palette.ink.onDarkMuted} />
+            </Pressable>
+
             <Text style={styles.title}>{product.title}</Text>
             <View style={styles.priceRow}>
               <Text style={styles.price}>{formatKobo(product.price)}</Text>
@@ -218,11 +320,11 @@ export default function ProductDetailScreen() {
               <>
               <Text style={styles.sectionLabel}>Colour</Text>
               <View style={styles.swatchRow}>
-              {colors.map((c) => {
+              {colors.map((c, index) => {
                 const on = activeColor === c.key;
                 return (
                   <Pressable
-                    key={c.key}
+                    key={c.key || `swatch-${index}`}
                     onPress={() => setActiveColor(c.key)}
                     style={[styles.swatchWrap, on && styles.swatchWrapOn]}>
                     <View style={[styles.swatch, { backgroundColor: c.hex }]} />
@@ -238,11 +340,11 @@ export default function ProductDetailScreen() {
               <>
               <Text style={styles.sectionLabel}>Size</Text>
               <View style={styles.sizeRow}>
-              {sizes.map((s) => {
+              {sizes.map((s, index) => {
                 const on = activeSize === s;
                 return (
                   <Pressable
-                    key={s}
+                    key={`size-${s}-${index}`}
                     onPress={() => setActiveSize(s)}
                     style={[styles.size, on && styles.sizeOn]}>
                     <Text style={[styles.sizeLabel, on && styles.sizeLabelOn]}>{s}</Text>
@@ -278,10 +380,10 @@ export default function ProductDetailScreen() {
             </View>
             {(product.reviews ?? []).length === 0 ? (
               <Text style={styles.emptyText}>No reviews yet.</Text>
-            ) : (product.reviews ?? []).map((r) => (
-              <View key={r.id} style={styles.reviewRow}>
+            ) : (product.reviews ?? []).map((r, rIdx) => (
+              <View key={r.id || `review-${rIdx}`} style={styles.reviewRow}>
                 <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewInitial}>{r.author[0]?.toUpperCase() ?? '?'}</Text>
+                  <Text style={styles.reviewInitial}>{r.author?.[0]?.toUpperCase() ?? '?'}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.reviewMeta}>
@@ -291,7 +393,7 @@ export default function ProductDetailScreen() {
                   <View style={styles.reviewStars}>
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Ionicons
-                        key={s}
+                        key={`star-${r.id || rIdx}-${s}`}
                         name="star"
                         size={11}
                         color={s <= r.rating ? palette.brand.amber : '#D9D9D9'}
@@ -344,9 +446,38 @@ export default function ProductDetailScreen() {
                 {payState === 'low' ? (
                   <View style={styles.payErr}>
                     <Ionicons name="alert-circle" size={14} color={palette.status.danger} />
-                    <Text style={styles.payErrText}>
-                      Not enough in your eWallet. Top up to continue.
-                    </Text>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={styles.payErrText}>
+                        Not enough in your eWallet.
+                      </Text>
+                      <Pressable
+                        onPress={() => {
+                          topUpWallet.mutate(
+                            { amount: nairaToKobo(50000), source: 'Instant Top-Up' },
+                            {
+                              onSuccess: () => setPayState('idle'),
+                            }
+                          );
+                        }}
+                        style={{
+                          alignSelf: 'flex-start',
+                          paddingVertical: 5,
+                          paddingHorizontal: 12,
+                          backgroundColor: palette.brand.orange,
+                          borderRadius: 6,
+                          marginTop: 4,
+                        }}>
+                        <Text style={{ color: '#fff', fontSize: 12, fontFamily: typography.bodyEmphasis.fontFamily }}>
+                          {topUpWallet.isPending ? 'Crediting…' : '+ Top up ₦50,000 instantly'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
+                {payState === 'error' && payErrorMsg ? (
+                  <View style={styles.payErr}>
+                    <Ionicons name="alert-circle" size={14} color={palette.status.danger} />
+                    <Text style={styles.payErrText}>{payErrorMsg}</Text>
                   </View>
                 ) : null}
                 {payState === 'address' ? (
@@ -359,7 +490,7 @@ export default function ProductDetailScreen() {
                 ) : null}
 
                 <Pressable
-                  onPress={defaultAddress ? handlePay : () => router.push('/account/addresses/add' as never)}
+                  onPress={handlePay}
                   disabled={createOrder.isPending || payFromWallet.isPending || payState === 'paid'}
                   style={({ pressed }) => [
                     styles.payCta,
@@ -390,27 +521,53 @@ export default function ProductDetailScreen() {
                   </Text>
                 </Pressable>
 
-                <Pressable
-                  onPress={() => {
-                    addToCart(
-                      {
-                        id: product.id,
-                        name: product.title,
-                        price: priceNaira,
-                        priceKobo: product.price,
-                        image: imageSource,
-                        vendor: product.vendor.storeName,
-                        vendorId: product.vendorId,
-                        color: activeColor,
-                      },
-                      quantity,
-                    );
-                    router.push('/cart');
-                  }}
-                  style={styles.cartLink}>
-                  <Ionicons name="bag-outline" size={14} color={palette.brand.orange} />
-                  <Text style={styles.cartLinkLabel}>Add to cart instead</Text>
-                </Pressable>
+                <View style={styles.secondaryActionsRow}>
+                  <Pressable
+                    onPress={() => {
+                      vibeHaptics.medium();
+                      addToCart(
+                        {
+                          id: product.id,
+                          name: product.title,
+                          price: priceNaira,
+                          priceKobo: product.price,
+                          image: imageSource,
+                          vendor: product.vendor.storeName,
+                          vendorId: product.vendorId,
+                          color: activeColor,
+                        },
+                        quantity,
+                      );
+                      router.push('/cart');
+                    }}
+                    style={styles.cartLink}>
+                    <Ionicons name="bag-outline" size={14} color={palette.brand.orange} />
+                    <Text style={styles.cartLinkLabel}>Add to bag</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      vibeHaptics.selection();
+                      addToCart(
+                        {
+                          id: product.id,
+                          name: product.title,
+                          price: priceNaira,
+                          priceKobo: product.price,
+                          image: imageSource,
+                          vendor: product.vendor.storeName,
+                          vendorId: product.vendorId,
+                          color: activeColor,
+                        },
+                        quantity,
+                      );
+                      router.push('/checkout');
+                    }}
+                    style={styles.giftProductLink}>
+                    <Ionicons name="gift-outline" size={14} color="#FBBF24" />
+                    <Text style={styles.giftProductLinkLabel}>Gift to someone</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
 
@@ -467,7 +624,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
   },
@@ -480,9 +637,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(216, 149, 68, 0.12)',
+    backgroundColor: 'rgba(47, 107, 255, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68, 0.32)',
+    borderColor: 'rgba(47, 107, 255, 0.32)',
   },
   viaText: {
     flex: 1,
@@ -582,6 +739,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
+  findNearbyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(47, 107, 255, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(47, 107, 255, 0.28)',
+    marginTop: spacing['2'],
+    marginBottom: spacing['1'],
+    alignSelf: 'flex-start',
+  },
+  findNearbyText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: 12,
+    color: palette.brand.orange,
+    fontWeight: '600',
+  },
   title: {
     ...typography.h2,
     fontSize: 22,
@@ -652,7 +829,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
@@ -678,7 +855,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
@@ -750,7 +927,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.55)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     backgroundColor: 'rgba(255, 255, 255, 0.45)',
     shadowColor: 'rgba(40, 26, 16, 0.25)',
     shadowOffset: { width: 0, height: 16 },
@@ -848,17 +1025,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#fff',
   },
+  secondaryActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: spacing['2'],
+  },
   cartLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: spacing['2'],
-    marginTop: spacing['2'],
   },
   cartLinkLabel: {
     ...typography.caption,
     color: palette.brand.orange,
+    fontFamily: typography.bodyEmphasis.fontFamily,
+  },
+  giftProductLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: spacing['2'],
+  },
+  giftProductLinkLabel: {
+    ...typography.caption,
+    color: '#FBBF24',
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
 });

@@ -43,25 +43,26 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#161210',
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing['5'],
     paddingTop: spacing['3'],
     paddingBottom: spacing['8'],
     borderTopWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   handle: {
     alignSelf: 'center',
     width: 48,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     marginBottom: spacing['4'],
   },
 });
+

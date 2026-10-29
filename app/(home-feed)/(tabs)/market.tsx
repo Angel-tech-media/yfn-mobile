@@ -1,159 +1,210 @@
-import { useState, type ReactNode } from 'react';
-
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Badge, Chip } from '@/components/kit/Chip';
+import { Card } from '@/components/kit/Card';
+import { NavIconButton, SearchField } from '@/components/kit/Fields';
+import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
+import { ProductCard } from '@/components/product/ProductCard';
+import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
+import { CartMascot } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { useFeedReels } from '@/src/api/feed/hooks';
 import { useMarketplaceHome, useTopRatedVendors } from '@/src/api/marketplace/hooks';
-import { palette, radius, spacing, typography } from '@/src/theme';
-
+import { SECTORS } from '@/src/config/sectors';
+import { useCartCount } from '@/src/store/cart';
+import { useCarty } from '@/src/store/carty';
+import { corner, continuous, layout, type, useUi } from '@/src/theme/ui';
 import { formatKobo } from '@/src/utils/money';
 
 import type { RankedProduct, Reel, TopRatedResponse } from '@/src/api/types';
 
 export default function MarketScreen() {
+  const ui = useUi();
+  const openCarty = useCarty((s) => s.open);
+  const [selectedProduct, setSelectedProduct] = useState<RankedProduct | null>(null);
   const [category, setCategory] = useState<string | undefined>(undefined);
   const { data: home, isError, isLoading, refetch } = useMarketplaceHome({ category, limit: 30 });
   const { data: topRated = [] } = useTopRatedVendors({ category });
   const { data: reels = [] } = useFeedReels({ limit: 8 });
+  const cartCount = useCartCount();
   const products = (home?.products ?? []).filter(isRealProduct);
-  const categories = uniqueCategories(products);
+  const categories = Array.from(
+    new Set([...SECTORS.map((s) => s.label), ...uniqueCategories(products)]),
+  );
   const vendors = topRated.filter(isRealVendor);
 
   return (
-    <EspressoBackground variant="espresso">
-      <SafeAreaView edges={['top']} style={styles.safe}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Market</Text>
-          <Pressable onPress={() => router.push('/search?focus=products' as never)} style={styles.iconBtn}>
-            <Ionicons name="search" size={20} color={palette.ink.onDarkStrong} />
-          </Pressable>
+    <EspressoBackground>
+      <LargeTitleHeader
+        title="Market"
+        trailing={
+          <>
+            <NavIconButton icon="search-outline" label="Search" onPress={() => router.push('/search' as never)} />
+            <NavIconButton icon="bag-outline" label="Cart" badge={cartCount} onPress={() => router.push('/cart' as never)} />
+          </>
+        }
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic">
+        <View style={styles.pad}>
+          <SearchField
+            icon="sparkles"
+            placeholder="Ask Carty what you're shopping for"
+            onPress={openCarty}
+          />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-            <Pressable
-              onPress={() => setCategory(undefined)}
-              style={[styles.categoryChip, !category && styles.categoryChipOn]}>
-              <Text style={[styles.categoryLabel, !category && styles.categoryLabelOn]}>All</Text>
-            </Pressable>
-            {categories.map((item) => {
-              const selected = category === item;
-              return (
-                <Pressable
-                  key={item}
-                  onPress={() => setCategory(item)}
-                  style={[styles.categoryChip, selected && styles.categoryChipOn]}>
-                  <Text style={[styles.categoryLabel, selected && styles.categoryLabelOn]}>{item}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          {isLoading ? (
-            <Text style={styles.stateText}>Loading market...</Text>
-          ) : isError ? (
-            <View style={styles.stateBlock}>
-              <Text style={styles.stateText}>Could not load market.</Text>
-              <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-                <Text style={styles.retryText}>Retry</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              {reels.length ? (
-                <Section title="Reels">
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reelRow}>
-                    {reels.map((reel) => (
-                      <ReelCard key={reel.id} reel={reel} />
-                    ))}
-                  </ScrollView>
-                </Section>
-              ) : null}
-
-              {vendors.length ? (
-                <Section title="Top rated vendors">
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vendorRow}>
-                    {vendors.map((vendor) => (
-                      <Pressable key={vendor.id} style={styles.vendorCard}>
-                        <View style={styles.vendorAvatar}>
-                          <Text style={styles.vendorInitial}>{initialsFor(vendor.storeName)}</Text>
-                        </View>
-                        <Text style={styles.vendorName} numberOfLines={1}>{vendor.storeName}</Text>
-                        <Text style={styles.vendorMeta}>{vendor.rating.toFixed(1)} · {vendor.ratingCount} reviews</Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </Section>
-              ) : null}
-
-              <Section title="Products">
-                {products.length ? (
-                  <View style={styles.productGrid}>
-                    {products.map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.stateText}>No products found.</Text>
-                )}
-              </Section>
-            </>
-          )}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+          <Chip label="All" selected={!category} onPress={() => setCategory(undefined)} />
+          {categories.map((item, idx) => (
+            <Chip
+              key={item || `category-${idx}`}
+              label={item}
+              selected={category === item}
+              onPress={() => setCategory(item)}
+            />
+          ))}
         </ScrollView>
-      </SafeAreaView>
+
+        {isLoading ? (
+          <Text style={[type.callout, styles.state, { color: ui.secondaryLabel }]}>Loading market…</Text>
+        ) : isError ? (
+          <View style={styles.stateBlock}>
+            <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn't load the market.</Text>
+            <Chip label="Try again" selected onPress={() => refetch()} />
+          </View>
+        ) : (
+          <>
+            {vendors.length ? (
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Top vendors"
+                  action={
+                    <PressableScale haptic="light" onPress={() => router.push('/search?focus=map' as never)}>
+                      <Text style={[type.subhead, { color: ui.accent }]}>See map</Text>
+                    </PressableScale>
+                  }
+                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+                  {vendors.map((vendor, idx) => (
+                    <VendorCard key={vendor.id ? `vendor-${vendor.id}` : `vendor-${idx}`} vendor={vendor} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            {reels.length ? (
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Watch & shop"
+                  action={
+                    <PressableScale haptic="light" onPress={() => router.push('/reels' as never)}>
+                      <Text style={[type.subhead, { color: ui.accent }]}>See all</Text>
+                    </PressableScale>
+                  }
+                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+                  {reels.map((reel, idx) => (
+                    <ReelCard key={reel.id ? `reel-${reel.id}` : `reel-${idx}`} reel={reel} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            <View style={styles.section}>
+              <SectionHeader title={category ?? 'Trending now'} />
+              {products.length ? (
+                <View style={styles.grid}>
+                  {products.map((product, idx) => (
+                    <ProductCard
+                      key={product.id ? `product-${product.id}` : `product-${idx}`}
+                      product={product}
+                      style={styles.gridItem}
+                      onPress={() => setSelectedProduct(product)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={[type.callout, styles.state, { color: ui.secondaryLabel }]}>
+                  Nothing here yet. Try another category.
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+      </ScrollView>
+
+      <ProductQuickViewModal
+        product={selectedProduct}
+        visible={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
     </EspressoBackground>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function VendorCard({ vendor }: { vendor: TopRatedResponse[number] }) {
+  const ui = useUi();
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
+    <Card onPress={() => router.push(`/place/${vendor.id}` as never)} style={styles.vendorCard} padded>
+      <View style={[styles.vendorAvatar, { backgroundColor: ui.accent }]}>
+        <Text style={[type.headline, { color: ui.onAccent }]}>{initialsFor(vendor.storeName)}</Text>
+      </View>
+      <Text style={[type.headline, { color: ui.label }]} numberOfLines={1}>
+        {vendor.storeName}
+      </Text>
+      <View style={styles.vendorMeta}>
+        <Ionicons name="star" size={12} color={ui.gold} />
+        <Text style={[type.footnote, { color: ui.gold }]}>
+          {vendor.rating.toFixed(1)}
+        </Text>
+        {typeof vendor.distance === 'number' ? (
+          <Text style={[type.footnote, { color: ui.secondaryLabel }]}>
+            {`  ·  ${vendor.distance.toFixed(1)} km`}
+          </Text>
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
 function ReelCard({ reel }: { reel: Reel }) {
+  const ui = useUi();
   return (
-    <Pressable onPress={() => router.push(`/reel?id=${reel.id}` as never)} style={styles.reelCard}>
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={`Reel by ${reel.author.name}`}
+      onPress={() => router.push(`/reel?id=${reel.id}` as never)}
+      haptic="light"
+      scaleTo={0.97}
+      style={[styles.reelCard, { backgroundColor: ui.card }]}>
       {reel.coverUrl ? (
-        <Image source={{ uri: reel.coverUrl }} style={styles.reelImage} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.reelImage} />
-      )}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.75)']} style={StyleSheet.absoluteFill} />
+        <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+      ) : null}
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+      {reel.product ? (
+        <View style={styles.reelBadge}>
+          <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
+        </View>
+      ) : null}
       <View style={styles.reelMeta}>
-        <Text style={styles.reelAuthor} numberOfLines={1}>{reel.author.name}</Text>
-        <Text style={styles.reelCaption} numberOfLines={2}>{reel.caption}</Text>
+        <Text style={[type.subhead, { color: '#FFFFFF' }]} numberOfLines={1}>
+          {reel.author.name}
+        </Text>
+        <Text style={[type.footnote, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={2}>
+          {reel.caption}
+        </Text>
       </View>
-    </Pressable>
-  );
-}
-
-function ProductCard({ product }: { product: RankedProduct }) {
-  const imageUrl = product.media?.find((media) => media.type === 'image')?.url;
-
-  return (
-    <Pressable onPress={() => router.push(`/product/${product.id}` as never)} style={styles.productCard}>
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.productImage} contentFit="cover" />
-      ) : (
-        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.productImage} />
-      )}
-      <View style={styles.productBody}>
-        <Text style={styles.productTitle} numberOfLines={2}>{product.title}</Text>
-        <Text style={styles.productMeta}>{product.category}</Text>
-        <Text style={styles.productPrice}>{formatKobo(product.price)}</Text>
-      </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -173,105 +224,41 @@ function hasSeedMarker(value: string) {
 }
 
 function uniqueCategories(products: RankedProduct[]) {
-  const productCategories = products
-    .map((product) => product.category)
-    .filter(Boolean);
-  return Array.from(new Set(productCategories));
+  return Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 }
 
 function initialsFor(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'Y';
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('') || 'Y'
+  );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing['5'],
-    paddingVertical: spacing['3'],
-  },
-  title: { ...typography.h2, color: palette.ink.onDarkStrong },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  scroll: { paddingBottom: 100, gap: spacing['4'] },
-  categoryRow: { paddingHorizontal: spacing['5'], gap: spacing['2'], paddingBottom: spacing['2'] },
-  categoryChip: {
-    height: 34,
-    paddingHorizontal: spacing['3'],
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-  },
-  categoryChipOn: { backgroundColor: palette.bg.surface },
-  categoryLabel: { ...typography.caption, color: palette.ink.onDarkSoft, fontFamily: typography.bodyEmphasis.fontFamily },
-  categoryLabelOn: { color: palette.ink.onLightStrong },
-  stateBlock: { alignItems: 'center', gap: spacing['3'], padding: spacing['5'] },
-  stateText: { ...typography.body, color: palette.ink.onDarkSoft, textAlign: 'center', padding: spacing['4'] },
-  retryBtn: {
-    height: 36,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing['4'],
-    backgroundColor: palette.brand.orange,
-    justifyContent: 'center',
-  },
-  retryText: { ...typography.bodyEmphasis, color: '#fff' },
-  section: { gap: spacing['3'] },
-  sectionTitle: { ...typography.title, color: palette.ink.onDarkStrong, paddingHorizontal: spacing['5'] },
-  reelRow: { gap: spacing['3'], paddingHorizontal: spacing['5'] },
-  reelCard: { width: 170, height: 260, borderRadius: radius.lg, overflow: 'hidden' },
-  reelImage: { width: '100%', height: '100%' },
-  reelMeta: { position: 'absolute', left: spacing['3'], right: spacing['3'], bottom: spacing['3'], gap: 2 },
-  reelAuthor: { ...typography.bodyEmphasis, color: '#fff' },
-  reelCaption: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
-  vendorRow: { gap: spacing['3'], paddingHorizontal: spacing['5'] },
-  vendorCard: {
-    width: 145,
-    padding: spacing['3'],
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-    gap: spacing['2'],
-  },
-  vendorAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.brand.orange,
-  },
-  vendorInitial: { ...typography.bodyEmphasis, color: '#fff' },
-  vendorName: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
-  vendorMeta: { ...typography.caption, color: palette.ink.onDarkMuted },
-  productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing['3'], paddingHorizontal: spacing['5'] },
-  productCard: {
-    width: '47.5%',
-    borderRadius: radius.lg,
+  scroll: { paddingBottom: 120, gap: layout.sectionGap },
+  pad: { paddingHorizontal: layout.gutter },
+  chipRow: { paddingHorizontal: layout.gutter, gap: 8 },
+  section: { gap: 14 },
+  hRow: { paddingHorizontal: layout.gutter, gap: layout.cardGap },
+  state: { textAlign: 'center', padding: 24 },
+  stateBlock: { alignItems: 'center', gap: 14, padding: 24 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, paddingHorizontal: layout.gutter },
+  gridItem: { width: '47.5%' },
+  vendorCard: { width: 148, gap: 10 },
+  vendorAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  vendorMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  reelCard: {
+    width: 150,
+    aspectRatio: 9 / 14,
+    borderRadius: corner.lg,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    justifyContent: 'flex-end',
+    ...continuous,
   },
-  productImage: { width: '100%', aspectRatio: 1 },
-  productBody: { padding: spacing['3'], gap: 3 },
-  productTitle: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
-  productMeta: { ...typography.caption, color: palette.ink.onDarkMuted },
-  productPrice: { ...typography.bodyEmphasis, color: palette.brand.orange },
+  reelBadge: { position: 'absolute', top: 10, left: 10 },
+  reelMeta: { padding: 12, gap: 2 },
 });

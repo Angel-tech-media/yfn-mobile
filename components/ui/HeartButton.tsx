@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import { palette, typography } from '@/src/theme';
 
 type Props = {
@@ -13,11 +13,13 @@ type Props = {
 
 export function HeartButton({ liked, count, onToggle, size = 28 }: Props) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={liked ? 'Unlike' : 'Like'}
       onPress={onToggle}
-      style={({ pressed }) => [styles.root, pressed && styles.pressed]}>
+      haptic="selection"
+      scaleTo={0.84}
+      style={styles.root}>
       <View style={[styles.iconWrap, styles.iconDropShadow]}>
         <Ionicons
           name={liked ? 'heart' : 'heart-outline'}
@@ -28,7 +30,7 @@ export function HeartButton({ liked, count, onToggle, size = 28 }: Props) {
       {typeof count === 'number' ? (
         <Text style={styles.count}>{formatCount(count)}</Text>
       ) : null}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -43,7 +45,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  pressed: { opacity: 0.75 },
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -58,9 +59,8 @@ const styles = StyleSheet.create({
   },
   iconDropShadow: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
 });

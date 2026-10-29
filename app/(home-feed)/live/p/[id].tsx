@@ -18,7 +18,7 @@ export default function LiveProductDetailScreen() {
   const messageVendor = () => {
     if (!product) return;
     startConv.mutate(
-      { participantUserId: product.vendorId, productId: product.id },
+      { participantUserId: product.vendor.userId, productId: product.id },
       {
         onSuccess: (conv) => router.push(`/threads/${conv.id}` as never),
       },

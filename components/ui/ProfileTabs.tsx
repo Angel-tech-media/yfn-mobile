@@ -50,7 +50,7 @@ export function ProfileTabs({
             <Ionicons
               name={iconName}
               size={24}
-              color={isActive ? palette.brand.orange : palette.ink.onDarkMuted}
+              color={isActive ? palette.brand.orange : 'rgba(255, 255, 255, 0.45)'}
             />
           </Pressable>
         );
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: palette.line.divider,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: spacing['3'],
   },
   tab: {

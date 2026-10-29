@@ -1,278 +1,225 @@
 import { useCallback, useState } from 'react';
-
-import {
-  Alert,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-  Share,
-} from 'react-native';
-
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
 
+import { Badge, Chip } from '@/components/kit/Chip';
+import { NavIconButton } from '@/components/kit/Fields';
+import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
+import { PostCard, type PostItem } from '@/components/feed/PostCard';
 import { Avatar } from '@/components/ui/Avatar';
-import { BottomSheet } from '@/components/ui/BottomSheet';
-import { ImageViewerModal } from '@/components/ui/ImageViewerModal';
+import { CartMascot } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { PostRepostSheet } from '@/components/ui/PostRepostSheet';
-import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { useMe } from '@/src/api/account/hooks';
 import { useConversations } from '@/src/api/chat/hooks';
-import {
-  useFeed,
-  useStoriesInbox,
-  useToggleLikePost,
-  useToggleBookmarkPost,
-  useDeletePost,
-} from '@/src/api/feed/hooks';
-import { useToast } from '@/src/hooks/use-toast';
-import {
-  useEngagement,
-  useIsLiked,
-  useIsRepostedPost,
-  useIsSaved,
-} from '@/src/store/engagement';
-import { palette, radius, spacing, typography } from '@/src/theme';
-
+import { useFeed, useFeedReels, useStoriesInbox } from '@/src/api/feed/hooks';
+import { useCartCount } from '@/src/store/cart';
+import { continuous, corner, layout, type, useUi } from '@/src/theme/ui';
 import { formatKobo } from '@/src/utils/money';
 
-import type { MeResponse, Post, Story } from '@/src/api/types';
-
-type StoryTile = { key: string; name: string; isAdd?: boolean; avatarUrl?: string | null };
-
-type PostItem = {
-  kind: 'post';
-  id: string;
-  author: string;
-  authorHandle: string;
-  authorAvatarUrl?: string | null;
-  badge: boolean;
-  caption: string;
-  product: string;
-  productId?: string;
-  price: string;
-  likes: number;
-  comments: number;
-  reposts: number;
-  likedByMe?: boolean;
-  savedByMe?: boolean;
-  repostedByMe?: boolean;
-  imageUrls: string[];
-};
+import type { Post, Story } from '@/src/api/types';
 
 export default function HomeFeedScreen() {
+  const ui = useUi();
   const { data, isError, isFetching, refetch } = useFeed({ limit: 30 });
   const { data: storiesData = [], refetch: refetchStories } = useStoriesInbox();
+  const { data: reels = [], refetch: refetchReels } = useFeedReels({ limit: 10 });
   const { data: me } = useMe();
   const { data: threads = [] } = useConversations();
+  const cartCount = useCartCount();
   const [refreshing, setRefreshing] = useState(false);
 
   const unreadCount = threads.filter((t) => {
-    const meParticipant = t.participants?.find((p) => p.userId === me?.id);
-    if (!meParticipant) return false;
-    if (!meParticipant.lastReadAt) return true;
-    return new Date(t.updatedAt).getTime() > new Date(meParticipant.lastReadAt).getTime();
+    const mine = t.participants?.find((p) => p.userId === me?.id);
+    if (!mine) return false;
+    if (!mine.lastReadAt) return true;
+    return new Date(t.updatedAt).getTime() > new Date(mine.lastReadAt).getTime();
   }).length;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchStories()]);
+    await Promise.all([refetch(), refetchStories(), refetchReels()]);
     setRefreshing(false);
-  }, [refetch, refetchStories]);
+  }, [refetch, refetchStories, refetchReels]);
 
-  const feedPosts = data?.items.map(toPostItem) ?? [];
-  const profileName = profileNameFor(me);
-  const profileAvatar = profileAvatarFor(me);
-
-  const groupedStories = Array.from(
-    storiesData.reduce((acc, story) => {
-      if (!acc.has(story.author.id)) {
-        acc.set(story.author.id, story.author);
-      }
-      return acc;
-    }, new Map<string, Story['author']>()).values()
+  const posts = data?.items.map(toPostItem) ?? [];
+  const authors = Array.from(
+    storiesData
+      .reduce((acc, story) => {
+        const id = story?.author?.id;
+        if (id && !acc.has(id)) acc.set(id, story.author);
+        return acc;
+      }, new Map<string, Story['author']>())
+      .values(),
   );
-
-  const STORIES_VIEW: StoryTile[] = [
-    { key: 'add', name: 'Your story', isAdd: true },
-    ...groupedStories.map((author) => ({
-      key: author.id,
-      name: author.name,
-      avatarUrl: author.avatarUrl,
-    })),
-  ];
-
-  const translateY = useSharedValue(0);
-  const lastScrollY = useSharedValue(0);
-  const topBarHeight = 60;
-  const storiesHeight = 115;
-  const headerHeight = topBarHeight + storiesHeight;
-  const insets = useSafeAreaInsets();
-
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      const currentScrollY = event.contentOffset.y;
-      // Over-scroll rubber banding on iOS
-      if (currentScrollY <= 0) {
-        translateY.value = 0;
-        lastScrollY.value = currentScrollY;
-        return;
-      }
-      const diff = currentScrollY - lastScrollY.value;
-      let nextTranslate = translateY.value - diff;
-      nextTranslate = Math.max(Math.min(nextTranslate, 0), -storiesHeight);
-      translateY.value = nextTranslate;
-      lastScrollY.value = currentScrollY;
-    },
-  });
-
-  const animatedHeaderStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
+  const myAvatar = me?.avatarUrl ? { uri: me.avatarUrl } : undefined;
+  const myName = me?.name || me?.displayName || me?.username || 'Me';
 
   return (
-    <EspressoBackground variant="espresso">
-      <View style={styles.safe}>
-        <Animated.ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scroll, { paddingTop: headerHeight + insets.top }]}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing || isFetching}
-              onRefresh={onRefresh}
-              tintColor={palette.brand.orange}
-              colors={[palette.brand.orange]}
-              progressViewOffset={headerHeight + insets.top}
+    <EspressoBackground>
+      <LargeTitleHeader
+        title="Home"
+        trailing={
+          <>
+            <NavIconButton icon="paper-plane-outline" label="Messages" badge={unreadCount} onPress={() => router.push('/inbox' as never)} />
+            <NavIconButton icon="notifications-outline" label="Notifications" onPress={() => router.push('/notifications')} />
+            <NavIconButton icon="bag-outline" label="Cart" badge={cartCount} onPress={() => router.push('/cart' as never)} />
+          </>
+        }
+      />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={refreshing || isFetching} onRefresh={onRefresh} tintColor={ui.accent} />
+        }>
+        {/* Stories */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stories}>
+          <StoryTile
+            name="Your story"
+            onPress={() => router.push('/create/story' as never)}
+            avatar={<Avatar size={60} source={myAvatar} initials={initials(myName)} />}
+            addable
+          />
+          {authors.map((a, idx) => (
+            <StoryTile
+              key={a?.id ? `story-${a.id}` : `story-${idx}`}
+              name={a?.name || 'User'}
+              onPress={() => router.push(`/story/${a?.id}` as never)}
+              avatar={
+                a?.avatarUrl ? (
+                  <Avatar size={60} source={{ uri: a.avatarUrl }} />
+                ) : (
+                  <Avatar size={60} initials={initials(a?.name || 'U')} />
+                )
+              }
+              ring
             />
-          }>
-          <View style={styles.feed}>
-            {isError ? (
-              <View style={styles.emptyFeed}>
-                <Text style={styles.emptyFeedText}>Could not load feed from the backend.</Text>
-                <PrimaryButton label="Retry" onPress={() => refetch()} style={styles.retryBtn} />
-              </View>
-            ) : null}
-            {!isError && !feedPosts.length ? (
-              <View style={styles.emptyFeed}>
-                <Text style={styles.emptyFeedText}>No feed posts yet.</Text>
-              </View>
-            ) : null}
-            {feedPosts.map((item) => (
-              <FeedCard key={item.id} post={item} />
-            ))}
-          </View>
-        </Animated.ScrollView>
+          ))}
+        </ScrollView>
 
-        <View style={[styles.fixedTopBar, { paddingTop: insets.top }]}>
-          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-          <View style={styles.header}>
-            <Text style={styles.title}>Feed</Text>
-            <View style={styles.headerActions}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Search people and hashtags"
-                onPress={() => router.push('/search?focus=people')}
-                hitSlop={6}
-                style={styles.notifBtn}>
-                <Ionicons name="search" size={20} color={palette.ink.onDarkStrong} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Messages"
-                onPress={() => router.push('/inbox' as never)}
-                hitSlop={6}
-                style={styles.notifBtn}>
-                <Ionicons name="paper-plane-outline" size={20} color={palette.ink.onDarkStrong} />
-                {unreadCount > 0 && (
-                  <View style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+        {/* Reels */}
+        {reels.length ? (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Watch & shop"
+              action={
+                <PressableScale haptic="light" onPress={() => router.push('/reels' as never)}>
+                  <Text style={[type.subhead, { color: ui.accent }]}>See all</Text>
+                </PressableScale>
+              }
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+              {reels.map((reel, idx) => (
+                <PressableScale
+                  key={reel.id ? `reel-${reel.id}` : `reel-${idx}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Reel by ${reel.author.name}`}
+                  haptic="light"
+                  scaleTo={0.97}
+                  onPress={() => router.push(`/reel?id=${reel.id}` as never)}
+                  style={[styles.reel, { backgroundColor: ui.card }]}>
+                  {reel.coverUrl ? (
+                    <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+                  ) : null}
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+                  {reel.product ? (
+                    <View style={styles.reelBadge}>
+                      <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
+                    </View>
+                  ) : null}
+                  <View style={styles.reelMeta}>
+                    <Text style={[type.subhead, { color: '#FFF' }]} numberOfLines={1}>
+                      {reel.author.name}
+                    </Text>
+                    <Text style={[type.footnote, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>
+                      {reel.caption}
+                    </Text>
                   </View>
-                )}
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-                onPress={() => router.push('/notifications')}
-                hitSlop={6}
-                style={styles.notifBtn}>
-                <Ionicons name="notifications-outline" size={20} color={palette.ink.onDarkStrong} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open profile"
-                onPress={() => router.push('/(tabs)/profile' as never)}
-                style={styles.profileBubble}>
-                <Avatar
-                  size={32}
-                  source={profileAvatar}
-                  initials={initialsFor(profileName)}
-                />
-                <View style={styles.statusDot} />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        <Animated.View style={[animatedHeaderStyle, { position: 'absolute', left: 0, right: 0, zIndex: 20, top: insets.top + topBarHeight }]}>
-          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-          <View style={styles.storiesWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.storiesRow}>
-              {STORIES_VIEW.map((s) => (
-                <Pressable
-                  key={s.key}
-                  onPress={() => router.push((s.isAdd ? '/create/story' : `/story/${s.key}`) as never)}
-                  style={styles.storyTile}>
-                  <View style={[styles.storyRing, s.isAdd && styles.storyRingAdd]}>
-                    {s.isAdd ? (
-                      <Ionicons name="add" size={22} color={palette.ink.onDarkStrong} />
-                    ) : s.avatarUrl ? (
-                      <Avatar size={56} source={{ uri: s.avatarUrl }} />
-                    ) : (
-                      <Avatar size={56} initials={initialsFor(s.name)} />
-                    )}
-                  </View>
-                  <Text style={styles.storyName} numberOfLines={1}>{s.name}</Text>
-                </Pressable>
+                </PressableScale>
               ))}
             </ScrollView>
           </View>
-        </Animated.View>
-      </View>
+        ) : null}
+
+        {/* Posts */}
+        <View style={styles.posts}>
+          {isError ? (
+            <View style={styles.empty}>
+              <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
+              <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn’t load your feed.</Text>
+              <Chip label="Try again" selected onPress={() => refetch()} />
+            </View>
+          ) : null}
+          {!isError && !posts.length ? (
+            <View style={styles.empty}>
+              <Ionicons name="bag-handle-outline" size={32} color={ui.secondaryLabel} />
+              <Text style={[type.callout, { color: ui.secondaryLabel }]}>Nothing here yet. Follow vendors to fill your feed.</Text>
+            </View>
+          ) : null}
+          {posts.map((post, idx) => (
+            <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
+          ))}
+        </View>
+      </ScrollView>
     </EspressoBackground>
+  );
+}
+
+function StoryTile({
+  name,
+  avatar,
+  onPress,
+  ring,
+  addable,
+}: {
+  name: string;
+  avatar: React.ReactNode;
+  onPress: () => void;
+  ring?: boolean;
+  addable?: boolean;
+}) {
+  const ui = useUi();
+  return (
+    <PressableScale haptic="light" scaleTo={0.94} onPress={onPress} style={styles.story} accessibilityLabel={name}>
+      {ring ? (
+        <View style={styles.storyRingWrapper}>
+          <LinearGradient
+            colors={['#FF3B3B', '#2F6BFF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.storyRingGradient}>
+            <View style={[styles.storyRingHole, { backgroundColor: ui.background }]}>
+              {avatar}
+            </View>
+          </LinearGradient>
+        </View>
+      ) : (
+        <View style={[styles.storyRing, { borderColor: ui.separator }]}>{avatar}</View>
+      )}
+      {addable ? (
+        <View style={[styles.storyAdd, { backgroundColor: ui.accent, borderColor: ui.background }]}>
+          <Ionicons name="add" size={14} color={ui.onAccent} />
+        </View>
+      ) : null}
+      <Text style={[type.caption, { color: ui.secondaryLabel }]} numberOfLines={1}>
+        {name}
+      </Text>
+    </PressableScale>
   );
 }
 
 function toPostItem(item: Post): PostItem {
   return {
-    kind: 'post',
     id: item.id,
     author: item.author.name,
     authorHandle: item.author.handle,
     authorAvatarUrl: item.author.avatarUrl,
-    badge: !!item.author.verified,
+    verified: !!item.author.verified,
     caption: item.caption,
     product: item.product?.name ?? '',
     productId: item.product?.id,
@@ -287,647 +234,75 @@ function toPostItem(item: Post): PostItem {
   };
 }
 
-function toStoryTile(story: Story): StoryTile {
-  return {
-    key: story.id,
-    name: story.author.name,
-    avatarUrl: story.author.avatarUrl,
-  };
-}
-
-function profileNameFor(me?: MeResponse) {
-  return me?.name || me?.displayName || me?.username || 'Me';
-}
-
-function profileAvatarFor(me?: MeResponse) {
-  return me?.avatarUrl ? { uri: me.avatarUrl } : undefined;
-}
-
-function initialsFor(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'Y';
-}
-
-function formatCompact(value: number) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return String(value);
-}
-
-function FeedCard({ post }: { post: PostItem }) {
-  const localLike = useIsLiked(post.id);
-  const localSave = useIsSaved(post.id);
-  const liked = localLike !== undefined ? localLike : !!post.likedByMe;
-  const saved = localSave !== undefined ? localSave : !!post.savedByMe;
-  const localRepost = useIsRepostedPost(post.id);
-  const reposted = localRepost !== undefined ? localRepost : !!post.repostedByMe;
-  const setLike = useEngagement((s) => s.setLike);
-  const setSave = useEngagement((s) => s.setSave);
-  const setRepostedPost = useEngagement((s) => s.setRepostedPost);
-  const [repostOpen, setRepostOpen] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
-
-  const toast = useToast();
-  const likeMutation = useToggleLikePost();
-  const bookmarkMutation = useToggleBookmarkPost();
-  const deleteMutation = useDeletePost();
-  const { data: me } = useMe();
-  const isMine = me?.handle === post.authorHandle;
-
-  const handleToggleLike = () => {
-    const nextLiked = !liked;
-    setLike(post.id, nextLiked);
-    likeMutation.mutate({ postId: post.id, isLiked: liked });
-  };
-
-  const handleToggleSave = () => {
-    const nextSaved = !saved;
-    setSave(post.id, nextSaved);
-    bookmarkMutation.mutate({ postId: post.id, isSaved: saved });
-    toast.show({ variant: 'success', title: nextSaved ? 'Post bookmarked' : 'Bookmark removed' });
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        title: 'Share Post',
-        message: `${post.author} posted: ${post.caption} - https://yfn.app/post/${post.id}`,
-        url: `https://yfn.app/post/${post.id}` // url only works on iOS, so included in message for Android
-      });
-    } catch (error: any) {
-      if (error.message !== 'User did not share') {
-        console.log('Error sharing:', error);
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Delete', 
-        style: 'destructive',
-        onPress: () => {
-          setOptionsOpen(false);
-          deleteMutation.mutate(post.id, {
-            onSuccess: () => {
-              toast.show({ variant: 'success', title: 'Post deleted' });
-            },
-            onError: () => {
-              toast.show({ variant: 'error', title: 'Failed to delete post' });
-            }
-          });
-        }
-      }
-    ]);
-  };
-
+function initials(name: string) {
   return (
-    <View style={styles.cardWrap}>
-      <BlurView intensity={32} tint="light" style={StyleSheet.absoluteFill} />
-      <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Pressable onPress={() => router.push(`/u/${post.authorHandle}` as never)}>
-          <Avatar
-            size={36}
-            source={post.authorAvatarUrl ? { uri: post.authorAvatarUrl } : undefined}
-            initials={initialsFor(post.author)}
-          />
-        </Pressable>
-        <Pressable
-          style={styles.idBlock}
-          onPress={() => router.push(`/u/${post.authorHandle}` as never)}>
-          <View style={styles.nameRow}>
-            <Text style={styles.author}>{post.author}</Text>
-            {post.badge ? <VerifiedCheck tone="success" size={14} /> : null}
-          </View>
-        </Pressable>
-        <Pressable hitSlop={8} onPress={() => setOptionsOpen(true)}>
-          <Ionicons name="ellipsis-horizontal" size={18} color={palette.ink.onDarkSoft} />
-        </Pressable>
-      </View>
-
-      <Pressable onPress={() => router.push(`/post/${post.id}` as never)}>
-        <Text style={styles.caption} numberOfLines={2}>{post.caption}</Text>
-      </Pressable>
-
-      {post.imageUrls.length ? (
-        <PostCarousel imageUrls={post.imageUrls} />
-      ) : (
-        <View style={styles.heroImagePlaceholder}>
-          <Ionicons name="image-outline" size={28} color={palette.ink.onDarkMuted} />
-        </View>
-      )}
-
-      <View style={styles.engagementRow}>
-        <Pressable onPress={handleToggleLike} hitSlop={6} style={styles.engageBtn}>
-          <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
-            size={22}
-            color={liked ? '#FF3B47' : palette.ink.onDarkStrong}
-          />
-          <Text style={styles.engageCount}>{formatCompact(post.likes + (liked && !post.likedByMe ? 1 : (!liked && post.likedByMe ? -1 : 0)))}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push(`/post/${post.id}/comments` as never)}
-          hitSlop={6}
-          style={styles.engageBtn}>
-          <Ionicons name="chatbubble-outline" size={22} color={palette.ink.onDarkStrong} />
-          <Text style={styles.engageCount}>{formatCompact(post.comments)}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setRepostOpen(true)}
-          hitSlop={6}
-          style={styles.engageBtn}>
-          <Ionicons
-            name="repeat"
-            size={22}
-            color={reposted ? palette.brand.orange : palette.ink.onDarkStrong}
-          />
-          <Text style={styles.engageCount}>{formatCompact(post.reposts + (reposted && !post.repostedByMe ? 1 : (!reposted && post.repostedByMe ? -1 : 0)))}</Text>
-        </Pressable>
-        <Pressable hitSlop={6} style={styles.engageBtn} onPress={handleShare}>
-          <Ionicons name="paper-plane-outline" size={22} color={palette.ink.onDarkStrong} />
-        </Pressable>
-        <View style={{ flex: 1 }} />
-        <Pressable onPress={handleToggleSave} hitSlop={6}>
-          <Ionicons
-            name={saved ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={saved ? palette.brand.orange : palette.ink.onDarkStrong}
-          />
-        </Pressable>
-      </View>
-
-      <PostRepostSheet
-        visible={repostOpen}
-        onClose={() => setRepostOpen(false)}
-        post={{
-          id: post.id,
-          author: post.author,
-          authorHandle: post.authorHandle,
-          repostedByMe: reposted,
-          caption: post.caption,
-        }}
-      />
-
-      <BottomSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)}>
-        {isMine ? (
-          <>
-            <Pressable
-              onPress={() => {
-                setOptionsOpen(false);
-                router.push({
-                  pathname: `/post/[id]/edit`,
-                  params: { id: post.id, initialCaption: post.caption },
-                } as never);
-              }}
-              style={styles.optionsActionRow}>
-              <Ionicons name="pencil-outline" size={20} color={palette.ink.onDarkStrong} />
-              <Text style={styles.optionsActionText}>Edit post</Text>
-            </Pressable>
-            <Pressable onPress={handleDelete} style={styles.optionsActionRow}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B47" />
-              <Text style={[styles.optionsActionText, { color: '#FF3B47' }]}>Delete post</Text>
-            </Pressable>
-          </>
-        ) : (
-          <Pressable onPress={() => setOptionsOpen(false)} style={styles.optionsActionRow}>
-            <Ionicons name="flag-outline" size={20} color={palette.ink.onDarkStrong} />
-            <Text style={styles.optionsActionText}>Report post</Text>
-          </Pressable>
-        )}
-      </BottomSheet>
-
-      {post.product ? (
-        <View style={styles.cardFooter}>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>{post.product}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{post.price}</Text>
-          </View>
-        </View>
-        <PrimaryButton
-          label="Buy now"
-          onPress={() => router.push(`/product/${post.productId ?? post.id}` as never)}
-          style={styles.buyBtn}
-        />
-        </View>
-      ) : null}
-      </View>
-    </View>
-  );
-}
-
-function PostCarousel({ imageUrls }: { imageUrls: string[] }) {
-  const { width } = useWindowDimensions();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const mediaWidth = Math.max(width - spacing['5'] * 2 - spacing['3'] * 2, 240);
-  const hasMultiple = imageUrls.length > 1;
-
-  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / mediaWidth);
-    setActiveIndex(Math.min(Math.max(nextIndex, 0), imageUrls.length - 1));
-  };
-
-  return (
-    <>
-      <View style={[styles.carouselFrame, { width: mediaWidth }]}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleMomentumEnd}>
-          {imageUrls.map((url, index) => (
-            <Pressable key={`${url}-${index}`} onPress={() => setViewerVisible(true)}>
-              <Image
-                source={{ uri: url }}
-                style={[styles.carouselImage, { width: mediaWidth }]}
-                contentFit="cover"
-              />
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {hasMultiple ? (
-          <>
-            <View style={styles.imageCounter}>
-              <Text style={styles.imageCounterText}>{activeIndex + 1}/{imageUrls.length}</Text>
-            </View>
-            <View style={styles.carouselDots}>
-              {imageUrls.map((url, index) => (
-                <View
-                  key={`${url}-dot-${index}`}
-                  style={[styles.carouselDot, index === activeIndex && styles.carouselDotActive]}
-                />
-              ))}
-            </View>
-          </>
-        ) : null}
-      </View>
-      <ImageViewerModal
-        visible={viewerVisible}
-        onClose={() => setViewerVisible(false)}
-        imageUrls={imageUrls}
-        initialIndex={activeIndex}
-      />
-    </>
+    name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join('') || 'Y'
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  fixedTopBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 30,
-    overflow: 'hidden',
+  scroll: { paddingBottom: 120, gap: layout.sectionGap },
+  stories: { paddingHorizontal: layout.gutter, gap: 14 },
+  story: { width: 72, alignItems: 'center', gap: 6 },
+  storyRingWrapper: {
+    shadowColor: '#2F6BFF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing['5'],
-    paddingVertical: spacing['3'],
-  },
-  title: {
-    fontFamily: typography.h1.fontFamily,
-    fontSize: 24,
-    lineHeight: 30,
-    color: palette.ink.onDarkStrong,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-  },
-  notifBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  storyRingGradient: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    padding: 2.5,
   },
-  notifDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: palette.brand.orange,
-    borderWidth: 1.5,
-    borderColor: palette.bg.espressoEnd,
-  },
-  notifBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: palette.brand.orange,
-    borderWidth: 1.5,
-    borderColor: palette.bg.espressoEnd,
+  storyRingHole: {
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  notifBadgeText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 9,
-    lineHeight: 12,
-    color: '#fff',
-  },
-  profileBubble: {
-    position: 'relative',
-  },
-  engagementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['4'],
-    paddingTop: spacing['1'],
-  },
-  engageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  engageCount: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkSoft,
-  },
-  statusDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: palette.brand.orange,
-    borderWidth: 2,
-    borderColor: palette.bg.espressoEnd,
-  },
-  scroll: {
-    paddingBottom: 100,
-  },
-  storiesWrap: {
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.45)',
     overflow: 'hidden',
-  },
-  storiesRow: {
-    paddingHorizontal: spacing['5'],
-    paddingBottom: spacing['3'],
-    gap: spacing['3'],
-  },
-  storyTile: {
-    alignItems: 'center',
-    width: 64,
-    gap: 4,
   },
   storyRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     borderWidth: 2,
-    borderColor: palette.brand.orange,
-    padding: 2,
-  },
-  storyRingAdd: {
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.40)',
-  },
-  storyName: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    lineHeight: 14,
-    color: palette.ink.onDarkSoft,
-  },
-  feed: {
-    paddingHorizontal: spacing['5'],
-    gap: spacing['4'],
-    paddingTop: spacing['3'],
-  },
-  emptyFeed: {
-    gap: spacing['3'],
-    padding: spacing['4'],
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  emptyFeedText: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 14,
-    lineHeight: 20,
-    color: palette.ink.onDarkSoft,
-    textAlign: 'center',
-  },
-  retryBtn: {
-    alignSelf: 'center',
-    minWidth: 120,
-  },
-  cardWrap: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.50)',
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    shadowColor: 'rgba(40, 26, 16, 0.18)',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 4,
-  },
-  card: {
-    padding: spacing['3'],
-    gap: spacing['3'],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-  },
-  idBlock: { flex: 1 },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['1'],
-  },
-  author: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    lineHeight: 19,
-    color: palette.ink.onDarkStrong,
-  },
-  caption: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkSoft,
-  },
-  carouselFrame: {
-    aspectRatio: 1,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  carouselImage: {
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  heroImagePlaceholder: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imageCounter: {
+  storyAdd: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.54)',
-  },
-  imageCounterText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    lineHeight: 14,
-    color: '#FFFFFF',
-  },
-  carouselDots: {
-    position: 'absolute',
-    bottom: 10,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
+    top: 46,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
   },
-  carouselDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.54)',
-  },
-  carouselDotActive: {
-    width: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-  },
-  productInfo: { flex: 1 },
-  productName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing['2'],
-    marginTop: 2,
-  },
-  price: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    lineHeight: 19,
-    color: palette.ink.onDarkStrong,
-  },
-  oldPrice: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    lineHeight: 16,
-    color: palette.ink.onDarkMuted,
-    textDecorationLine: 'line-through',
-  },
-  buyBtn: {
-    height: 40,
-    paddingHorizontal: spacing['4'],
-  },
-  repostHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-  },
-  repostHeaderText: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  repostHeaderName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkStrong,
-  },
-  repostHeaderVerb: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkSoft,
-  },
-  repostQuote: {
-    fontFamily: typography.body.fontFamily,
-    fontStyle: 'italic',
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkSoft,
-    borderLeftWidth: 3,
-    borderLeftColor: palette.brand.orange,
-    paddingLeft: spacing['3'],
-  },
-  embeddedVendor: {
-    borderRadius: radius.md,
+  section: { gap: 14 },
+  hRow: { paddingHorizontal: layout.gutter, gap: layout.cardGap },
+  reel: {
+    width: 150,
+    aspectRatio: 9 / 14,
+    borderRadius: corner.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.40)',
-    backgroundColor: 'rgba(255, 255, 255, 0.20)',
+    justifyContent: 'flex-end',
+    ...continuous,
   },
-  embeddedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-    padding: spacing['2'],
-  },
-  embeddedNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['1'],
-  },
-  embeddedVendorName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkStrong,
-  },
-  embeddedImage: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  optionsActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    paddingVertical: spacing['3'],
-  },
-  optionsActionText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 16,
-    color: palette.ink.onDarkStrong,
-  },
+  reelBadge: { position: 'absolute', top: 10, left: 10 },
+  reelMeta: { padding: 12, gap: 2 },
+  posts: { gap: 20 },
+  empty: { alignItems: 'center', gap: 12, padding: 32 },
 });

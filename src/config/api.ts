@@ -10,12 +10,20 @@ import { Platform } from 'react-native';
  * In production the env var should be set at build time via `eas.json`.
  */
 function resolveBaseUrl(): string {
-  const fromEnv =
-    process.env.EXPO_PUBLIC_API_URL ??
-    (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+  }
 
-  return 'http://192.168.3.9:4000';
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host) return `http://${host}:4000`;
+  }
+
+  const fromExtra = (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
+  if (fromExtra) return fromExtra.replace(/\/$/, '');
+
+  return 'http://192.168.3.21:4000';
 }
 
 export const API_BASE_URL = resolveBaseUrl();

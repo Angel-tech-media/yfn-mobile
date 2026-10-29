@@ -21,7 +21,7 @@ export function LoadingSpinner({ size = 'small', color = palette.ink.onDarkStron
 
 const styles = StyleSheet.create({
   fullscreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.4)',

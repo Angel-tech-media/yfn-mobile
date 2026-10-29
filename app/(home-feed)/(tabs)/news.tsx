@@ -71,7 +71,7 @@ export default function NewsScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <LinearGradient
-            colors={['rgba(216, 149, 68,0.20)', 'rgba(255,61,0,0.08)']}
+            colors={['rgba(47, 107, 255,0.20)', 'rgba(255,61,0,0.08)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.insightCard}>
@@ -297,13 +297,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing['3'],
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.3)',
+    borderColor: 'rgba(47, 107, 255,0.3)',
   },
   insightIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(216, 149, 68,0.2)',
+    backgroundColor: 'rgba(47, 107, 255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing['4'],
     borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     shadowColor: 'rgba(40, 26, 16, 0.18)',
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     height: 22,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     justifyContent: 'center',
   },
   gridTagText: {
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     alignItems: 'center',
     justifyContent: 'center',
   },

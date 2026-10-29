@@ -43,7 +43,7 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label="Get started" onPress={() => router.push('/login')} />
+          <PrimaryButton label="Get started" onPress={() => router.push('/intent' as never)} />
           <View style={styles.altRow}>
             <Text style={styles.altLine}>Already have an account? </Text>
             <Pressable onPress={() => router.push('/login')} hitSlop={8}>

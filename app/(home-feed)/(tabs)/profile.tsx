@@ -39,7 +39,7 @@ export default function ProfileTabScreen() {
               onPress={() => router.push('/settings')}
               style={styles.iconBtn}
               accessibilityLabel="Settings">
-              <Ionicons name={hasStore ? 'settings-outline' : 'menu'} size={20} color={palette.ink.onDarkStrong} />
+              <Ionicons name={hasStore ? 'settings-outline' : 'menu'} size={20} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -130,7 +130,7 @@ function BuyerView() {
             badge={wishlistCount ? String(wishlistCount) : undefined}
             onPress={() => router.push('/wishlist')}
           />
-          <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(tabs)/wallet' as never)} />
+          <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(home-feed)/(tabs)/wallet' as never)} />
         </View>
       </View>
 
@@ -152,6 +152,9 @@ function VendorView({ handle }: { handle?: string }) {
   const { data: products = [] } = useVendorProducts(handle);
   const { data: reviews = [] } = useVendorReviews(handle);
   const { data: userPostsData } = useUserPosts(handle || me?.username);
+  const { data: reposts = [] } = useMyReposts();
+  const { data: repostedPostsData } = useMyRepostedPosts();
+  const repostedPosts = repostedPostsData?.items ?? [];
   const userPosts = userPostsData?.items ?? [];
   const name = vendor?.storeName || me?.name || me?.displayName || 'Store';
   const avatarName = vendor?.name || name;
@@ -223,8 +226,8 @@ function VendorView({ handle }: { handle?: string }) {
         handle={handle || me?.username || 'store'}
         posts={userPosts}
         products={products}
-        reposts={[]}
-        repostedPosts={[]}
+        reposts={reposts}
+        repostedPosts={repostedPosts}
         vendorCategory={vendor?.category}
         hasStore={true}
       />
@@ -251,12 +254,12 @@ function initialsFor(name: string) {
     .join('') || 'Y';
 }
 
-function StatColumn({ value, label }: { value: string; label: string }) {
+function StatColumn({ value, label, onPress }: { value: string; label: string; onPress?: () => void }) {
   return (
-    <View style={styles.statColumn}>
+    <Pressable onPress={onPress} disabled={!onPress} style={styles.statColumn}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -274,7 +277,7 @@ function QuickAction({
   return (
     <Pressable onPress={onPress} style={styles.quickItem}>
       <View style={styles.quickIcon}>
-        <Ionicons name={icon} size={18} color={palette.ink.onDarkStrong} />
+        <Ionicons name={icon} size={20} color={palette.brand.orange} />
         {badge ? (
           <View style={styles.quickBadge}>
             <Text style={styles.quickBadgeText}>{badge}</Text>
@@ -298,7 +301,7 @@ function StoreStat({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stateText: { ...typography.body, color: palette.ink.onDarkSoft },
+  stateText: { ...typography.body, color: 'rgba(255, 255, 255, 0.7)' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,16 +313,19 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 18,
     lineHeight: 24,
-    color: palette.ink.onDarkStrong,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   headerRight: { flexDirection: 'row', gap: spacing['2'] },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: '#121833',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   buyerPadded: {
     paddingHorizontal: spacing['5'],
@@ -337,11 +343,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   statColumn: { alignItems: 'center', gap: 2 },
-  statValue: { ...typography.h2, color: palette.ink.onDarkStrong },
-  statLabel: { ...typography.caption, color: palette.ink.onDarkMuted },
+  statValue: { ...typography.h2, color: '#FFFFFF', fontWeight: '700' },
+  statLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
   identity: { gap: spacing['1'] },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-  displayName: { ...typography.title, color: palette.ink.onDarkStrong },
+  displayName: { ...typography.title, color: '#FFFFFF', fontWeight: '700', fontSize: 18 },
   kycBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,51 +355,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     height: 22,
     borderRadius: 999,
-    backgroundColor: palette.status.success,
+    backgroundColor: 'rgba(46, 125, 50, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(76, 175, 80, 0.4)',
   },
   kycBadgeText: {
     ...typography.small,
-    color: '#fff',
+    color: '#81C784',
     fontFamily: typography.bodyEmphasis.fontFamily,
   },
-  bio: { ...typography.body, color: palette.ink.onDarkSoft },
-  bioLink: { ...typography.bodyEmphasis, color: palette.brand.orange },
-  buttonRow: { flexDirection: 'row', gap: spacing['2'] },
+  bio: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 20 },
+  bioLink: { ...typography.bodyEmphasis, color: palette.brand.orange, fontSize: 13 },
+  buttonRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
   button: {
     flex: 1,
-    height: 36,
+    height: 38,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.28)',
   },
-  buttonLabel: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong, fontSize: 13 },
+  buttonLabel: { ...typography.bodyEmphasis, color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   iconButton: {
     width: 38,
-    height: 36,
+    height: 38,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(216, 149, 68,0.15)',
+    backgroundColor: 'rgba(47, 107, 255, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.35)',
+    borderColor: 'rgba(47, 107, 255, 0.35)',
   },
   quickRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing['2'],
-    marginTop: spacing['2'],
+    marginTop: spacing['3'],
   },
   quickItem: { alignItems: 'center', gap: 6, flex: 1 },
   quickIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
+    borderWidth: 1,
+    borderColor: 'rgba(47, 107, 255, 0.22)',
     position: 'relative',
   },
   quickBadge: {
@@ -409,7 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.brand.orange,
   },
   quickBadgeText: { ...typography.small, color: '#fff', fontFamily: typography.bodyEmphasis.fontFamily },
-  quickLabel: { ...typography.caption, color: palette.ink.onDarkSoft },
+  quickLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.75)', fontWeight: '500' },
 
   vendorScroll: { paddingBottom: 100 },
   bannerWrap: { position: 'relative' },
@@ -422,7 +432,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   bannerEditLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -435,18 +447,20 @@ const styles = StyleSheet.create({
     left: spacing['5'],
     padding: 3,
     borderRadius: 999,
-    backgroundColor: palette.bg.espressoEnd,
+    backgroundColor: '#0A0603',
+    borderWidth: 2,
+    borderColor: 'rgba(47, 107, 255, 0.4)',
   },
   storeIdBlock: { paddingTop: 52, paddingHorizontal: spacing['5'], gap: 4 },
   storeNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-  storeName: { ...typography.h2, color: palette.ink.onDarkStrong },
-  storeHandle: { ...typography.caption, color: palette.ink.onDarkMuted },
+  storeName: { ...typography.h2, color: '#FFFFFF' },
+  storeHandle: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
   starRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  rating: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
-  reviewsCount: { ...typography.caption, color: palette.ink.onDarkMuted },
+  rating: { ...typography.bodyEmphasis, color: '#FFFFFF' },
+  reviewsCount: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
   bioBlock: { paddingHorizontal: spacing['5'], paddingTop: spacing['3'], gap: 4 },
   bioLine: { ...typography.bodyEmphasis, color: palette.brand.orange },
-  bioText: { ...typography.body, color: palette.ink.onDarkSoft },
+  bioText: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)' },
   storeStatsRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing['5'],
@@ -454,8 +468,8 @@ const styles = StyleSheet.create({
     gap: spacing['4'],
   },
   storeStat: { gap: 2 },
-  storeStatValue: { ...typography.h2, color: palette.ink.onDarkStrong },
-  storeStatLabel: { ...typography.caption, color: palette.ink.onDarkMuted },
+  storeStatValue: { ...typography.h2, color: '#FFFFFF' },
+  storeStatLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
   vendorActions: {
     flexDirection: 'row',
     gap: spacing['2'],
@@ -474,21 +488,21 @@ const styles = StyleSheet.create({
   },
   vendorBtnPrimary: { backgroundColor: palette.brand.orange },
   vendorBtnGhost: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: 'rgba(47, 107, 255, 0.28)',
   },
   vendorBtnLabel: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
-  vendorBtnLabelGhost: { ...typography.buttonLabel, color: palette.ink.onDarkStrong, fontSize: 13 },
+  vendorBtnLabelGhost: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
   padded: { paddingHorizontal: spacing['5'] },
   reviewList: { paddingHorizontal: spacing['5'], paddingTop: spacing['2'], gap: spacing['2'] },
   reviewCard: {
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  reviewAuthor: { ...typography.bodyEmphasis, color: palette.ink.onDarkStrong },
-  reviewText: { ...typography.body, color: palette.ink.onDarkSoft, marginTop: 2 },
+  reviewAuthor: { ...typography.bodyEmphasis, color: '#FFFFFF' },
+  reviewText: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 },
 });

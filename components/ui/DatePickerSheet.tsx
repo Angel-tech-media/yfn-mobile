@@ -88,21 +88,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancel: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   cancelLabel: {
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
-    color: palette.ink.onDarkStrong,
+    color: '#FFFFFF',
   },
   confirm: {
-    backgroundColor: palette.bg.surface,
+    backgroundColor: palette.brand.orange,
   },
   confirmLabel: {
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: 15,
-    color: palette.ink.onLightStrong,
+    color: '#FFFFFF',
   },
 });

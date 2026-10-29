@@ -56,7 +56,7 @@ export default function ReferralsScreen() {
                 <Text style={styles.heroActionLabel}>Send to bank</Text>
               </Pressable>
               <Pressable
-                onPress={() => router.push('/(tabs)/wallet' as never)}
+                onPress={() => router.push('/(home-feed)/(tabs)/wallet' as never)}
                 style={styles.heroAction}>
                 <Ionicons name="wallet-outline" size={16} color="#fff" />
                 <Text style={styles.heroActionLabel}>View wallet</Text>
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(216, 149, 68,0.18)',
+    backgroundColor: 'rgba(47, 107, 255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },

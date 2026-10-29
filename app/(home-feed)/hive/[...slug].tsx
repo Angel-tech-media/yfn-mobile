@@ -102,7 +102,7 @@ function Header({ trail, onBack }: { trail: TrailNode[]; onBack: () => void }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.breadcrumb}>
         <Pressable
-          onPress={() => router.replace('/(tabs)/hive' as never)}
+          onPress={() => router.replace('/(home-feed)/(tabs)/hive' as never)}
           hitSlop={6}
           style={styles.crumbBtn}>
           <Ionicons name="apps" size={13} color={palette.brand.orange} />
@@ -208,7 +208,7 @@ function CommunityView({
   const sendMessage = useSendHiveMessage(slugPath);
   const messages = messagesData?.messages ?? initialMessages;
   const liveMatch = asLiveMatch(node.liveMatch);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
 
   // Auto-scroll to the newest message when one arrives so the sender sees it.
   useEffect(() => {
@@ -237,7 +237,7 @@ function CommunityView({
         contentContainerStyle={styles.scroll}>
         {/* Group hero */}
         <LinearGradient
-          colors={['rgba(216, 149, 68,0.18)', 'transparent']}
+          colors={['rgba(47, 107, 255,0.18)', 'transparent']}
           style={styles.communityHero}>
           <View style={styles.communityAvatar}>
             <Text style={{ fontSize: 28 }}>{node.emoji}</Text>
@@ -736,9 +736,9 @@ const styles = StyleSheet.create({
     marginTop: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.30)',
+    borderColor: 'rgba(47, 107, 255,0.30)',
     gap: spacing['2'],
   },
   topicHeader: {
@@ -799,9 +799,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.25)',
+    borderColor: 'rgba(47, 107, 255,0.25)',
   },
   botBubbleName: {
     ...typography.small,
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(216, 149, 68,0.25)',
+    backgroundColor: 'rgba(47, 107, 255,0.25)',
   },
   pollOptionRow: {
     flexDirection: 'row',
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
     shadowColor: 'rgba(40, 26, 16, 0.10)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,

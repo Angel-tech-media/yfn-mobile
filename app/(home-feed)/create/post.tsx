@@ -13,6 +13,8 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useMe } from '@/src/api/account/hooks';
+import { useUser } from '@/src/store/user';
+import { continuous, type, useUi } from '@/src/theme/ui';
 import { useCreatePost } from '@/src/api/feed/hooks';
 import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { useToast } from '@/src/hooks/use-toast';
@@ -44,6 +46,9 @@ export default function CreatePostScreen() {
   const [isUploading, setUploading] = useState(false);
   const { pick, pickMany } = useImagePicker();
   const { data: me } = useMe();
+  const ui = useUi();
+  const role = useUser((s) => s.role);
+  const isVendor = role === 'vendor';
   const createPost = useCreatePost();
   const toast = useToast();
 
@@ -179,7 +184,7 @@ export default function CreatePostScreen() {
   return (
     <ScreenContainer variant="espresso">
       <TopBar
-        title="New post"
+        title={isVendor ? "Store Update" : "New post"}
         showBack
         rightAction={
           <Pressable
@@ -191,7 +196,7 @@ export default function CreatePostScreen() {
             {isSubmitting ? (
               <ActivityIndicator size="small" color={palette.brand.orange} />
             ) : (
-              <Text style={styles.postBtn}>Post</Text>
+              <Text style={styles.postBtn}>{isVendor ? "Broadcast" : "Post"}</Text>
             )}
           </Pressable>
         }
@@ -204,25 +209,44 @@ export default function CreatePostScreen() {
             initials={initialsFor(me?.name || me?.displayName || me?.username || 'Me')}
           />
           <View style={{ flex: 1 }}>
-            <Text style={styles.author}>{me?.name || me?.displayName || me?.username || 'Me'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.author}>{me?.name || me?.displayName || me?.username || 'Me'}</Text>
+              {isVendor ? (
+                <View style={{ backgroundColor: 'rgba(255, 159, 10, 0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: ui.accent, fontSize: 10, fontWeight: '700' }}>STORE</Text>
+                </View>
+              ) : null}
+            </View>
             <View style={styles.audienceRow}>
               <Ionicons name="earth" size={12} color={palette.ink.onDarkSoft} />
-              <Text style={styles.audience}>Public</Text>
+              <Text style={styles.audience}>{isVendor ? 'Store Followers & Marketplace' : 'Public'}</Text>
               <Ionicons name="chevron-down" size={12} color={palette.ink.onDarkSoft} />
             </View>
           </View>
         </View>
+
+        {isVendor ? (
+          <View style={{ backgroundColor: ui.card, borderColor: ui.separator, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={15} color={ui.accent} />
+              <Text style={{ color: ui.label, fontSize: 13, fontWeight: '700' }}>Store Note / Announcement</Text>
+            </View>
+            <Text style={{ color: ui.secondaryLabel, fontSize: 12, marginTop: 4, lineHeight: 16 }}>
+              Broadcast quick updates, restock alerts, or studio notes directly to your store's followers. To add sellable inventory with pricing and variants, use "List a Product".
+            </Text>
+          </View>
+        ) : null}
 
         <Text
           accessibilityLabel="Post text"
           style={styles.textInput}
           onPress={() => {}}>
           <Text style={text ? styles.textValue : styles.textPlaceholder}>
-            {text || "What's on your mind?"}
+            {text || (isVendor ? "What's happening at your store? Share an update, restock announcement, or behind-the-scenes thought..." : "What's on your mind?")}
           </Text>
         </Text>
         <View style={styles.textInputCover}>
-          <PostTextInput value={text} onChange={setText} />
+          <PostTextInput value={text} onChange={setText} isVendor={isVendor} />
         </View>
 
         {selectedLocation ? (
@@ -387,10 +411,10 @@ export default function CreatePostScreen() {
   );
 }
 
-function PostTextInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function PostTextInput({ value, onChange, isVendor }: { value: string; onChange: (v: string) => void; isVendor?: boolean }) {
   return (
     <TextInput
-      placeholder="What's on your mind?"
+      placeholder={isVendor ? "What's happening at your store? Share an update, restock announcement, or behind-the-scenes thought..." : "What's on your mind? Share your style, purchases, or thoughts..."}
       placeholderTextColor={palette.ink.onDarkMuted}
       multiline
       value={value}
@@ -515,9 +539,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.32)',
+    borderColor: 'rgba(47, 107, 255,0.32)',
   },
   locationText: {
     flexShrink: 1,
@@ -552,9 +576,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(216, 149, 68,0.10)',
+    backgroundColor: 'rgba(47, 107, 255,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.40)',
+    borderColor: 'rgba(47, 107, 255,0.40)',
   },
   tagText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -580,9 +604,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   toolBtnActive: {
-    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    backgroundColor: 'rgba(47, 107, 255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.28)',
+    borderColor: 'rgba(47, 107, 255,0.28)',
   },
   toolLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -604,9 +628,9 @@ const styles = StyleSheet.create({
     paddingLeft: spacing['3'],
     paddingRight: 6,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     marginBottom: spacing['2'],
   },
   locationSearchInput: {
@@ -638,7 +662,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(216, 149, 68,0.12)',
+    backgroundColor: 'rgba(47, 107, 255,0.12)',
   },
   locationRowTitle: {
     fontFamily: typography.bodyEmphasis.fontFamily,

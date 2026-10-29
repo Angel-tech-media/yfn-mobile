@@ -82,9 +82,9 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   fieldError: {
     borderColor: palette.status.danger,

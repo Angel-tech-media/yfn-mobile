@@ -42,7 +42,7 @@ export default function ThreadDetailScreen() {
   const send = useSendMessage(conversationId);
   const markRead = useMarkConversationRead();
   useChatSocket(conversationId);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
   const [draft, setDraft] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -262,9 +262,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: 14,
-    backgroundColor: 'rgba(216, 149, 68,0.18)',
+    backgroundColor: 'rgba(47, 107, 255,0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(216, 149, 68,0.4)',
+    borderColor: 'rgba(47, 107, 255,0.4)',
   },
   productText: {
     ...typography.bodyEmphasis,

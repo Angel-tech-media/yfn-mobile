@@ -1,9 +1,10 @@
+import { useColorScheme } from 'react-native';
 import { create } from 'zustand';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 type ThemeState = {
-  /** User-selected preference. `system` follows the OS setting (mock-defaults to dark). */
+  /** User-selected preference. Defaults to midnight worship dark mode. */
   mode: ThemeMode;
   setMode: (m: ThemeMode) => void;
   /** Cycle: dark → light → system → dark. Useful for a single tap-toggle button. */
@@ -21,11 +22,14 @@ export const useTheme = create<ThemeState>((set) => ({
 }));
 
 /**
- * Resolve the user's selected mode to an effective mode (drops `system` to
- * `dark` for now — wire to `useColorScheme()` from RN when ready).
+ * Resolve the user's selected mode to an effective mode.
+ * When `system` is selected, resolves to the phone's actual color scheme.
  */
 export function useEffectiveMode(): 'light' | 'dark' {
   const mode = useTheme((s) => s.mode);
-  if (mode === 'system') return 'dark';
+  const systemScheme = useColorScheme();
+  if (mode === 'system') {
+    return systemScheme === 'dark' ? 'dark' : 'light';
+  }
   return mode;
 }

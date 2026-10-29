@@ -101,7 +101,7 @@ export default function OrdersScreen() {
                   style={[
                     styles.statusPill,
                     o.status === 'released' && { backgroundColor: 'rgba(76,175,80,0.18)' },
-                    o.status === 'shipped' && { backgroundColor: 'rgba(216, 149, 68, 0.18)' },
+                    o.status === 'shipped' && { backgroundColor: 'rgba(47, 107, 255, 0.18)' },
                   ]}>
                   <Text style={styles.statusPillText}>{o.status.toUpperCase()}</Text>
                 </View>
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: '#121833',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
     gap: spacing['3'],

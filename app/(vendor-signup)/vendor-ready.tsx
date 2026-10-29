@@ -22,7 +22,7 @@ export default function VendorReadyScreen() {
         <PrimaryButton
           label="I'll do this later"
           variant="ghost"
-          onPress={() => router.replace('/(tabs)' as never)}
+          onPress={() => router.replace('/(home-feed)/(tabs)' as never)}
         />
       </View>
       <View style={styles.bottomSpacer} />

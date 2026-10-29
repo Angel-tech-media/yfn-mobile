@@ -60,6 +60,7 @@ export type RankedProduct = {
 
 export type VendorSummary = {
   id: Id;
+  userId: Id;
   handle?: string;
   storeName: string;
   category?: string;
@@ -103,7 +104,9 @@ export type RegisterResponse = {
 } & AuthTokens;
 
 export type LoginRequest = {
-  email: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
   password: string;
 };
 
@@ -245,6 +248,7 @@ export type TopRatedResponse = {
   storeName: string;
   rating: number;
   ratingCount: number;
+  distance?: number;
 }[];
 
 export type ProductDetail = RankedProduct & {
@@ -271,6 +275,11 @@ export type CreateProductRequest = {
     sizes?: string[];
   };
   active?: boolean;
+  format?: 'carousel' | 'reel' | 'drop';
+  collaboratorHandle?: string;
+  collaboratorSplitPercent?: number;
+  maskLocation?: boolean;
+  allowAnonymousGifting?: boolean;
 };
 
 export type UpdateProductRequest = Partial<CreateProductRequest>;
@@ -290,6 +299,7 @@ export type StoreSetupRequest = {
 
 export type VendorProfile = {
   id: Id;
+  userId: Id;
   handle: string;
   name: string;
   storeName: string;
@@ -311,6 +321,8 @@ export type VendorProfile = {
   following: number;
   posts: number;
   isFollowing: boolean;
+  showOnMap?: boolean;
+  showExactLocation?: boolean;
 };
 
 export type StoreSetupResponse = {
@@ -334,8 +346,31 @@ export type NearbyVendorsResponse = {
 
 export type SearchQuery = {
   q?: string;
-  type?: 'people' | 'products' | 'tags' | 'places' | 'top';
+  type?: 'people' | 'products' | 'tags' | 'places' | 'map' | 'top';
   limit?: number;
+};
+
+export type SearchPlace = {
+  id: Id;
+  handle: string;
+  storeName: string;
+  category: string;
+  rating: number;
+  ratingCount: number;
+  isYfnVerified: boolean;
+  address?: string;
+  phone?: string;
+  open?: boolean;
+  lat?: number;
+  lng?: number;
+  showOnMap?: boolean;
+  showExactLocation?: boolean;
+  logoUrl?: string | null;
+  matchingProductsCount?: number;
+  matchedProductTitle?: string;
+  matchedProductPrice?: number;
+  matchedProductId?: Id;
+  distanceKm?: number;
 };
 
 export type SearchResponse = {
@@ -349,15 +384,7 @@ export type SearchResponse = {
   }[];
   products: RankedProduct[];
   tags: { tag: string; count: number }[];
-  places: {
-    id: Id;
-    handle: string;
-    storeName: string;
-    category: string;
-    rating: number;
-    ratingCount: number;
-    isYfnVerified: boolean;
-  }[];
+  places: SearchPlace[];
 };
 
 export type WalletTx = {
@@ -470,6 +497,7 @@ export type Order = {
   vendor: string;
   vendorHandle: string;
   vendorId: Id;
+  vendorUserId: Id;
   items: OrderItem[];
   status: OrderStatus | string;
   placedAt: ISODateTime;
@@ -548,6 +576,10 @@ export type Repost = {
   clicks: number;
   conversions: number;
   shareUrl: string;
+  productName?: string;
+  productPrice?: Kobo;
+  productImage?: string;
+  productCategory?: string;
 };
 
 export type ReferralWalletResponse = {
@@ -635,8 +667,19 @@ export type Reel = {
   coverUrl?: string | null;
   caption: string;
   audio?: string | null;
+  product?: {
+    id: Id;
+    name: string;
+    price: number;
+    imageUrl?: string | null;
+  };
   createdAt: ISODateTime;
   views: number;
+  likesCount?: number;
+  commentsCount?: number;
+  bookmarksCount?: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
 };
 
 export type Comment = {
@@ -659,7 +702,7 @@ export type FeedResponse = {
 };
 
 export type CreatePostRequest = {
-  caption: string;
+  caption?: string;
   mediaIds: Id[];
   productId?: Id;
 };
@@ -682,7 +725,7 @@ export type CreateStoryRequest = {
 export type CreateReelRequest = {
   videoMediaId: Id;
   coverMediaId?: Id;
-  caption: string;
+  caption?: string;
   audio?: string;
 };
 

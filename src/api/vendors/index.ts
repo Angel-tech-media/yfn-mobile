@@ -43,4 +43,11 @@ export const vendorsApi = {
   posts(handle: string) {
     return http.get<{ items: Post[]; nextCursor: string | null }>(`/users/${handle}/posts`);
   },
+
+  updateLocationSettings(input: { showOnMap?: boolean; showExactLocation?: boolean }) {
+    return http.patch<{ success: boolean; showOnMap: boolean; showExactLocation: boolean }>(
+      '/vendors/location-settings',
+      input,
+    );
+  },
 };

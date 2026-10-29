@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.bg.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

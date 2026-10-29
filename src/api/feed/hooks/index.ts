@@ -63,6 +63,44 @@ export function useFeedReels(params: PageQuery = {}) {
   });
 }
 
+export function useReelComments(reelId: Id | undefined, params: FeedQuery = {}) {
+  return useQuery({
+    queryKey: ['reels', reelId, 'comments', params],
+    enabled: !!reelId,
+    queryFn: () => feedApi.reelComments(reelId!, params),
+  });
+}
+
+export function useCreateReelComment(reelId: Id) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateCommentRequest) => feedApi.createReelComment(reelId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reels', reelId, 'comments'] });
+      qc.invalidateQueries({ queryKey: queryKeys.feed.reels() });
+      qc.invalidateQueries({ queryKey: queryKeys.feed.comments(reelId) });
+    },
+  });
+}
+
+export function useToggleLikeReel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reelId, liked }: { reelId: Id; liked: boolean }) =>
+      liked ? feedApi.likeReel(reelId) : feedApi.unlikeReel(reelId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.reels() }),
+  });
+}
+
+export function useToggleBookmarkReel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reelId, saved }: { reelId: Id; saved: boolean }) =>
+      saved ? feedApi.bookmarkReel(reelId) : feedApi.unbookmarkReel(reelId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.feed.reels() }),
+  });
+}
+
 export function usePostComments(postId: Id | undefined, params: FeedQuery = {}) {
   return useQuery({
     queryKey: queryKeys.feed.comments(postId, params),

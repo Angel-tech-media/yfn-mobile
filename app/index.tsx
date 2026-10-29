@@ -8,5 +8,5 @@ export default function Index() {
 
   if (!hydrated) return null;
 
-  return <Redirect href={(authed ? '/(tabs)' : '/splash') as never} />;
+  return <Redirect href={(authed ? '/(home-feed)/(tabs)' : '/welcome') as never} />;
 }
