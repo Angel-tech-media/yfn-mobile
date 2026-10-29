@@ -1,7 +1,7 @@
 # Vibe Beta Readiness Progress
 
 ## Overview
-- Current Phase: Phase 1 — Bug Fixes
+- Current Phase: All Phases Complete (0 through 10) — Ready for Closed Beta Testing
 - Baseline Snapshot: Merged into `master` on both `c:\Users\UDSER\YFN` and `c:\Users\UDSER\yfn-mobile`.
 
 | Phase | Description | Status | Verified | Details |
@@ -16,4 +16,4 @@
 | 7 | Push Notifications (expo-notifications, deep links) | Done | Yes | Installed `expo-notifications`, created `usePushNotifications` with permission prompt, Android notification channel, token registration (`POST /notifications/device-token`), token unregistration (`DELETE /notifications/device-token`), and tap/deep-link response routing (`/threads/:id`, `/orders/:id`); backend `PushService` delivers push via Expo Push API for chat messages, vendor sales, and order lifecycle transitions while respecting user `notification_prefs` and pruning unregistered tokens; verified via Vitest suite (test/push-notifications.test.ts) |
 | 8 | Moderation & Compliance (report, block, account deletion, terms) | Done | Yes | Added `reports` table with target types (user, post, reel, product, message), admin review queue (`GET /admin/reports`, `PATCH /admin/reports/:id`), user blocking (`POST /users/:id/block`, `DELETE /users/:id/block`, `GET /me/blocks`), account deletion with active order protection (`DELETE /me`), Terms of Service & Privacy Policy screens in Midnight design, in-app report modal on user profiles and help support links. Verified via Vitest suite (test/moderation-compliance.test.ts) and TypeScript 0 errors. |
 | 9 | Observability & Tests (Sentry, Vitest suite) | Done | Yes | Installed and configured `@sentry/node` for Fastify backend with 500 error capture and environment DSN gating; installed and configured `@sentry/react-native` for Expo mobile app with `wrapWithSentry(RootLayout)` and environment DSN gating; gated all seed and wallet-funding scripts (`scripts/seed.ts`, `seed-rich-reels.ts`, `fund-all-wallets.ts`, `set-wallet.ts`, `fix-reels.ts`, `link-reels-products.ts`) to immediately terminate if `NODE_ENV === 'production'`; verified full Vitest test suite (12/12 test suites, 35/35 tests passing) and mobile TypeScript check (`npx tsc --noEmit` 0 errors). |
-| 10 | Beta Build & Checklist (EAS preview APK, BETA_CHECKLIST.md) | Not Started | No | - |
+| 10 | Beta Build & Checklist (EAS preview APK, BETA_CHECKLIST.md) | Done | Yes | Configured `eas.json` with internal preview APK profile and iOS profile; updated `app.json` with Midnight theme branding (`#0A0E1F`), version `1.0.0`, versionCode `1`, iOS buildNumber `1`, camera/photo/microphone/notification permissions in `infoPlist` & Android manifest, `expo-notifications` plugin; created comprehensive `BETA_CHECKLIST.md` with install instructions, seeded test credentials (`buyer@example.com`, `vendor@example.com`), end-to-end testing flows, known unverified items, and support contact channels. |
