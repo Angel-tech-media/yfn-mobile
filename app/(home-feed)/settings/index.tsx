@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -7,6 +7,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { useMe } from '@/src/api/account/hooks';
+import { useDeleteAccount } from '@/src/api/moderation/hooks';
 import { useAuth } from '@/src/store/auth';
 import { useTheme, type ThemeMode } from '@/src/store/theme';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -43,8 +44,8 @@ function buildSections(profileHint?: string): Array<{ title: string; rows: Row[]
     title: 'Support',
     rows: [
       { key: 'help', label: 'Help & support', icon: 'help-circle-outline', href: '/help' },
-      { key: 'terms', label: 'Terms of service', icon: 'document-text-outline' },
-      { key: 'privacy-policy', label: 'Privacy policy', icon: 'document-text-outline' },
+      { key: 'terms', label: 'Terms of service', icon: 'document-text-outline', href: '/settings/terms' },
+      { key: 'privacy-policy', label: 'Privacy policy', icon: 'document-text-outline', href: '/settings/privacy-policy' },
       { key: 'about', label: 'About Vibe', icon: 'information-circle-outline', hint: 'v1.0.0' },
     ],
   },
@@ -89,9 +90,37 @@ export default function SettingsScreen() {
   const { data: me } = useMe();
   const signOut = useAuth((s) => s.signOut);
   const sections = buildSections(me?.name || me?.displayName || me?.username);
+  const deleteAccount = useDeleteAccount();
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone. All active sessions, profile details, and tokens will be permanently removed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount.mutateAsync();
+              await signOut();
+              Alert.alert('Account Deleted', 'Your account has been deleted.');
+              router.replace('/login');
+            } catch (err: any) {
+              Alert.alert(
+                'Deletion Failed',
+                err?.message || 'Could not delete account. If you have active orders in progress, please resolve them first.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
-    <ScreenContainer variant="espresso">
+    <ScreenContainer>
       <TopBar title="Settings" showBack />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.section}>
@@ -129,7 +158,7 @@ export default function SettingsScreen() {
               router.replace('/login');
             }}
           />
-          <Pressable hitSlop={8} style={styles.dangerLink}>
+          <Pressable hitSlop={8} onPress={handleDeleteAccount} style={styles.dangerLink}>
             <Text style={styles.dangerLabel}>Delete account</Text>
           </Pressable>
         </View>

@@ -37,6 +37,8 @@ export default function HomeFeedLayout() {
       <Stack.Screen name="settings/index" />
       <Stack.Screen name="settings/notifications" />
       <Stack.Screen name="settings/privacy" />
+      <Stack.Screen name="settings/terms" />
+      <Stack.Screen name="settings/privacy-policy" />
       <Stack.Screen name="create/post" options={{ presentation: 'modal' }} />
       <Stack.Screen name="create/story" options={{ presentation: 'fullScreenModal' as never }} />
       <Stack.Screen name="create/reel" options={{ presentation: 'fullScreenModal' as never }} />
