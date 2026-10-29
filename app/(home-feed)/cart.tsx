@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
+import { vibeHaptics } from '@/src/lib/haptics';
 import { useCart, useCartTotal } from '@/src/store/cart';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
@@ -16,6 +17,16 @@ export default function CartScreen() {
   const remove = useCart((s) => s.remove);
   const total = useCartTotal();
 
+  const handleQtyChange = (id: string, qty: number, color?: string) => {
+    vibeHaptics.selection();
+    setQuantity(id, qty, color);
+  };
+
+  const handleRemove = (id: string, color?: string) => {
+    vibeHaptics.light();
+    remove(id, color);
+  };
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar title="Your Cart" showBack />
@@ -23,7 +34,7 @@ export default function CartScreen() {
       {lines.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyBubble}>
-            <Ionicons name="bag-outline" size={48} color={palette.ink.onDarkMuted} />
+            <Ionicons name="bag-outline" size={44} color={palette.brand.gloryBlue} />
           </View>
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>Browse the shop and add items you love.</Text>
@@ -43,18 +54,27 @@ export default function CartScreen() {
                   <View style={styles.rowFooter}>
                     <Text style={styles.price}>₦{l.price.toLocaleString()}</Text>
                     <View style={styles.qty}>
-                      <Pressable onPress={() => setQuantity(l.id, l.quantity - 1, l.color)} style={styles.qtyBtn}>
-                        <Ionicons name="remove" size={14} color={palette.ink.onDarkStrong} />
+                      <Pressable
+                        onPress={() => handleQtyChange(l.id, l.quantity - 1, l.color)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.qtyBtn}>
+                        <Ionicons name="remove" size={16} color={palette.ink.onDarkStrong} />
                       </Pressable>
                       <Text style={styles.qtyValue}>{l.quantity}</Text>
-                      <Pressable onPress={() => setQuantity(l.id, l.quantity + 1, l.color)} style={styles.qtyBtn}>
-                        <Ionicons name="add" size={14} color={palette.ink.onDarkStrong} />
+                      <Pressable
+                        onPress={() => handleQtyChange(l.id, l.quantity + 1, l.color)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.qtyBtn}>
+                        <Ionicons name="add" size={16} color={palette.ink.onDarkStrong} />
                       </Pressable>
                     </View>
                   </View>
                 </View>
-                <Pressable onPress={() => remove(l.id, l.color)} hitSlop={8} style={styles.trashBtn}>
-                  <Ionicons name="trash-outline" size={16} color={palette.ink.onDarkMuted} />
+                <Pressable
+                  onPress={() => handleRemove(l.id, l.color)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={styles.trashBtn}>
+                  <Ionicons name="trash-outline" size={18} color={palette.ink.onDarkMuted} />
                 </Pressable>
               </View>
             ))}
@@ -94,10 +114,10 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
   },
   emptyBubble: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(47, 107, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -124,18 +144,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    shadowColor: 'rgba(40, 26, 16, 0.18)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+    borderColor: 'rgba(47, 107, 255, 0.16)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 3,
   },
   thumb: {
     width: 80,
     height: 80,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderRadius: radius.md,
+    backgroundColor: '#1A2244',
   },
   rowBody: { flex: 1, gap: 4 },
   name: {
@@ -157,35 +177,38 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
+    fontSize: 15,
+    color: palette.brand.gold,
   },
   qty: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing['2'],
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: 999,
-    paddingHorizontal: spacing['1'],
-    paddingVertical: 2,
+    backgroundColor: '#1A2244',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing['2'],
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   qtyBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qtyValue: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 13,
-    minWidth: 16,
+    minWidth: 18,
     textAlign: 'center',
     color: palette.ink.onDarkStrong,
   },
   trashBtn: {
-    width: 28,
-    height: 28,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -210,10 +233,11 @@ const styles = StyleSheet.create({
   },
   summaryValueStrong: {
     fontSize: 18,
+    color: palette.brand.gold,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0, 0, 0, 0.10)',
+    backgroundColor: 'rgba(47, 107, 255, 0.16)',
     marginVertical: spacing['1'],
   },
   actions: { paddingVertical: spacing['3'] },
