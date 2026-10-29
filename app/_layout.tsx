@@ -1,3 +1,6 @@
+import { initMobileSentry, wrapWithSentry } from '@/src/services/sentry';
+
+initMobileSentry();
 import { useEffect, useState } from 'react';
 
 import { useFonts } from 'expo-font';
@@ -37,7 +40,7 @@ function GlobalChatListener() {
   return null;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const effectiveMode = useEffectiveMode();
   const [fontsLoaded, fontError] = useFonts(appFonts);
   const bootstrapAuth = useAuth((s) => s.bootstrap);
@@ -91,3 +94,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default wrapWithSentry(RootLayout);
