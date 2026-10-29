@@ -11,12 +11,19 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ng.vibe.app"
+      "bundleIdentifier": "ng.vibe.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Vibe needs access to your camera so you can capture photos and videos for products and reels.",
+        "NSPhotoLibraryUsageDescription": "Vibe needs access to your photo library to let you select product images and reel media.",
+        "NSMicrophoneUsageDescription": "Vibe needs access to your microphone when recording video reels."
+      }
     },
     "android": {
       "package": "ng.vibe.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#D89544",
+        "backgroundColor": "#0A0E1F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -24,7 +31,11 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
       ]
     },
     "web": {
@@ -47,10 +58,17 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FAF6EC",
+          "backgroundColor": "#0A0E1F",
           "dark": {
-            "backgroundColor": "#1A100A"
+            "backgroundColor": "#0A0E1F"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#2F6BFF"
         }
       ],
       "@react-native-community/datetimepicker",
