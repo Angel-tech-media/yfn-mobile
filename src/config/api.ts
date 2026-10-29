@@ -23,7 +23,7 @@ function resolveBaseUrl(): string {
   const fromExtra = (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl;
   if (fromExtra) return fromExtra.replace(/\/$/, '');
 
-  return 'http://192.168.3.21:4000';
+  return 'http://localhost:4000';
 }
 
 export const API_BASE_URL = resolveBaseUrl();

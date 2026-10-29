@@ -168,8 +168,8 @@ export default function PlaceScreen() {
               <Section title="Products">
                 {products.length ? (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productsRow}>
-                    {products.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                    {Array.from(new Map(products.map((p) => [p.id, p])).values()).map((product, idx) => (
+                      <ProductCard key={product.id ? 'place-prod-' + product.id : 'place-prod-' + idx} product={product} />
                     ))}
                   </ScrollView>
                 ) : (
@@ -179,8 +179,8 @@ export default function PlaceScreen() {
 
               <Section title="Reviews">
                 {reviews.length ? (
-                  reviews.map((review) => (
-                    <View key={review.id} style={styles.reviewCard}>
+                  Array.from(new Map(reviews.map((r) => [r.id, r])).values()).map((review, idx) => (
+                    <View key={review.id ? 'place-rev-' + review.id : 'place-rev-' + idx} style={styles.reviewCard}>
                       <View style={styles.reviewHeader}>
                         <Text style={styles.reviewAuthor}>{review.author}</Text>
                         <Text style={styles.reviewRating}>{review.rating.toFixed(1)}</Text>

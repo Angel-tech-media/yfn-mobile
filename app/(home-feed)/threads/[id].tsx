@@ -120,11 +120,11 @@ export default function ThreadDetailScreen() {
               ref={scrollRef}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.list}>
-              {(messages ?? []).map((m) => {
+              {Array.from(new Map((messages ?? []).map((m) => [m.id, m])).values()).map((m, idx) => {
                 const mine = me ? m.senderId === me : false;
                 return (
                   <View
-                    key={m.id}
+                    key={m.id ? `msg-${m.id}` : `msg-idx-${idx}`}
                     style={[
                       styles.bubbleWrap,
                       mine ? styles.bubbleMe : styles.bubbleThem,

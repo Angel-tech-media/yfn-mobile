@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/src/config/api';
 import {
   useInfiniteQuery,
   useMutation,
@@ -10,15 +11,13 @@ import {
 
 type ApiError = Error;
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://192.168.1.17:4000/api/v1';
-
 function buildApiUrl(path: string) {
   if (/^https?:\/\//u.test(path)) {
     return path;
   }
 
-  const base = API_BASE_URL || 'http://192.168.1.17:4000/api/v1';
-  return new URL(path, base).toString();
+  const base = `${API_BASE_URL}/api/v1/`;
+  return new URL(path.startsWith('/') ? path.slice(1) : path, base).toString();
 }
 
 export async function fetchFromApi<TData>(path: string, init: RequestInit = {}) {
