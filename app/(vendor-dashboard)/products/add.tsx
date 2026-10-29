@@ -526,7 +526,7 @@ export default function CreatorProductStudioScreen() {
                     vibeHaptics.selection();
                     setIsCollab(val);
                   }}
-                  trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+                  trackColor={{ false: '#1A2244', true: palette.brand.orange }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -612,7 +612,7 @@ export default function CreatorProductStudioScreen() {
                     vibeHaptics.selection();
                     setIsMadeToOrder(val);
                   }}
-                  trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+                  trackColor={{ false: '#1A2244', true: palette.brand.orange }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -647,7 +647,7 @@ export default function CreatorProductStudioScreen() {
                   vibeHaptics.selection();
                   setMaskLocation(val);
                 }}
-                trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+                trackColor={{ false: '#1A2244', true: palette.brand.orange }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -669,7 +669,7 @@ export default function CreatorProductStudioScreen() {
                   vibeHaptics.selection();
                   setAllowAnonymousGifting(val);
                 }}
-                trackColor={{ false: '#2D231E', true: '#4ADE80' }}
+                trackColor={{ false: '#1A2244', true: '#4ADE80' }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
   uploadEmptyCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E1713',
+    backgroundColor: '#121833',
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: 'rgba(47, 107, 255, 0.35)',
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(47, 107, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E1713',
+    backgroundColor: '#121833',
     gap: 6,
   },
   addMoreText: {

@@ -281,9 +281,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing['2'],
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -369,19 +369,22 @@ const styles = StyleSheet.create({
   },
   tab: {
     paddingHorizontal: spacing['3'],
-    paddingVertical: 6,
+    paddingVertical: 8,
+    minHeight: 36,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: '#121833',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: 'rgba(47, 107, 255, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabActive: { backgroundColor: palette.bg.surface, borderColor: palette.bg.surface },
+  tabActive: { backgroundColor: palette.brand.gloryBlue, borderColor: palette.brand.gloryBlue },
   tabLabel: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 12,
     color: palette.ink.onDarkSoft,
   },
-  tabLabelActive: { color: palette.ink.onLightStrong },
+  tabLabelActive: { color: '#FFFFFF' },
   results: { paddingBottom: 40, gap: spacing['4'] },
   peopleRow: {
     flexDirection: 'row',
@@ -409,7 +412,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: '#1A2244',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontFamily: typography.bodyEmphasis.fontFamily,
     fontSize: 14,
-    color: palette.brand.orange,
+    color: palette.brand.gold,
   },
   empty: {
     alignItems: 'center',

@@ -109,12 +109,15 @@ export default function CheckoutScreen() {
     <ScreenContainer variant="espresso">
       <TopBar title="Checkout" showBack />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled">
         {/* Social Gifting Section */}
         <View style={styles.giftCard}>
           <View style={styles.giftHeader}>
             <View style={styles.giftIconWrap}>
-              <Ionicons name="gift-outline" size={20} color={palette.brand.orange} />
+              <Ionicons name="gift-outline" size={20} color={palette.brand.gloryBlue} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.giftTitle}>Buy as a Gift</Text>
@@ -126,7 +129,7 @@ export default function CheckoutScreen() {
                 vibeHaptics.selection();
                 setIsGift(val);
               }}
-              trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+              trackColor={{ false: '#1A2244', true: palette.brand.gloryBlue }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -142,7 +145,7 @@ export default function CheckoutScreen() {
               <View style={styles.toggleRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toggleLabel}>Send Anonymously</Text>
-                  <Text style={styles.toggleHint}>Hide your identity ("A secret admirer sent you a gift!")</Text>
+                  <Text style={styles.toggleHint}>Hide your identity (&quot;A secret admirer sent you a gift!&quot;)</Text>
                 </View>
                 <Switch
                   value={isAnonymousGift}
@@ -150,7 +153,7 @@ export default function CheckoutScreen() {
                     vibeHaptics.selection();
                     setIsAnonymousGift(val);
                   }}
-                  trackColor={{ false: '#2D231E', true: palette.brand.orange }}
+                  trackColor={{ false: '#1A2244', true: palette.brand.gloryBlue }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -181,7 +184,7 @@ export default function CheckoutScreen() {
                 vibeHaptics.selection();
                 setIsEscrowPrivate(val);
               }}
-              trackColor={{ false: '#2D231E', true: '#4ADE80' }}
+              trackColor={{ false: '#1A2244', true: '#4ADE80' }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -190,7 +193,7 @@ export default function CheckoutScreen() {
         <Text style={styles.sectionTitle}>Payment</Text>
         <View style={styles.walletPayCard}>
           <LinearGradient
-            colors={[palette.brand.orange, palette.brand.orangeDeep]}
+            colors={['#2F6BFF', '#2050D8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -199,14 +202,14 @@ export default function CheckoutScreen() {
             <View style={styles.walletPayIcon}>
               <Ionicons name="wallet" size={20} color="#fff" />
             </View>
-          <View style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.walletPayLabel}>Pay from eWallet</Text>
               <Text style={styles.walletPayAvail}>
                 Available · {formatKobo(wallet?.balance ?? 0)}
               </Text>
             </View>
             <View style={styles.walletPayCheck}>
-              <Ionicons name="checkmark" size={14} color={palette.brand.orange} />
+              <Ionicons name="checkmark" size={14} color={palette.brand.gloryBlue} />
             </View>
           </View>
           <Text style={styles.walletPayNote}>
@@ -216,6 +219,7 @@ export default function CheckoutScreen() {
           {wallet && balanceNaira < estimatedTotal ? (
             <Pressable
               onPress={() => {
+                vibeHaptics.medium();
                 topUpWallet.mutate(
                   { amount: nairaToKobo(Math.max(50000, estimatedTotal - balanceNaira + 10000)), source: 'Instant Top-Up' },
                   {
@@ -227,7 +231,7 @@ export default function CheckoutScreen() {
               }}
               disabled={topUpWallet.isPending}
               style={styles.walletPayTopUp}>
-              <Ionicons name="add-circle" size={14} color="#fff" />
+              <Ionicons name="add-circle" size={16} color="#fff" />
               <Text style={styles.walletPayTopUpLabel}>
                 {topUpWallet.isPending
                   ? 'Crediting eWallet…'
@@ -317,7 +321,7 @@ function SummaryRow({
         style={[
           styles.summaryValue,
           emphasized && styles.summaryValueStrong,
-          tone === 'negative' && { color: palette.brand.orange },
+          tone === 'negative' && { color: palette.brand.gloryBlue },
         ]}>
         {value}
       </Text>
@@ -336,15 +340,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2'],
   },
   form: { gap: spacing['3'] },
-  list: { gap: spacing['2'] },
   walletPayCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
     overflow: 'hidden',
     gap: spacing['2'],
-    shadowColor: palette.brand.orange,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 14,
     elevation: 6,
   },
@@ -392,9 +395,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 999,
+    minHeight: 44,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: spacing['3'],
+    borderRadius: radius.pill,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   walletPayTopUpLabel: {
@@ -410,9 +415,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(244,67,54,0.10)',
+    backgroundColor: 'rgba(229, 38, 47, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(244,67,54,0.30)',
+    borderColor: 'rgba(229, 38, 47, 0.35)',
   },
   payErrorText: {
     flex: 1,
@@ -425,47 +430,12 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     alignItems: 'flex-start',
   },
-  applyBtn: {
-    height: 56,
-    paddingHorizontal: spacing['4'],
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.brand.orange,
-  },
-  applyLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  promoApplied: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing['3'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.40)',
-  },
-  promoTagWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  promoTagText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.brand.orange,
-  },
-  promoTagSub: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkSoft,
-    marginLeft: 6,
-  },
   summary: {
     marginTop: spacing['4'],
     paddingTop: spacing['4'],
     gap: spacing['2'],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0, 0, 0, 0.10)',
+    borderTopColor: 'rgba(47, 107, 255, 0.16)',
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
   summaryLabel: {
@@ -482,7 +452,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: palette.ink.onDarkStrong,
   },
-  summaryValueStrong: { fontSize: 18 },
+  summaryValueStrong: {
+    fontSize: 18,
+    color: palette.brand.gold,
+  },
   feeFootnote: {
     fontFamily: typography.caption.fontFamily,
     fontSize: 11,
@@ -492,17 +465,17 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0, 0, 0, 0.10)',
+    backgroundColor: 'rgba(47, 107, 255, 0.16)',
     marginVertical: spacing['1'],
   },
   actions: { paddingVertical: spacing['3'] },
   giftCard: {
-    backgroundColor: '#1E1713',
+    backgroundColor: '#121833',
     borderRadius: radius.lg,
     padding: spacing['4'],
     marginBottom: spacing['4'],
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.25)',
+    borderColor: 'rgba(47, 107, 255, 0.20)',
   },
   giftHeader: {
     flexDirection: 'row',
