@@ -203,8 +203,8 @@ export default function SignupScreen() {
               label={
                 <Text style={styles.termsText}>
                   I agree to the{' '}
-                  <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                  <Text style={styles.termsLink}>Privacy Policy.</Text>
+                  <Text style={styles.termsLink} onPress={() => router.push('/settings/terms' as never)}>Terms of Service</Text> and{' '}
+                  <Text style={styles.termsLink} onPress={() => router.push('/settings/privacy-policy' as never)}>Privacy Policy.</Text>
                 </Text>
               }
             />

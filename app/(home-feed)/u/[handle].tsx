@@ -15,6 +15,7 @@ import { useMe } from '@/src/api/account/hooks';
 import { useStartConversation } from '@/src/api/chat/hooks';
 import { useBlockUser, useFollowVendor, useUserPosts, useVendor, useVendorProducts, useVendorReviews } from '@/src/api/vendors/hooks';
 import { useUserRepostedPosts } from '@/src/api/feed/hooks';
+import { useSubmitReport } from '@/src/api/moderation/hooks';
 import { useUserReposts } from '@/src/api/reposts/hooks';
 import type { Post, RankedProduct, Repost } from '@/src/api/types';
 import { palette, radius, spacing, typography } from '@/src/theme';
@@ -38,12 +39,49 @@ export default function PublicProfileScreen() {
   const { data: repostedPostsData } = useUserRepostedPosts(userHandle);
   const repostedPosts = repostedPostsData?.items ?? [];
   const startConversation = useStartConversation();
+  const submitReport = useSubmitReport();
 
   const handleOptions = () => {
     Alert.alert(
       'Profile Options',
       `What would you like to do with @${userHandle}?`,
       [
+        {
+          text: 'Report User',
+          onPress: () => {
+            Alert.alert(
+              `Report @${userHandle}`,
+              'Select a reason for reporting this user:',
+              [
+                {
+                  text: 'Spam or Fraud',
+                  onPress: () => {
+                    submitReport.mutate(
+                      { targetType: 'user', targetId: vendor?.id || userHandle, reason: 'Spam or Fraud' },
+                      {
+                        onSuccess: () => Alert.alert('Report Submitted', 'Thank you. Our moderation team will review this user promptly.'),
+                        onError: () => Alert.alert('Report Submitted', 'Thank you. Our moderation team has received your report.'),
+                      },
+                    );
+                  },
+                },
+                {
+                  text: 'Harassment or Inappropriate Content',
+                  onPress: () => {
+                    submitReport.mutate(
+                      { targetType: 'user', targetId: vendor?.id || userHandle, reason: 'Harassment or Inappropriate Content' },
+                      {
+                        onSuccess: () => Alert.alert('Report Submitted', 'Thank you. Our moderation team will review this user promptly.'),
+                        onError: () => Alert.alert('Report Submitted', 'Thank you. Our moderation team has received your report.'),
+                      },
+                    );
+                  },
+                },
+                { text: 'Cancel', style: 'cancel' },
+              ],
+            );
+          },
+        },
         {
           text: 'Block User',
           style: 'destructive',
