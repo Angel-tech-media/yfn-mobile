@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { VibeAiCopilot } from '@/components/ai/VibeAiCopilot';
 import { useGlobalChatNotifications } from '@/src/hooks/use-global-chat';
+import { usePushNotifications } from '@/src/hooks/use-push-notifications';
 import { QueryProvider } from '@/src/providers/query-provider';
 import { ToastProvider } from '@/src/providers/toast-provider';
 import { useAuth } from '@/src/store/auth';
@@ -26,6 +27,11 @@ export const unstable_settings = {
  * (or a utility route). Per-section options live in the section's own
  * `_layout.tsx`. See `app/architecture.md` for the full Figma → code map.
  */
+function PushNotificationListener() {
+  usePushNotifications();
+  return null;
+}
+
 function GlobalChatListener() {
   useGlobalChatNotifications();
   return null;
@@ -64,6 +70,7 @@ export default function RootLayout() {
       <QueryProvider>
         <ToastProvider>
           <GlobalChatListener />
+          <PushNotificationListener />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
 
