@@ -11,7 +11,7 @@
 | 2 | Design & UX Audit (Apple/Harvard feel, Cart, Checkout, Search) | Done | Yes | Audited Cart, Checkout, Search, Orders, Detail, Withdraw, Product Add; eliminated espresso brown remnants & milky cards; 44pt touch targets enforced; Gold token enforced on prices; DESIGN_AUDIT.md created |
 | 3 | Hosting, R2 & Config (EXPO_PUBLIC_API_URL, Dockerfile, R2 verification) | Done | Yes | Purged hardcoded LAN IPs from app.json & code, added render.yaml & railway.json with managed Postgres & migration commands, verified Dockerfile/compose, verified R2 service with dev-fallback, full build passes |
 | 4 | Payments (Paystack test mode, webhooks, escrow release) | Done | Yes (Test Mode) | Paystack initialize, verify, webhook HMAC-SHA512 verification, idempotency locks, wallet top-up, order escrow, and refunds tested with Vitest suite (test/payments-paystack.test.ts). Live-mode marked NOT VERIFIED until live Paystack keys are configured |
-| 5 | Auth Delivery (OTP provider interface: console / Resend / SMS) | Not Started | No | - |
+| 5 | Auth Delivery (OTP provider interface: console / Resend / SMS) | Done | Yes | Implemented OtpDriver interface with ConsoleOtpDriver, ResendOtpDriver (email), and TermiiOtpDriver (SMS); added rate limiting (60s cooldown) and security lockout (5 failed attempts locks destination for 15m); tested via Vitest suite (test/auth-otp.test.ts) |
 | 6 | Orders & Vendor Flow (full lifecycle, dispute, buyer-vendor test) | Not Started | No | - |
 | 7 | Push Notifications (expo-notifications, deep links) | Not Started | No | - |
 | 8 | Moderation & Compliance (report, block, account deletion, terms) | Not Started | No | - |
