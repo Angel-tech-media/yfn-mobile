@@ -84,10 +84,10 @@ export default function OrdersScreen() {
             <Ionicons name="cube-outline" size={32} color={palette.ink.onLightSubtle} />
             <Text style={styles.emptyTitle}>Loading orders…</Text>
           </View>
-        ) : filteredOrders.map((o) => {
+        ) : Array.from(new Map(filteredOrders.map((o) => [o.id, o])).values()).map((o, idx) => {
           return (
             <Pressable
-              key={o.id}
+              key={o.id ? 'order-' + o.id : 'order-idx-' + idx}
               onPress={() => router.push(`/orders/${o.id}` as never)}
               style={styles.card}>
               <View

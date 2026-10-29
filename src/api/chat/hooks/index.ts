@@ -63,7 +63,11 @@ export function useSendMessage(conversationId: Id | undefined) {
     onSuccess: (message: ChatMessage) => {
       qc.setQueriesData<ChatMessage[]>(
         { queryKey: ['chat', 'messages', conversationId] },
-        (prev) => (prev ? [...prev, message] : [message]),
+        (prev) => {
+        if (!prev) return [message];
+        if (prev.some((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      },
       );
       qc.invalidateQueries({ queryKey: ['chat', 'conversations'] });
     },

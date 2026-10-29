@@ -42,7 +42,7 @@ export function useChatSocket(conversationId: string | undefined): void {
       const socket = io(API_BASE_URL, {
         path,
         auth: { token: accessToken },
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 5,
       });

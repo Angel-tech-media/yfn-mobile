@@ -50,14 +50,14 @@ export default function InboxScreen() {
               <Ionicons name="chatbubbles-outline" size={32} color={palette.ink.onDarkMuted} />
               <Text style={styles.emptyText}>No conversations yet.</Text>
             </View>
-          ) : threads.map((t) => {
+          ) : Array.from(new Map((threads ?? []).map((t) => [t.id, t])).values()).map((t, idx) => {
             const peer = t.participants?.find((p) => p.userId !== me);
             const peerName = peer?.name || peer?.username || `Conversation ${t.id.slice(0, 8)}`;
             const initials = peerName.charAt(0).toUpperCase() || 'C';
 
             return (
               <Pressable
-                key={t.id}
+                key={t.id ? 'thread-' + t.id : 'thread-idx-' + idx}
                 onPress={() => router.push(`/threads/${t.id}` as never)}
                 style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}>
                 <Avatar size={48} source={peer?.avatarUrl ? { uri: peer.avatarUrl } : undefined} initials={initials} />
