@@ -1,3 +1,4 @@
+import '@/src/polyfills/dom-exception';
 import { initMobileSentry, wrapWithSentry } from '@/src/services/sentry';
 
 initMobileSentry();
