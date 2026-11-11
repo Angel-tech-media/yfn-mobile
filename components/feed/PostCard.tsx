@@ -1,565 +1,418 @@
-import { useState } from 'react';
+import React from 'react';
 import {
   Alert,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 
-import { Badge } from '@/components/kit/Chip';
-import { Card } from '@/components/kit/Card';
-import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
-import { Avatar } from '@/components/ui/Avatar';
-import { BottomSheet } from '@/components/ui/BottomSheet';
-import { ImageViewerModal } from '@/components/ui/ImageViewerModal';
-import { PostRepostSheet } from '@/components/ui/PostRepostSheet';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { useMe } from '@/src/api/account/hooks';
-import { useDeletePost, useToggleBookmarkPost, useToggleLikePost } from '@/src/api/feed/hooks';
+import {
+  actions,
+  getNews,
+  getPerson,
+  getProduct,
+  useApp,
+  type Post,
+} from '@/src/data/lovable-data';
+import { formatNaira, compact } from '@/src/data/lovable-data';
 import { useToast } from '@/src/hooks/use-toast';
-import { vibeHaptics } from '@/src/lib/haptics';
-import { useEngagement, useIsLiked, useIsRepostedPost, useIsSaved } from '@/src/store/engagement';
 import { continuous, corner, layout, type, useUi } from '@/src/theme/ui';
 
-export type PostItem = {
-  id: string;
-  author: string;
-  authorHandle: string;
-  authorAvatarUrl?: string | null;
-  verified: boolean;
-  caption: string;
-  product: string;
-  productId?: string;
-  price: string;
-  likes: number;
-  comments: number;
-  reposts: number;
-  likedByMe?: boolean;
-  savedByMe?: boolean;
-  repostedByMe?: boolean;
-  imageUrls: string[];
-};
-
-function initialsFor(name: string) {
-  return (
-    name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('') || 'A'
-  );
-}
-
-function compact(value: number) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return String(value);
-}
-
-export function PostCard({ post }: { post: PostItem }) {
+export function PostCard({
+  post,
+  linkToDetail = true,
+}: {
+  post: Post;
+  linkToDetail?: boolean;
+}) {
   const ui = useUi();
   const toast = useToast();
-  const { data: me } = useMe();
 
-  const localLike = useIsLiked(post.id);
-  const localSave = useIsSaved(post.id);
-  const localRepost = useIsRepostedPost(post.id);
-  const liked = localLike !== undefined ? localLike : !!post.likedByMe;
-  const saved = localSave !== undefined ? localSave : !!post.savedByMe;
-  const reposted = localRepost !== undefined ? localRepost : !!post.repostedByMe;
+  const author = getPerson(post.handle);
+  const liked = useApp((s) => s.likedPosts.includes(post.id));
+  const saved = useApp((s) => s.savedPosts.includes(post.id));
+  const product = post.productId ? getProduct(post.productId) : undefined;
+  const article = post.newsId ? getNews(post.newsId) : undefined;
 
-  const setLike = useEngagement((s) => s.setLike);
-  const setSave = useEngagement((s) => s.setSave);
+  if (!author) return null;
 
-  const likeMutation = useToggleLikePost();
-  const bookmarkMutation = useToggleBookmarkPost();
-  const deleteMutation = useDeletePost();
-
-  const [repostOpen, setRepostOpen] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
-  const [quickViewOpen, setQuickViewOpen] = useState(false);
-
-  const isMine = me?.handle === post.authorHandle;
-  const shoppable = !!post.product;
-  const likeCount = post.likes + (liked && !post.likedByMe ? 1 : !liked && post.likedByMe ? -1 : 0);
-  const repostCount = post.reposts + (reposted && !post.repostedByMe ? 1 : !reposted && post.repostedByMe ? -1 : 0);
-
-  const toggleLike = () => {
-    setLike(post.id, !liked);
-    likeMutation.mutate({ postId: post.id, isLiked: liked });
-  };
-
-  const toggleSave = () => {
-    const next = !saved;
-    setSave(post.id, next);
-    bookmarkMutation.mutate({ postId: post.id, isSaved: saved });
-    toast.show({ variant: 'success', title: next ? 'Saved' : 'Removed from saved' });
-  };
-
-  const share = async () => {
+  const handleShare = async () => {
     try {
       await Share.share({
-        title: 'Share post',
-        message: `${post.author}: ${post.caption} https://aktive.app/post/${post.id}`,
-        url: `https://aktive.app/post/${post.id}`,
+        title: 'Aktive post',
+        message: `${author.name}: ${post.text}`,
       });
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message !== 'User did not share') {
-        console.log('Error sharing:', error);
-      }
+    } catch {
+      // User cancelled
     }
   };
 
-  const confirmDelete = () => {
-    Alert.alert('Delete post', 'This can’t be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          setOptionsOpen(false);
-          deleteMutation.mutate(post.id, {
-            onSuccess: () => toast.show({ variant: 'success', title: 'Post deleted' }),
-            onError: () => toast.show({ variant: 'error', title: 'Couldn’t delete post' }),
-          });
-        },
-      },
-    ]);
+  const openProfile = () => router.push(`/u/${author.handle}` as never);
+  const openPost = () => {
+    if (linkToDetail) {
+      router.push(`/post/${post.id}` as never);
+    }
   };
 
-  const openProfile = () => router.push(`/u/${post.authorHandle}` as never);
-
   return (
-    <Card elevated style={styles.card}>
-      {/* Author */}
-      <View style={styles.authorRow}>
-        <PressableScale haptic="light" scaleTo={0.97} onPress={openProfile} style={styles.authorTap}>
-          <Avatar
-            size={38}
-            source={post.authorAvatarUrl ? { uri: post.authorAvatarUrl } : undefined}
-            initials={initialsFor(post.author)}
-          />
-          <View style={styles.authorText}>
-            <View style={styles.nameRow}>
-              <Text style={[type.subhead, styles.name, { color: ui.label }]} numberOfLines={1}>
-                {post.author}
+    <View style={[styles.container, { borderBottomColor: ui.separator }]}>
+      {/* Header: Avatar, Name, Verified, @handle · time */}
+      <View style={styles.header}>
+        <PressableScale haptic="light" scaleTo={0.96} onPress={openProfile} style={styles.authorRow}>
+          {author.avatar ? (
+            <Image source={author.avatar} style={styles.avatar} contentFit="cover" />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: ui.cardRaised }]}>
+              <Text style={[styles.avatarInitials, { color: ui.label }]}>
+                {author.name.charAt(0)}
               </Text>
-              {post.verified ? <Ionicons name="checkmark-circle" size={14} color={ui.accent} /> : null}
             </View>
-            <Text style={[type.footnote, { color: ui.secondaryLabel }]} numberOfLines={1}>
-              @{post.authorHandle}
+          )}
+          <View style={styles.authorInfo}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: ui.label }]} numberOfLines={1}>
+                {author.name}
+              </Text>
+              {author.verified ? (
+                <Ionicons name="checkmark-circle" size={14} color={ui.accent} />
+              ) : null}
+            </View>
+            <Text style={[styles.handleTime, { color: ui.secondaryLabel }]}>
+              @{author.handle} · {post.time}
             </Text>
           </View>
         </PressableScale>
-        <PressableScale
-          accessibilityLabel="More options"
-          haptic="light"
-          hitSlop={10}
-          onPress={() => setOptionsOpen(true)}
-          style={styles.moreBtn}>
-          <Ionicons name="ellipsis-horizontal" size={18} color={ui.secondaryLabel} />
-        </PressableScale>
       </View>
 
-      {/* Media */}
-      {post.imageUrls.length ? (
-        <Media
-          imageUrls={post.imageUrls}
-          price={shoppable ? post.price : undefined}
-          onLongPress={shoppable ? () => { vibeHaptics.heavy(); setQuickViewOpen(true); } : undefined}
-        />
-      ) : null}
+      {/* Post Text */}
+      <PressableScale
+        disabled={!linkToDetail}
+        onPress={openPost}
+        scaleTo={linkToDetail ? 0.995 : 1}
+        style={styles.textContainer}>
+        <Text style={[styles.postText, { color: ui.label }]}>{post.text}</Text>
+      </PressableScale>
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <Action
-          icon={liked ? 'heart' : 'heart-outline'}
-          color={liked ? ui.coral : ui.label}
-          count={likeCount}
-          label={liked ? 'Unlike' : 'Like'}
-          haptic="selection"
-          onPress={toggleLike}
-        />
-        <Action
-          icon="chatbubble-outline"
-          color={ui.label}
-          count={post.comments}
-          label="Comments"
-          onPress={() => router.push(`/post/${post.id}/comments` as never)}
-        />
-        <Action
-          icon="repeat"
-          color={reposted ? ui.accent : ui.label}
-          count={repostCount}
-          label="Repost"
-          onPress={() => setRepostOpen(true)}
-        />
-        <Action icon="paper-plane-outline" color={ui.label} label="Share" onPress={share} />
-        <View style={{ flex: 1 }} />
-        <Action
-          icon={saved ? 'bookmark' : 'bookmark-outline'}
-          color={saved ? ui.accent : ui.label}
-          label={saved ? 'Remove from saved' : 'Save'}
-          haptic="selection"
-          onPress={toggleSave}
-        />
-      </View>
-
-      {/* Caption */}
-      {post.caption ? (
+      {/* Attached Image */}
+      {post.image ? (
         <PressableScale
-          scaleTo={0.99}
-          onPress={() => router.push(`/post/${post.id}` as never)}
-          style={styles.caption}>
-          <Text style={[type.subhead, styles.captionText, { color: ui.label }]} numberOfLines={3}>
-            <Text style={styles.captionAuthor}>{post.author}  </Text>
-            <Text style={{ color: ui.label, opacity: 0.9 }}>{post.caption}</Text>
-          </Text>
+          disabled={!linkToDetail}
+          onPress={openPost}
+          scaleTo={linkToDetail ? 0.99 : 1}
+          style={[styles.mediaBox, { borderColor: ui.separator, backgroundColor: ui.cardRaised }]}>
+          <Image
+            source={post.image}
+            style={styles.mediaImage}
+            contentFit="cover"
+            transition={150}
+          />
         </PressableScale>
       ) : null}
 
-      {/* Lovable Inset Product Commerce Card */}
-      {shoppable ? (
+      {/* Embedded Product Card */}
+      {product ? (
         <PressableScale
           accessibilityRole="button"
-          accessibilityLabel={`Shop ${post.product}`}
+          accessibilityLabel={`Shop ${product.name}`}
           haptic="medium"
           scaleTo={0.985}
-          onPress={() => {
-            if (post.productId) {
-              router.push(`/product/${post.productId}` as never);
-            } else {
-              router.push(`/place/${post.authorHandle}` as never);
-            }
-          }}
+          onPress={() => router.push(`/product/${product.id}` as never)}
           style={[
-            styles.shop,
+            styles.productCard,
             {
-              backgroundColor: ui.cardRaised,
+              backgroundColor: ui.card,
               borderColor: ui.separator,
             },
           ]}>
-          {post.imageUrls[0] ? (
-            <Image
-              source={{ uri: post.imageUrls[0] }}
-              style={[styles.shopThumb, { borderColor: ui.separator }]}
-              contentFit="cover"
-            />
-          ) : (
-            <View style={[styles.shopIconBox, { backgroundColor: ui.card, borderColor: ui.separator }]}>
-              <Ionicons name="bag-handle" size={17} color={ui.accent} />
-            </View>
-          )}
-          <View style={styles.shopText}>
-            <Text style={[type.subhead, styles.shopTitle, { color: ui.label }]} numberOfLines={1}>
-              {post.product}
+          <Image
+            source={product.image}
+            style={[styles.productThumb, { borderColor: ui.separator }]}
+            contentFit="cover"
+          />
+          <View style={styles.productInfo}>
+            <Text style={[styles.productName, { color: ui.label }]} numberOfLines={2}>
+              {product.name}
             </Text>
-            <Text style={[styles.shopPriceText, { color: ui.gold }]}>
-              {post.price}
+            <Text style={[styles.productPrice, { color: ui.label }]}>
+              {formatNaira(product.price)}
             </Text>
           </View>
-          <View style={[styles.shopCtaRound, { backgroundColor: ui.lime }]}>
-            <Ionicons name="bag-handle-outline" size={16} color={ui.limeForeground} />
+          <View style={[styles.productBagBtn, { backgroundColor: ui.lime }]}>
+            <Ionicons name="bag-handle" size={18} color={ui.limeForeground} />
           </View>
         </PressableScale>
       ) : null}
 
-      <PostRepostSheet
-        visible={repostOpen}
-        onClose={() => setRepostOpen(false)}
-        post={{
-          id: post.id,
-          author: post.author,
-          authorHandle: post.authorHandle,
-          repostedByMe: reposted,
-          caption: post.caption,
-        }}
-      />
+      {/* Embedded News Card */}
+      {article ? (
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={`Read article ${article.title}`}
+          haptic="medium"
+          scaleTo={0.985}
+          onPress={() => router.push(`/news/${article.id}` as never)}
+          style={[
+            styles.newsCard,
+            {
+              backgroundColor: ui.card,
+              borderColor: ui.separator,
+            },
+          ]}>
+          <Image source={article.image} style={styles.newsImage} contentFit="cover" />
+          <View style={styles.newsContent}>
+            <View style={styles.newsText}>
+              <Text style={[styles.newsMeta, { color: ui.accent }]}>
+                {article.category.toUpperCase()} · {article.readMins} MIN READ
+              </Text>
+              <Text style={[styles.newsTitle, { color: ui.label }]} numberOfLines={2}>
+                {article.title}
+              </Text>
+            </View>
+            <Ionicons name="arrow-up" size={16} color={ui.secondaryLabel} style={{ transform: [{ rotate: '45deg' }] }} />
+          </View>
+        </PressableScale>
+      ) : null}
 
-      <BottomSheet visible={optionsOpen} onClose={() => setOptionsOpen(false)}>
-        {isMine ? (
-          <>
-            <SheetRow
-              icon="pencil-outline"
-              label="Edit post"
-              onPress={() => {
-                setOptionsOpen(false);
-                router.push({
-                  pathname: '/post/[id]/edit',
-                  params: { id: post.id, initialCaption: post.caption },
-                } as never);
-              }}
-            />
-            <SheetRow icon="trash-outline" label="Delete post" destructive onPress={confirmDelete} />
-          </>
-        ) : (
-          <SheetRow icon="flag-outline" label="Report post" onPress={() => setOptionsOpen(false)} />
-        )}
-      </BottomSheet>
+      {/* Footer Actions */}
+      <View style={styles.footer}>
+        {/* Like */}
+        <PressableScale
+          haptic="selection"
+          scaleTo={0.88}
+          hitSlop={6}
+          onPress={() => actions.toggleLike(post.id)}
+          style={styles.actionBtn}>
+          <Ionicons
+            name={liked ? 'heart' : 'heart-outline'}
+            size={20}
+            color={liked ? ui.coral : ui.secondaryLabel}
+          />
+          <Text
+            style={[
+              styles.actionCount,
+              { color: liked ? ui.coral : ui.secondaryLabel },
+            ]}>
+            {compact(post.likes + (liked ? 1 : 0))}
+          </Text>
+        </PressableScale>
 
-      {shoppable ? (
-        <ProductQuickViewModal
-          visible={quickViewOpen}
-          onClose={() => setQuickViewOpen(false)}
-          product={{
-            id: post.productId ?? post.id,
-            title: post.product,
-            price: Math.round((parseFloat(post.price.replace(/[^0-9.]/g, '')) || 0) * 100),
-            imageUrl: post.imageUrls?.[0],
-            vendorHandle: post.authorHandle,
-            vendorName: post.author,
-            description: post.caption,
+        {/* Comment */}
+        <PressableScale
+          haptic="light"
+          scaleTo={0.88}
+          hitSlop={6}
+          onPress={() => router.push(`/post/${post.id}` as never)}
+          style={styles.actionBtn}>
+          <Ionicons name="chatbubble-outline" size={18} color={ui.secondaryLabel} />
+          <Text style={[styles.actionCount, { color: ui.secondaryLabel }]}>
+            {compact(post.comments)}
+          </Text>
+        </PressableScale>
+
+        {/* Repost */}
+        <PressableScale
+          haptic="light"
+          scaleTo={0.88}
+          hitSlop={6}
+          onPress={() => toast.show({ variant: 'success', title: 'Reposted to your followers' })}
+          style={styles.actionBtn}>
+          <Ionicons name="repeat-outline" size={20} color={ui.secondaryLabel} />
+          <Text style={[styles.actionCount, { color: ui.secondaryLabel }]}>
+            {compact(post.reposts)}
+          </Text>
+        </PressableScale>
+
+        <View style={{ flex: 1 }} />
+
+        {/* Share */}
+        <PressableScale
+          haptic="light"
+          scaleTo={0.88}
+          hitSlop={6}
+          onPress={handleShare}
+          style={styles.actionBtn}>
+          <Ionicons name="paper-plane-outline" size={18} color={ui.secondaryLabel} />
+        </PressableScale>
+
+        {/* Save */}
+        <PressableScale
+          haptic="selection"
+          scaleTo={0.88}
+          hitSlop={6}
+          onPress={() => {
+            actions.toggleSave(post.id);
+            toast.show({
+              variant: 'success',
+              title: saved ? 'Removed from saved' : 'Saved for later',
+            });
           }}
-        />
-      ) : null}
-    </Card>
-  );
-}
-
-function Action({
-  icon,
-  color,
-  count,
-  label,
-  haptic = 'light',
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  count?: number;
-  label: string;
-  haptic?: 'light' | 'selection';
-  onPress: () => void;
-}) {
-  const ui = useUi();
-  return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      haptic={haptic}
-      scaleTo={0.88}
-      hitSlop={6}
-      onPress={onPress}
-      style={styles.action}>
-      <Ionicons name={icon} size={22} color={color} />
-      {count !== undefined && count > 0 ? (
-        <Text style={[type.footnote, styles.actionCount, { color: ui.secondaryLabel }]}>{compact(count)}</Text>
-      ) : null}
-    </PressableScale>
-  );
-}
-
-function SheetRow({
-  icon,
-  label,
-  destructive,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  destructive?: boolean;
-  onPress: () => void;
-}) {
-  const ui = useUi();
-  const color = destructive ? ui.danger : ui.label;
-  return (
-    <PressableScale haptic="light" scaleTo={0.98} onPress={onPress} style={styles.sheetRow}>
-      <Ionicons name={icon} size={22} color={color} />
-      <Text style={[type.body, { color }]}>{label}</Text>
-    </PressableScale>
-  );
-}
-
-function Media({
-  imageUrls,
-  price,
-  onLongPress,
-}: {
-  imageUrls: string[];
-  price?: string;
-  onLongPress?: () => void;
-}) {
-  const ui = useUi();
-  const { width } = useWindowDimensions();
-  const inset = 10;
-  const mediaWidth = width - layout.gutter * 2 - inset * 2;
-  const mediaHeight = Math.round(mediaWidth * 1.12);
-  const [index, setIndex] = useState(0);
-  const [viewer, setViewer] = useState(false);
-  const multiple = imageUrls.length > 1;
-
-  const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(e.nativeEvent.contentOffset.x / mediaWidth);
-    setIndex(Math.min(Math.max(next, 0), imageUrls.length - 1));
-  };
-
-  return (
-    <>
-      <View
-        style={[
-          styles.media,
-          {
-            width: mediaWidth,
-            height: mediaHeight,
-            borderColor: ui.separator,
-          },
-        ]}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onEnd}>
-          {imageUrls.map((url, i) => (
-            <PressableScale
-              key={`${url}-${i}`}
-              scaleTo={1}
-              delayLongPress={280}
-              onLongPress={onLongPress}
-              onPress={() => setViewer(true)}>
-              <Image
-                source={{ uri: url }}
-                style={{ width: mediaWidth, height: mediaHeight, backgroundColor: ui.cardRaised }}
-                contentFit="cover"
-                transition={150}
-              />
-            </PressableScale>
-          ))}
-        </ScrollView>
-
-        {price ? (
-          <View style={styles.priceOverlay} pointerEvents="none">
-            <Badge tone="price" icon="pricetag" label={price} />
-          </View>
-        ) : null}
-
-        {multiple ? (
-          <View style={styles.dots} pointerEvents="none">
-            {imageUrls.map((url, i) => (
-              <View
-                key={`${url}-dot-${i}`}
-                style={[styles.dot, { backgroundColor: i === index ? '#F5F2EC' : 'rgba(245,242,236,0.40)' }]}
-              />
-            ))}
-          </View>
-        ) : null}
+          style={styles.actionBtn}>
+          <Ionicons
+            name={saved ? 'bookmark' : 'bookmark-outline'}
+            size={19}
+            color={saved ? ui.accent : ui.secondaryLabel}
+          />
+        </PressableScale>
       </View>
-      <ImageViewerModal
-        visible={viewer}
-        onClose={() => setViewer(false)}
-        imageUrls={imageUrls}
-        initialIndex={index}
-      />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: layout.gutter,
-    padding: 0,
-    borderRadius: 24,
+  container: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 12,
+    gap: 12,
+    flex: 1,
   },
-  authorTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-  authorText: { flexShrink: 1, gap: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  name: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.3, flexShrink: 1 },
-  moreBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  media: {
-    alignSelf: 'center',
-    overflow: 'hidden',
+  avatarInitials: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 16,
+  },
+  authorInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  name: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  handleTime: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 12,
+  },
+  textContainer: {
+    marginTop: 12,
+  },
+  postText: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  mediaBox: {
+    marginTop: 12,
     borderRadius: 16,
+    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     ...continuous,
   },
-  priceOverlay: { position: 'absolute', left: 12, bottom: 12 },
-  dots: {
-    position: 'absolute',
-    bottom: 12,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(14, 13, 12, 0.55)',
+  mediaImage: {
+    width: '100%',
+    height: 280,
   },
-  dot: { width: 5, height: 5, borderRadius: 2.5 },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 18,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionCount: { fontFamily: 'InstrumentSans_600SemiBold', fontVariant: ['tabular-nums'] },
-  caption: { paddingHorizontal: 14, paddingBottom: 12 },
-  captionText: { lineHeight: 20 },
-  captionAuthor: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.2 },
-  shop: {
-    marginHorizontal: 12,
-    marginBottom: 12,
-    padding: 10,
-    borderRadius: 18,
+  productCard: {
+    marginTop: 12,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     ...continuous,
   },
-  shopThumb: {
-    width: 46,
-    height: 46,
+  productThumb: {
+    width: 72,
+    height: 72,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  shopIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+  productInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  productName: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  productPrice: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 16,
+  },
+  productBagBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 2,
+  },
+  newsCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
     ...continuous,
   },
-  shopText: { flex: 1, gap: 2 },
-  shopTitle: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.2 },
-  shopPriceText: {
-    fontFamily: 'BricolageGrotesque_700Bold',
-    fontSize: 15,
-    letterSpacing: -0.3,
+  newsImage: {
+    width: '100%',
+    height: 144,
   },
-  shopCtaRound: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  newsContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+  },
+  newsText: {
+    flex: 1,
+    gap: 4,
+  },
+  newsMeta: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  newsTitle: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  footer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 18,
+    marginTop: 14,
   },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 20 },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 2,
+  },
+  actionCount: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+  },
 });

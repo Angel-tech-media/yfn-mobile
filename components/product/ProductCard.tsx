@@ -1,18 +1,28 @@
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import type { RankedProduct } from '@/src/api/types';
+import {
+  actions,
+  formatNaira,
+  getVendor,
+  useApp,
+  type Product,
+} from '@/src/data/lovable-data';
 import { useToast } from '@/src/hooks/use-toast';
-import { useIsWishlisted, useWishlist } from '@/src/store/wishlist';
-import { glass } from '@/src/theme/plasma';
-import { continuous, corner, type, useUi } from '@/src/theme/ui';
-import { formatKobo } from '@/src/utils/money';
+import { continuous, useUi } from '@/src/theme/ui';
 
 export type ProductCardProps = {
-  product: RankedProduct;
+  product: Product;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -20,128 +30,107 @@ export type ProductCardProps = {
 export function ProductCard({ product, onPress, style }: ProductCardProps) {
   const ui = useUi();
   const toast = useToast();
-  const g = ui.isDark ? glass.dark : glass.light;
-  const isWishlisted = useIsWishlisted(product.id);
-  const toggleWishlist = useWishlist((s) => s.toggle);
 
-  const imageUrl = product.media?.find((media) => media.type === 'image')?.url;
+  const saved = useApp((s) => s.wishlist.includes(product.id));
+  const vendor = getVendor(product.vendorId);
+  const off = product.oldPrice
+    ? Math.round((1 - product.price / product.oldPrice) * 100)
+    : 0;
 
-  const handleToggleWishlist = () => {
-    toggleWishlist({
-      id: product.id,
-      name: product.title,
-      price: product.price,
-      image: imageUrl ? { uri: imageUrl } : require('@/assets/images/icon.png'),
-      vendor: product.category || 'Aktive Vendor',
-    });
-    toast.show({
-      variant: 'success',
-      title: isWishlisted ? 'Removed from wishlist' : 'Saved to wishlist',
-    });
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/product/${product.id}` as never);
+    }
   };
 
-  const isLowStock = product.stock !== undefined && product.stock > 0 && product.stock <= 5;
+  const handleToggleWishlist = () => {
+    actions.toggleWishlist(product.id);
+    toast.show({
+      variant: 'success',
+      title: saved ? 'Removed from wishlist' : 'Saved to wishlist',
+    });
+  };
 
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={`${product.title}, ${formatKobo(product.price)}`}
-      onPress={onPress}
+      accessibilityLabel={`${product.name}, ${formatNaira(product.price)}`}
+      onPress={handlePress}
       haptic="light"
       scaleTo={0.975}
-      style={[
-        styles.card,
-        {
-          backgroundColor: ui.card,
-          borderColor: ui.separator,
-        },
-        style,
-      ]}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={g.sheen}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.35 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Image container */}
+      style={[styles.container, style]}>
+      {/* 4:5 Rounded Image Frame */}
       <View style={[styles.imageContainer, { backgroundColor: ui.cardRaised, borderColor: ui.separator }]}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={180} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, styles.placeholder]}>
-            <Ionicons name="bag-handle-outline" size={28} color={ui.tertiaryLabel} />
-          </View>
-        )}
+        <Image
+          source={product.image}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={150}
+        />
 
-        {/* Top Badges */}
-        <View style={styles.topBadges}>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            {product.isYfnVerified ? (
-              <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'rgba(200, 255, 59, 0.35)' }]}>
-                <Ionicons name="checkmark-circle" size={11} color={ui.lime} />
-                <Text style={[styles.pillText, { color: ui.lime }]}>Verified</Text>
-              </View>
-            ) : product.category ? (
-              <View style={[styles.pillBadge, { backgroundColor: ui.card, borderColor: ui.separator }]}>
-                <Text style={[styles.pillText, { color: ui.label }]}>{product.category}</Text>
-              </View>
-            ) : null}
+        {/* Top-left Discount or Tag Badge */}
+        {off > 0 ? (
+          <View style={[styles.badgePill, { backgroundColor: ui.coral }]}>
+            <Text style={[styles.badgeText, { color: ui.coralForeground }]}>−{off}%</Text>
           </View>
-
-          {/* Wishlist Heart Button */}
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
-            haptic="medium"
-            scaleTo={0.88}
-            hitSlop={8}
-            onPress={handleToggleWishlist}
-            style={[styles.heartBtn, { backgroundColor: ui.card, borderColor: ui.separator }]}>
-            <Ionicons
-              name={isWishlisted ? 'heart' : 'heart-outline'}
-              size={15}
-              color={isWishlisted ? ui.coral : ui.label}
-            />
-          </PressableScale>
-        </View>
-
-        {/* Bottom Scarcity / Distance Pill */}
-        {isLowStock ? (
-          <View style={styles.bottomBadge}>
-            <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'transparent' }]}>
-              <View style={[styles.dot, { backgroundColor: ui.coral }]} />
-              <Text style={[styles.pillText, { color: ui.inkForeground }]}>Only {product.stock} left</Text>
-            </View>
+        ) : product.tag ? (
+          <View style={[styles.badgePill, { backgroundColor: ui.card, borderColor: ui.separator, borderWidth: StyleSheet.hairlineWidth }]}>
+            <Text style={[styles.badgeText, { color: ui.label }]}>{product.tag}</Text>
           </View>
-        ) : product.distanceKm !== undefined ? (
-          <View style={styles.bottomBadge}>
-            <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'transparent' }]}>
-              <Ionicons name="location-outline" size={11} color={ui.inkForeground} />
-              <Text style={[styles.pillText, { color: ui.inkForeground }]}>
-                {product.distanceKm.toFixed(1)} km
-              </Text>
-            </View>
+        ) : null}
+
+        {/* Top-right Heart Button */}
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={saved ? 'Remove from wishlist' : 'Save to wishlist'}
+          haptic="medium"
+          scaleTo={0.88}
+          hitSlop={8}
+          onPress={handleToggleWishlist}
+          style={[styles.heartBtn, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <Ionicons
+            name={saved ? 'heart' : 'heart-outline'}
+            size={16}
+            color={saved ? ui.coral : ui.label}
+          />
+        </PressableScale>
+
+        {/* Bottom Scarcity Pill */}
+        {product.stock <= 5 ? (
+          <View style={[styles.scarcityPill, { backgroundColor: ui.ink }]}>
+            <Text style={[styles.scarcityText, { color: ui.inkForeground }]}>
+              Only {product.stock} left
+            </Text>
           </View>
         ) : null}
       </View>
 
-      {/* Metadata */}
+      {/* Meta */}
       <View style={styles.meta}>
-        <Text style={[type.caption2, styles.categoryLabel, { color: ui.secondaryLabel }]} numberOfLines={1}>
-          {product.category?.toUpperCase() || 'AKTIVE MARKET'}
+        <Text style={[styles.vendorName, { color: ui.secondaryLabel }]} numberOfLines={1}>
+          {vendor?.name?.toUpperCase() || 'AKTIVE VENDOR'}
         </Text>
-        <Text style={[type.subhead, styles.title, { color: ui.label }]} numberOfLines={2}>
-          {product.title}
+        <Text style={[styles.title, { color: ui.label }]} numberOfLines={1}>
+          {product.name}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={[styles.priceText, { color: ui.gold }]}>
-            {formatKobo(product.price)}
-          </Text>
-          <View style={styles.starRow}>
-            <Ionicons name="star" size={11} color={ui.coral} />
-            <Text style={[styles.ratingText, { color: ui.label }]}>4.9</Text>
+          <View style={styles.priceLeft}>
+            <Text style={[styles.priceText, { color: ui.label }]}>
+              {formatNaira(product.price)}
+            </Text>
+            {product.oldPrice ? (
+              <Text style={[styles.oldPriceText, { color: ui.secondaryLabel }]}>
+                {formatNaira(product.oldPrice)}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={12} color="#F5B82E" />
+            <Text style={[styles.ratingText, { color: ui.label }]}>
+              {product.rating}
+            </Text>
           </View>
         </View>
       </View>
@@ -150,80 +139,64 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: corner.lg,
-    padding: 7,
-    gap: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-    ...continuous,
+  container: {
+    width: '100%',
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 4 / 5,
-    borderRadius: corner.md,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     ...continuous,
   },
-  placeholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBadges: {
+  badgePill: {
     position: 'absolute',
     top: 8,
     left: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  bottomBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-  },
-  pillBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
-  pillText: {
+  badgeText: {
     fontFamily: 'InstrumentSans_600SemiBold',
-    fontSize: 10,
-    letterSpacing: -0.1,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    fontSize: 11,
   },
   heartBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
-  meta: {
-    gap: 3,
-    paddingHorizontal: 4,
-    paddingBottom: 4,
+  scarcityPill: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
-  categoryLabel: {
-    letterSpacing: 0.8,
+  scarcityText: {
     fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 10,
   },
+  meta: {
+    paddingTop: 10,
+    paddingHorizontal: 2,
+    gap: 2,
+  },
+  vendorName: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
   title: {
     fontFamily: 'InstrumentSans_600SemiBold',
-    letterSpacing: -0.2,
     fontSize: 14,
     lineHeight: 18,
   },
@@ -233,18 +206,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 2,
   },
+  priceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   priceText: {
     fontFamily: 'BricolageGrotesque_700Bold',
     fontSize: 16,
-    letterSpacing: -0.3,
   },
-  starRow: {
+  oldPriceText: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 12,
+    textDecorationLine: 'line-through',
+  },
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
   ratingText: {
     fontFamily: 'InstrumentSans_600SemiBold',
-    fontSize: 11,
+    fontSize: 12,
   },
 });

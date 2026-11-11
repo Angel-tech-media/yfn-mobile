@@ -36,6 +36,7 @@ export type UiColors = {
   limeForeground: string;
   /** Warm Sunset Coral (#F06543 in light, #F26E4B in dark). */
   coral: string;
+  coralForeground: string;
   /** Deep Forest Ink banner surface (`bg-ink` in Lovable). */
   ink: string;
   inkForeground: string;
@@ -74,6 +75,7 @@ const dark: UiColors = {
   lime: '#C8FF3B',
   limeForeground: '#12281E',
   coral: '#F26E4B',
+  coralForeground: '#FFFFFF',
   ink: '#1C2A23',
   inkForeground: '#F6F4EB',
   inkMuted: '#A8B8AF',
@@ -108,6 +110,7 @@ const light: UiColors = {
   lime: '#C8FF3B',
   limeForeground: '#12281E',
   coral: '#F06543',
+  coralForeground: '#FFFFFF',
   ink: '#182B22',
   inkForeground: '#F6F4EB',
   inkMuted: '#9FB5A9',
