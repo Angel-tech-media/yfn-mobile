@@ -34,8 +34,6 @@ export default function HomeFeedLayout() {
           <Stack.Screen name="post/[id]/comments" options={{ presentation: 'modal' }} />
           <Stack.Screen name="u/[handle]" />
           <Stack.Screen name="place/[id]" />
-          <Stack.Screen name="news/[id]" />
-          <Stack.Screen name="hive/[...slug]" />
           <Stack.Screen name="wallet/referrals" />
           <Stack.Screen name="story/[id]" options={{ animation: 'fade' }} />
           <Stack.Screen name="account/edit" />

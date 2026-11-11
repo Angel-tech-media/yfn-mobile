@@ -36,8 +36,6 @@ export function resetAllStores() {
   } catch (_) {}
 
   try {
-    const { useHiveChat } = require('./hive-chat');
-    useHiveChat.setState({ messages: {} });
   } catch (_) {}
 
   try {

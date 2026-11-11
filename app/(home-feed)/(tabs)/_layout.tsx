@@ -12,7 +12,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { glass, plasma } from '@/src/theme/plasma';
 import { continuous, type, useUi } from '@/src/theme/ui';
 
-type TabKey = 'index' | 'market' | 'wallet' | 'profile' | 'hive';
+type TabKey = 'index' | 'market' | 'wallet' | 'profile' ;
 type IconSet = 'ion' | 'mci';
 
 type TabSpec = {
@@ -153,9 +153,6 @@ export default function TabLayout() {
         <Tabs.Screen name="market" />
         <Tabs.Screen name="wallet" />
         <Tabs.Screen name="profile" />
-        {/* Routes still navigable but hidden from the bar */}
-        <Tabs.Screen name="hive" options={{ href: null }} />
-        <Tabs.Screen name="news" options={{ href: null }} />
         <Tabs.Screen name="shop" options={{ href: null }} />
         <Tabs.Screen name="inbox" options={{ href: null }} />
       </Tabs>

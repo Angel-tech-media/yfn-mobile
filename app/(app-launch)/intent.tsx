@@ -9,7 +9,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { palette, radius, spacing, typography } from '@/src/theme';
 
-type Intent = 'shop' | 'sell' | 'read' | 'write';
+type Intent = 'shop' | 'sell';
 
 type Option = {
   key: Intent;
@@ -30,18 +30,6 @@ const OPTIONS: Option[] = [
     icon: require('@/assets/figma/icon-sell.png'),
     title: 'Sell',
     subtitle: 'Set up your vendor store and start earning',
-  },
-  {
-    key: 'read',
-    icon: require('@/assets/figma/icon-read.png'),
-    title: 'Read',
-    subtitle: 'Discover youth news, trends and articles',
-  },
-  {
-    key: 'write',
-    icon: require('@/assets/figma/icon-write.png'),
-    title: 'Write',
-    subtitle: 'Share stories with your community',
   },
 ];
 
