@@ -22,6 +22,7 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
 
 type LargeTitleHeaderProps = {
   title: string;
+  subtitle?: ReactNode;
   /** Leading brand element, e.g. the mascot. */
   leading?: ReactNode;
   /** Up to two trailing icon buttons. Apple keeps nav bars sparse. */
@@ -32,17 +33,20 @@ type LargeTitleHeaderProps = {
  * iOS-style large title header with a translucent blur material.
  * Sits in normal flow (not absolute) so content below never hides behind it.
  */
-export function LargeTitleHeader({ title, leading, trailing }: LargeTitleHeaderProps) {
+export function LargeTitleHeader({ title, subtitle, leading, trailing }: LargeTitleHeaderProps) {
   const ui = useUi();
   const insets = useSafeAreaInsets();
   return (
     <View style={{ paddingTop: insets.top }}>
       <View style={styles.headerRow}>
         <View style={styles.titleWrap}>
-          {leading}
-          <Text style={[type.largeTitle, { color: ui.label }]} numberOfLines={1}>
-            {title}
-          </Text>
+          {subtitle}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {leading}
+            <Text style={[type.largeTitle, { color: ui.label }]} numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
         </View>
         <View style={styles.trailing}>{trailing}</View>
       </View>

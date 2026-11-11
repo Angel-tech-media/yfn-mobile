@@ -191,7 +191,7 @@ export function PostCard({ post }: { post: PostItem }) {
       <View style={styles.actions}>
         <Action
           icon={liked ? 'heart' : 'heart-outline'}
-          color={liked ? ui.danger : ui.label}
+          color={liked ? ui.coral : ui.label}
           count={likeCount}
           label={liked ? 'Unlike' : 'Like'}
           haptic="selection"
@@ -206,7 +206,7 @@ export function PostCard({ post }: { post: PostItem }) {
         />
         <Action
           icon="repeat"
-          color={reposted ? ui.accent : ui.label}
+          color={reposted ? ui.lime : ui.label}
           count={repostCount}
           label="Repost"
           onPress={() => setRepostOpen(true)}
@@ -235,27 +235,34 @@ export function PostCard({ post }: { post: PostItem }) {
         </PressableScale>
       ) : null}
 
-      {/* Minimalist Nude Shop Bar */}
+      {/* Lovable-inspired Inset Product Commerce Card */}
       {shoppable ? (
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={`Shop ${post.product}`}
           haptic="medium"
           scaleTo={0.985}
-          onPress={() => router.push(`/place/${post.authorHandle}` as never)}
-          style={[styles.shop, { backgroundColor: ui.fill, borderColor: ui.separator }]}>
+          onPress={() => {
+            if (post.productId) {
+              router.push(`/product/${post.productId}` as never);
+            } else {
+              router.push(`/place/${post.authorHandle}` as never);
+            }
+          }}
+          style={[styles.shop, { backgroundColor: 'rgba(24, 24, 30, 0.72)', borderColor: ui.separator }]}>
           <View style={[styles.shopIconBox, { backgroundColor: ui.cardRaised, borderColor: ui.separator }]}>
-            <Ionicons name="bag-handle-outline" size={16} color={ui.accent} />
+            <Ionicons name="bag-handle" size={17} color={ui.lime} />
           </View>
           <View style={styles.shopText}>
             <Text style={[type.subhead, styles.shopTitle, { color: ui.label }]} numberOfLines={1}>
               {post.product}
             </Text>
-            <PriceTag value={post.price} size="sm" />
+            <Text style={[styles.shopPriceText, { color: ui.gold }]}>
+              {post.price}
+            </Text>
           </View>
-          <View style={[styles.shopCta, { backgroundColor: ui.accent }]}>
-            <Text style={[type.footnote, styles.shopCtaText, { color: ui.onAccent }]}>Shop</Text>
-            <Ionicons name="arrow-forward" size={13} color={ui.onAccent} />
+          <View style={[styles.shopCtaRound, { backgroundColor: ui.lime }]}>
+            <Ionicons name="arrow-forward" size={15} color={ui.limeForeground} />
           </View>
         </PressableScale>
       ) : null}
@@ -531,6 +538,18 @@ const styles = StyleSheet.create({
   },
   shopText: { flex: 1, gap: 1 },
   shopTitle: { fontFamily: 'Inter_500Medium', letterSpacing: -0.2 },
+  shopPriceText: {
+    fontFamily: 'InterTight_700Bold',
+    fontSize: 14,
+    letterSpacing: -0.3,
+  },
+  shopCtaRound: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   shopCta: {
     paddingHorizontal: 14,
     height: 34,

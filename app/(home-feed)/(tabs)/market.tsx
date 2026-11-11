@@ -42,6 +42,14 @@ export default function MarketScreen() {
     <EspressoBackground>
       <LargeTitleHeader
         title="Market"
+        subtitle={
+          <View style={styles.locationRow}>
+            <Ionicons name="location-sharp" size={12} color={ui.lime} />
+            <Text style={[type.caption, { color: ui.secondaryLabel }]}>
+              Delivering to Lagos, Nigeria
+            </Text>
+          </View>
+        }
         trailing={
           <>
             <NavIconButton icon="search-outline" label="Search" onPress={() => router.push('/search' as never)} />
@@ -73,6 +81,33 @@ export default function MarketScreen() {
             />
           ))}
         </ScrollView>
+
+        {!category ? (
+          <View style={styles.pad}>
+            <View style={[styles.promoCard, { borderColor: 'rgba(200, 255, 59, 0.28)' }]}>
+              <LinearGradient
+                colors={['#182D22', '#0C1812']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.promoContent}>
+                <View style={styles.promoTopRow}>
+                  <View style={[styles.promoBadge, { backgroundColor: ui.lime }]}>
+                    <Text style={[styles.promoBadgeText, { color: ui.limeForeground }]}>Weekend drop</Text>
+                  </View>
+                  <Ionicons name="sparkles" size={15} color={ui.lime} />
+                </View>
+                <Text style={[type.title2, styles.promoHeading]}>
+                  Up to 30% off local creators
+                </Text>
+                <Text style={[type.footnote, styles.promoSub]}>
+                  Shop verified Nigerian vendors • Secured with escrow
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         {isLoading ? (
           <Text style={[type.callout, styles.state, { color: ui.secondaryLabel }]}>Loading market…</Text>
@@ -261,4 +296,46 @@ const styles = StyleSheet.create({
   },
   reelBadge: { position: 'absolute', top: 10, left: 10 },
   reelMeta: { padding: 12, gap: 2 },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  promoCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 16,
+    ...continuous,
+  },
+  promoContent: {
+    gap: 8,
+  },
+  promoTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  promoBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  promoBadgeText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 10,
+    letterSpacing: -0.1,
+    textTransform: 'uppercase',
+  },
+  promoHeading: {
+    color: '#FAFAFA',
+    fontFamily: 'InterTight_700Bold',
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  promoSub: {
+    color: 'rgba(250, 250, 250, 0.72)',
+    fontFamily: 'Inter_400Regular',
+  },
 });

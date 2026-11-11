@@ -21,6 +21,11 @@ export const plasma = {
   hibiscus: '#9F1239',
   alabaster: '#F8FAFC',
 
+  /** High-Energy Electric Lime Accent from Lovable ("Lagos Paper"). */
+  lime: '#C8FF3B',
+  limeForeground: '#121815',
+  forestInk: '#162821',
+
   /** Semantic aliases used across components. */
   nude: '#E85D3F',
   nudeDeep: '#C94124',
@@ -42,6 +47,7 @@ export const plasma = {
   warm: ['#F59E0B', '#E85D3F'] as const,
   aurora: ['#E85D3F', '#C94124', '#9F1239'] as const,
   spectrum: ['#F59E0B', '#E85D3F'] as const,
+  story: ['#C8FF3B', '#F06543', '#F5C469', '#C8FF3B'] as const,
 } as const;
 
 /**

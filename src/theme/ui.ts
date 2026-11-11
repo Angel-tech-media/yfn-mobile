@@ -28,6 +28,11 @@ export type UiColors = {
   onAccent: string;
   /** Destructive / live highlight. */
   altarRed: string;
+  /** Electric Lime badge accent from Lovable ("Lagos Paper") */
+  lime: string;
+  limeForeground: string;
+  /** Warm Sunset Coral */
+  coral: string;
   /** 24k Champagne Gold for prices and ratings (#F5C469). */
   gold: string;
   /** Warm terracotta gradient. */
@@ -52,6 +57,9 @@ const dark: UiColors = {
   accentPressed: '#C94124',
   onAccent: '#FFFFFF',
   altarRed: '#E5262F',
+  lime: '#C8FF3B',
+  limeForeground: '#121815',
+  coral: '#F06543',
   gold: '#F5C469',
   gradient: ['#E85D3F', '#C94124'] as const,
   success: '#30D158',
@@ -73,6 +81,9 @@ const light: UiColors = {
   accentPressed: '#C94124',
   onAccent: '#FFFFFF',
   altarRed: '#E5262F',
+  lime: '#99D61E',
+  limeForeground: '#121815',
+  coral: '#E85D3F',
   gold: '#B47814',
   gradient: ['#E85D3F', '#C94124'] as const,
   success: '#34C759',
