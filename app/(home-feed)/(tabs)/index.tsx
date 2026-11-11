@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { Badge, Chip } from '@/components/kit/Chip';
 import { NavIconButton } from '@/components/kit/Fields';
 import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
+import { ProductCard } from '@/components/product/ProductCard';
 import { PostCard, type PostItem } from '@/components/feed/PostCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
@@ -15,6 +16,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { useMe } from '@/src/api/account/hooks';
 import { useConversations } from '@/src/api/chat/hooks';
 import { useFeed, useFeedReels, useStoriesInbox } from '@/src/api/feed/hooks';
+import { useMarketplaceHome } from '@/src/api/marketplace/hooks';
 import { useCartCount } from '@/src/store/cart';
 import { plasma } from '@/src/theme/plasma';
 import { continuous, corner, layout, solidBackground, type, useUi } from '@/src/theme/ui';
@@ -31,6 +33,9 @@ export default function HomeFeedScreen() {
   const { data: threads = [] } = useConversations();
   const cartCount = useCartCount();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'For you' | 'Following' | 'Shop drops'>('For you');
+  const { data: marketData } = useMarketplaceHome({ limit: 12 });
+  const drops = marketData?.products ?? [];
 
   const unreadCount = threads.filter((t) => {
     const mine = t.participants?.find((p) => p.userId === me?.id);
@@ -77,6 +82,36 @@ export default function HomeFeedScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing || isFetching} onRefresh={onRefresh} tintColor={ui.accent} />
         }>
+        
+        {/* Lovable Filter Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabChips}>
+          {(['For you', 'Following', 'Shop drops'] as const).map((t) => {
+            const isSelected = activeTab === t;
+            return (
+              <PressableScale
+                key={t}
+                haptic="selection"
+                scaleTo={0.94}
+                onPress={() => setActiveTab(t)}
+                style={[
+                  styles.tabChip,
+                  isSelected
+                    ? { backgroundColor: '#FAFAFA' }
+                    : { backgroundColor: ui.card, borderColor: ui.separator, borderWidth: StyleSheet.hairlineWidth },
+                ]}>
+                <Text
+                  style={[
+                    type.caption,
+                    styles.tabChipText,
+                    { color: isSelected ? '#09090B' : ui.secondaryLabel },
+                  ]}>
+                  {t}
+                </Text>
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+
         {/* Stories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stories}>
           <StoryTile
@@ -101,6 +136,21 @@ export default function HomeFeedScreen() {
             />
           ))}
         </ScrollView>
+
+        {/* Quick Post Prompt Card (Lovable) */}
+        <PressableScale
+          haptic="light"
+          scaleTo={0.985}
+          onPress={() => router.push('/create' as never)}
+          style={[styles.composerCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <Avatar size={34} source={myAvatar} initials={initials(myName)} />
+          <Text style={[type.subhead, { color: ui.secondaryLabel, flex: 1 }]}>
+            What’s the gist today?
+          </Text>
+          <View style={[styles.composerPostPill, { backgroundColor: ui.lime }]}>
+            <Text style={[styles.composerPostText, { color: ui.limeForeground }]}>Post</Text>
+          </View>
+        </PressableScale>
 
         {/* Reels */}
         {reels.length ? (
@@ -146,25 +196,82 @@ export default function HomeFeedScreen() {
           </View>
         ) : null}
 
-        {/* Posts */}
-        <View style={styles.posts}>
-          {isError ? (
-            <View style={styles.empty}>
-              <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
-              <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn’t load your feed.</Text>
-              <Chip label="Try again" selected onPress={() => refetch()} />
+        {/* Feed Content based on active tab */}
+        {activeTab === 'Shop drops' ? (
+          <View style={styles.dropsSection}>
+            <View style={styles.dropsGrid}>
+              {drops.map((product, idx) => (
+                <ProductCard
+                  key={product.id ? `drop-${product.id}` : `drop-${idx}`}
+                  product={product}
+                  style={styles.gridItem}
+                  onPress={() => router.push(`/product/${product.id}` as never)}
+                />
+              ))}
             </View>
-          ) : null}
-          {!isError && !posts.length ? (
-            <View style={styles.empty}>
-              <Ionicons name="bag-handle-outline" size={32} color={ui.secondaryLabel} />
-              <Text style={[type.callout, { color: ui.secondaryLabel }]}>Nothing here yet. Follow vendors to fill your feed.</Text>
-            </View>
-          ) : null}
-          {posts.map((post, idx) => (
-            <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
-          ))}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.posts}>
+            {isError ? (
+              <View style={styles.empty}>
+                <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
+                <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn’t load your feed.</Text>
+                <Chip label="Try again" selected onPress={() => refetch()} />
+              </View>
+            ) : null}
+            {!isError && !posts.length ? (
+              <View style={styles.empty}>
+                <Ionicons name="bag-handle-outline" size={32} color={ui.secondaryLabel} />
+                <Text style={[type.callout, { color: ui.secondaryLabel }]}>Nothing here yet. Follow vendors to fill your feed.</Text>
+              </View>
+            ) : null}
+
+            {/* First 2 posts */}
+            {posts.slice(0, 2).map((post, idx) => (
+              <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
+            ))}
+
+            {/* Inset Picked For You Carousel (Lovable) */}
+            {activeTab === 'For you' && drops.length > 0 ? (
+              <View style={styles.pickedSection}>
+                <View style={styles.pickedHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="sparkles" size={16} color={ui.coral} />
+                    <Text style={[type.title3, { color: ui.label, fontFamily: 'InterTight_700Bold' }]}>
+                      Picked for you
+                    </Text>
+                  </View>
+                  <PressableScale haptic="light" onPress={() => router.push('/market' as never)}>
+                    <Text style={[type.subhead, { color: ui.accent, fontFamily: 'Inter_600SemiBold' }]}>
+                      Shop all
+                    </Text>
+                  </PressableScale>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickedScroll}>
+                  {drops.slice(0, 6).map((product, idx) => (
+                    <ProductCard
+                      key={product.id ? `picked-${product.id}` : `picked-${idx}`}
+                      product={product}
+                      style={styles.pickedItem}
+                      onPress={() => router.push(`/product/${product.id}` as never)}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            {/* Remaining posts */}
+            {posts.slice(2).map((post, idx) => (
+              <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
+            ))}
+
+            {posts.length > 0 ? (
+              <Text style={[type.footnote, styles.caughtUp, { color: ui.tertiaryLabel }]}>
+                You’re all caught up ✨
+              </Text>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
     </EspressoBackground>
   );
@@ -247,6 +354,73 @@ function initials(name: string) {
 }
 
 const styles = StyleSheet.create({
+  tabChips: { paddingHorizontal: layout.gutter, gap: 8, paddingBottom: 6 },
+  tabChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  tabChipText: {
+    fontFamily: 'Inter_600SemiBold',
+  },
+  composerCard: {
+    marginHorizontal: layout.gutter,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    ...continuous,
+  },
+  composerPostPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  composerPostText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  pickedSection: {
+    gap: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  pickedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: layout.gutter,
+  },
+  pickedScroll: {
+    paddingHorizontal: layout.gutter,
+    gap: 12,
+  },
+  pickedItem: {
+    width: 154,
+  },
+  dropsSection: {
+    paddingHorizontal: layout.gutter,
+    paddingBottom: 40,
+  },
+  dropsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  gridItem: {
+    width: '47.5%',
+  },
+  caughtUp: {
+    textAlign: 'center',
+    paddingVertical: 24,
+    letterSpacing: -0.1,
+  },
   scroll: { paddingBottom: 120, gap: layout.sectionGap },
   stories: { paddingHorizontal: layout.gutter, gap: 14 },
   story: { width: 72, alignItems: 'center', gap: 6 },

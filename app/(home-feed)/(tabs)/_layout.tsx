@@ -35,7 +35,8 @@ const TABS_RIGHT: TabSpec[] = [
 
 function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; onPress: () => void }) {
   const ui = useUi();
-  const color = focused ? ui.label : ui.secondaryLabel;
+  const iconColor = focused ? ui.limeForeground : ui.secondaryLabel;
+  const labelColor = focused ? ui.label : ui.secondaryLabel;
   const name = (focused ? t.iconActive : t.icon) as keyof typeof Ionicons.glyphMap;
   return (
     <PressableScale
@@ -44,22 +45,14 @@ function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; o
       accessibilityState={{ selected: focused }}
       onPress={onPress}
       haptic="selection"
-      scaleTo={0.88}
-      style={[styles.slot, focused && styles.slotFocused]}>
-      <Ionicons name={name} size={22} color={color} />
-      <Text style={[type.caption2, { color, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_500Medium' }]}>
+      scaleTo={0.90}
+      style={styles.slot}>
+      <View style={[styles.iconPill, focused && { backgroundColor: ui.lime }]}>
+        <Ionicons name={name} size={19} color={iconColor} />
+      </View>
+      <Text style={[type.caption2, styles.tabLabel, { color: labelColor, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_500Medium' }]}>
         {t.label}
       </Text>
-      {focused ? (
-        <LinearGradient
-          colors={[plasma.blue, plasma.cyan]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.activeIndicator}
-        />
-      ) : (
-        <View style={styles.activeIndicatorSpacer} />
-      )}
     </PressableScale>
   );
 }
@@ -182,15 +175,22 @@ const styles = StyleSheet.create({
     ...continuous,
   },
   slot: {
-    width: 62,
+    width: 60,
     height: 52,
-    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 3,
   },
-  slotFocused: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  iconPill: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    fontSize: 10,
+    letterSpacing: -0.1,
   },
   activeIndicator: {
     width: 14,
@@ -210,12 +210,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   createBtnGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255, 255, 255, 0.32)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    ...continuous,
   },
 });
