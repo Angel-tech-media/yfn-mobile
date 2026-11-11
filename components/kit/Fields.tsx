@@ -74,7 +74,7 @@ export function NavIconButton({
       ]}>
       <Ionicons name={icon} size={20} color={ui.label} />
       {badge && badge > 0 ? (
-        <View style={[styles.dot, { backgroundColor: ui.accent }]}>
+        <View style={[styles.dot, { backgroundColor: ui.coral }]}>
           <Text style={[type.caption2, { color: ui.onAccent }]}>{badge > 9 ? '9+' : badge}</Text>
         </View>
       ) : null}

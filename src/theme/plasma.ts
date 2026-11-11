@@ -10,8 +10,8 @@ import { StyleSheet } from 'react-native';
 
 export const plasma = {
   /** True deep OLED carbon base — crisp, never muddy. */
-  baseDark: '#08080C',
-  baseLight: '#F8F7F4',
+  baseDark: '#121815',
+  baseLight: '#F6F4EB',
 
   /** Warm Sunset & Earth Plasma Palette. */
   terracotta: '#E85D3F',
@@ -71,12 +71,12 @@ export const glass = {
     blurTint: 'dark' as const,
   },
   light: {
-    fill: 'rgba(255, 255, 255, 0.84)',
-    fillRaised: 'rgba(255, 255, 255, 0.94)',
-    fillSubtle: 'rgba(15, 15, 20, 0.05)',
-    sheen: ['rgba(255, 255, 255, 0.90)', 'rgba(255, 255, 255, 0.25)'] as const,
-    rim: 'rgba(15, 15, 20, 0.08)',
-    rimStrong: 'rgba(15, 15, 20, 0.15)',
+    fill: '#FFFFFF',
+    fillRaised: '#FCFBF8',
+    fillSubtle: 'rgba(22, 40, 33, 0.05)',
+    sheen: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.40)'] as const,
+    rim: '#E5E3D8',
+    rimStrong: '#D9D7C7',
     blurIntensity: 55,
     blurTint: 'light' as const,
   },

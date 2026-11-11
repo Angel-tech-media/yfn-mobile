@@ -12,7 +12,7 @@ type ThemeState = {
 };
 
 export const useTheme = create<ThemeState>((set) => ({
-  mode: 'dark',
+  mode: 'light',
   setMode: (mode) => set({ mode }),
   cycle: () =>
     set((s) => ({

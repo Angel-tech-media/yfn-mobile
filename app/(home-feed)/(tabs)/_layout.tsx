@@ -111,7 +111,7 @@ function CustomTabBar(props: any) {
           onPress={handleCreate}
           style={styles.createBtnWrapper}>
           <LinearGradient
-            colors={['#E85D3F', '#C94124']}
+            colors={['#1D4A38', '#162821']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.createBtnGradient}>

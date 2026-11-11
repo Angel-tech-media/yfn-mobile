@@ -93,8 +93,8 @@ const DARK_ORBS: OrbSpec[] = [
 ];
 
 const LIGHT_ORBS: OrbSpec[] = [
-  { color: '#E85D3F', size: 1.2, x: 0.08, y: 0.14, dx: 0.1, dy: 0.07, period: 15, opacity: 0.12 },
-  { color: '#F59E0B', size: 1.0, x: 0.88, y: 0.44, dx: 0.09, dy: 0.1, period: 18, opacity: 0.10 },
+  { color: '#C8FF3B', size: 1.1, x: 0.15, y: 0.20, dx: 0.08, dy: 0.05, period: 20, opacity: 0.12 },
+  { color: '#F06543', size: 1.0, x: 0.85, y: 0.80, dx: 0.08, dy: 0.06, period: 22, opacity: 0.10 },
 ];
 
 export function PlasmaBackground() {

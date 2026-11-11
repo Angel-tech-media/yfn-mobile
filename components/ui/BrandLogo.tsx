@@ -21,27 +21,42 @@ const sizeMap = {
 
 export function BrandLogo({
   size = 'md',
-  color = palette.ink.onDarkStrong,
+  color,
   style,
-  showMark = true,
 }: Props) {
   const s = sizeMap[size];
+  const dotSize = Math.max(6, Math.round(s.fontSize * 0.28));
+
   return (
     <View style={styles.row}>
-      {showMark ? <CartMascot size={s.mark} /> : null}
       <Text
         style={[
           styles.text,
           {
             fontSize: s.fontSize,
             lineHeight: s.lineHeight,
-            letterSpacing: s.letterSpacing,
-            color,
+            letterSpacing: -0.8,
+            color: color || '#162821',
+            fontFamily: 'InterTight_800ExtraBold',
+            textTransform: 'lowercase',
           },
           style,
         ]}>
-        AKTIVE
+        aktive
       </Text>
+      <View
+        style={[
+          styles.limeDot,
+          {
+            width: dotSize,
+            height: dotSize,
+            borderRadius: dotSize / 2,
+            backgroundColor: '#C8FF3B',
+            marginLeft: 3,
+            marginBottom: Math.round(s.fontSize * 0.14),
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -226,4 +241,5 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
+  limeDot: {},
 });

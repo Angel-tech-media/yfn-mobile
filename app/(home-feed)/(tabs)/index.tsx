@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { Badge, Chip } from '@/components/kit/Chip';
 import { NavIconButton } from '@/components/kit/Fields';
 import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PostCard, type PostItem } from '@/components/feed/PostCard';
 import { Avatar } from '@/components/ui/Avatar';
@@ -66,11 +67,12 @@ export default function HomeFeedScreen() {
   return (
     <EspressoBackground>
       <LargeTitleHeader
-        title="Home"
+        leading={<BrandLogo size="md" />}
+        title=""
         trailing={
           <>
-            <NavIconButton icon="paper-plane-outline" label="Messages" badge={unreadCount} onPress={() => router.push('/inbox' as never)} />
-            <NavIconButton icon="notifications-outline" label="Notifications" onPress={() => router.push('/notifications')} />
+            <NavIconButton icon="search-outline" label="Search" onPress={() => router.push('/search' as never)} />
+            <NavIconButton icon="notifications-outline" label="Notifications" badge={unreadCount} onPress={() => router.push('/notifications')} />
             <NavIconButton icon="bag-outline" label="Cart" badge={cartCount} onPress={() => router.push('/cart' as never)} />
           </>
         }
@@ -96,14 +98,14 @@ export default function HomeFeedScreen() {
                 style={[
                   styles.tabChip,
                   isSelected
-                    ? { backgroundColor: '#FAFAFA' }
+                    ? { backgroundColor: ui.isDark ? '#FAFAFA' : '#162821' }
                     : { backgroundColor: ui.card, borderColor: ui.separator, borderWidth: StyleSheet.hairlineWidth },
                 ]}>
                 <Text
                   style={[
                     type.caption,
                     styles.tabChipText,
-                    { color: isSelected ? '#09090B' : ui.secondaryLabel },
+                    { color: isSelected ? (ui.isDark ? '#09090B' : '#F6F4EB') : ui.secondaryLabel },
                   ]}>
                   {t}
                 </Text>
