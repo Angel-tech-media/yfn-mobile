@@ -1,38 +1,36 @@
 import { useState } from 'react';
-
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
+import { ProductSearchMap } from '@/components/search/ProductSearchMap';
 import { Avatar } from '@/components/ui/Avatar';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useMe } from '@/src/api/account/hooks';
 import { useSearch } from '@/src/api/search/hooks';
-import { useSearchHistory } from '@/src/store/search';
-import { palette, radius, spacing, typography } from '@/src/theme';
-
-import { ProductSearchMap } from '@/components/search/ProductSearchMap';
-import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
-import { formatKobo } from '@/src/utils/money';
 import type { RankedProduct } from '@/src/api/types';
+import { useSearchHistory } from '@/src/store/search';
+import { continuous, useUi } from '@/src/theme/ui';
+import { formatKobo } from '@/src/utils/money';
 
 const TABS = ['Top', 'Products', 'Map', 'Places', 'People', 'Tags'] as const;
 const PRODUCT_IMAGE = require('@/assets/figma/product-sample.png');
 
-// eslint-disable-next-line complexity
 export default function SearchScreen() {
+  const ui = useUi();
   const params = useLocalSearchParams<{ focus?: string }>();
   const [selectedProduct, setSelectedProduct] = useState<RankedProduct | null>(null);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState<typeof TABS[number]>(
+  const [tab, setTab] = useState<(typeof TABS)[number]>(
     params.focus === 'people' ? 'People' : params.focus === 'map' ? 'Map' : 'Top',
   );
   const { data: me } = useMe();
   const { data, isLoading, isError } = useSearch({ q: query.trim(), limit: 20 });
 
-  const { history, addHistory, removeHistory, clearHistory } = useSearchHistory();
+  const { history, addHistory, removeHistory } = useSearchHistory();
 
   const people = data?.people ?? [];
   const products = data?.products ?? [];
@@ -46,37 +44,58 @@ export default function SearchScreen() {
 
   return (
     <ScreenContainer variant="espresso" edges={['top']}>
+      {/* Search Bar Row */}
       <View style={styles.searchRow}>
-        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={22} color={palette.ink.onDarkStrong} />
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={[styles.backBtn, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <Ionicons name="chevron-back" size={20} color={ui.label} />
         </Pressable>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={palette.ink.onDarkSoft} />
+        <View style={[styles.searchBar, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <Ionicons name="search" size={18} color={ui.secondaryLabel} />
           <TextInput
             autoFocus
-            placeholder="Search people, @handles, #hashtags"
-            placeholderTextColor={palette.ink.onDarkMuted}
+            placeholder="Search products, sellers, @handles…"
+            placeholderTextColor={ui.secondaryLabel}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={() => query.trim() && addHistory(query.trim())}
             returnKeyType="search"
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: ui.label }]}
           />
           {query ? (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={palette.ink.onDarkMuted} />
+              <Ionicons name="close-circle" size={18} color={ui.secondaryLabel} />
             </Pressable>
           ) : null}
         </View>
       </View>
 
-      {/* Search Filter Tabs */}
-      <View style={styles.tabsRow}>
-        {TABS.map((t) => (
-          <Pressable key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.tabActive]}>
-            <Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>{t}</Text>
-          </Pressable>
-        ))}
+      {/* Filter Tabs */}
+      <View style={styles.tabsWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+          {TABS.map((t) => {
+            const active = tab === t;
+            return (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                style={[
+                  styles.tab,
+                  { backgroundColor: active ? ui.ink : ui.secondary },
+                ]}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: active ? ui.inkForeground : ui.secondaryForeground },
+                  ]}>
+                  {t}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {tab === 'Map' ? (
@@ -85,183 +104,130 @@ export default function SearchScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           {history.length > 0 ? (
             <View style={styles.historyContainer}>
+              <Text style={[styles.sectionTitle, { color: ui.secondaryLabel }]}>RECENT SEARCHES</Text>
               {history.map((h) => (
-                <View key={h} style={styles.historyRow}>
+                <View key={h} style={[styles.historyRow, { borderBottomColor: ui.separator }]}>
                   <Pressable onPress={() => setQuery(h)} style={styles.historyItem}>
-                    <View style={styles.historyIconWrapper}>
-                      <Ionicons name="time-outline" size={20} color={palette.ink.onDarkStrong} />
-                    </View>
-                    <Text style={styles.historyText} numberOfLines={1}>{h}</Text>
+                    <Ionicons name="time-outline" size={18} color={ui.secondaryLabel} />
+                    <Text style={[styles.historyText, { color: ui.label }]} numberOfLines={1}>
+                      {h}
+                    </Text>
                   </Pressable>
                   <Pressable onPress={() => removeHistory(h)} hitSlop={8}>
-                    <Ionicons name="close-circle" size={24} color={palette.ink.onDarkMuted} />
+                    <Ionicons name="close" size={18} color={ui.secondaryLabel} />
                   </Pressable>
                 </View>
               ))}
             </View>
           ) : (
             <View style={styles.empty}>
-              <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
-              <Text style={styles.emptyTitle}>Search Aktive</Text>
-              <Text style={styles.emptySub}>Type to search people, products, tags, and places.</Text>
+              <View style={[styles.emptyIconBox, { backgroundColor: ui.secondary }]}>
+                <Ionicons name="search" size={28} color={ui.accent} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: ui.label }]}>Search Aktive</Text>
+              <Text style={[styles.emptySub, { color: ui.secondaryLabel }]}>
+                Find Lagos sellers, thrift drops, @handles, and nearby spots.
+              </Text>
             </View>
           )}
         </ScrollView>
       ) : (
-        <>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.results}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.results}>
           {isLoading ? (
             <View style={styles.empty}>
-              <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
-                  <Text style={styles.emptyTitle}>Searching…</Text>
-                </View>
-              ) : isError ? (
-                <View style={styles.empty}>
-                  <Ionicons name="cloud-offline-outline" size={36} color={palette.ink.onDarkMuted} />
-                  <Text style={styles.emptyTitle}>Search failed</Text>
-                </View>
-              ) : null}
-              {(tab === 'Top' || tab === 'People') && people.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>People</Text>
-                  {people.map((p) => (
-                    <Pressable
-                      key={p.handle}
-                      onPress={() => handleResultClick(() => {
-                        if (me?.username === p.handle || me?.handle === p.handle) {
-                          router.push('/profile');
-                        } else {
-                          router.push(`/u/${p.handle}` as never);
-                        }
-                      })}
-                      style={styles.peopleRow}>
-                      <Avatar size={44} source={p.avatarUrl ? { uri: p.avatarUrl } : undefined} initials={p.name[0]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.peopleName}>{p.name}{p.kycVerified ? ' ✓' : ''}</Text>
-                        <Text style={styles.peopleHandle}>@{p.handle} · {p.kind}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
+              <Text style={[styles.emptyTitle, { color: ui.secondaryLabel }]}>Searching…</Text>
+            </View>
+          ) : isError ? (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyTitle, { color: ui.label }]}>Search failed</Text>
+            </View>
+          ) : null}
 
-              {(tab === 'Top' || tab === 'Products') && products.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Products</Text>
-                  {products.map((p, idx) => (
-                    <Pressable
-                      key={p.id ? `product-${p.id}-${idx}` : `product-${idx}`}
-                      onPress={() => handleResultClick(() => setSelectedProduct(p))}
-                      style={styles.productRow}>
-                      <Image source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE} style={styles.productImg} contentFit="cover" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.productName} numberOfLines={2}>{p.title}</Text>
-                        <Text style={styles.productPrice}>{formatKobo(p.price)}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-
-              {(tab === 'Top' || tab === 'Tags') && tags.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Tags</Text>
-                  {tags.map((t) => (
-                    <Pressable key={t.tag} style={styles.trendingRow} onPress={() => handleResultClick(() => setQuery(t.tag))}>
-                      <View style={styles.tagBadge}>
-                        <Text style={styles.tagBadgeText}>#</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.tagText}>{t.tag}</Text>
-                        <Text style={styles.tagCount}>{t.count.toLocaleString()} posts</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-
-              {(tab === 'Top' || tab === 'Places') && places.length > 0 ? (
-                <View style={styles.section}>
-                  <View style={styles.sectionHead}>
-                    <Text style={styles.sectionTitle}>Nearby Vendors & Places</Text>
-                    <Pressable onPress={() => setTab('Map')}>
-                      <Text style={styles.sectionLink}>View on Map ↗</Text>
-                    </Pressable>
+          {(tab === 'Top' || tab === 'People') && people.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: ui.secondaryLabel }]}>PEOPLE & STORES</Text>
+              {people.map((p) => (
+                <Pressable
+                  key={p.handle}
+                  onPress={() =>
+                    handleResultClick(() => {
+                      if (me?.username === p.handle || me?.handle === p.handle) {
+                        router.push('/profile' as never);
+                      } else {
+                        router.push(`/u/${p.handle}` as never);
+                      }
+                    })
+                  }
+                  style={[styles.cardRow, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+                  <Avatar
+                    size={42}
+                    source={p.avatarUrl ? { uri: p.avatarUrl } : undefined}
+                    initials={p.name[0]}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.peopleName, { color: ui.label }]}>
+                      {p.name}
+                      {p.kycVerified ? ' ✓' : ''}
+                    </Text>
+                    <Text style={[styles.peopleHandle, { color: ui.secondaryLabel }]}>
+                      @{p.handle} · {p.kind}
+                    </Text>
                   </View>
-                  {places.map((place, idx) => {
-                    const milesText = formatDistanceMiles(place);
-                    const isMasked = place.showExactLocation === false;
-                    const locationLabel = isMasked ? 'Neighborhood Zone (Masked)' : (place.address || 'Lagos, Nigeria');
+                  <Ionicons name="chevron-forward" size={16} color={ui.secondaryLabel} />
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
-                    return (
-                      <Pressable
-                        key={place.id ? `place-${place.id}-${idx}` : `place-${idx}`}
-                        onPress={() => handleResultClick(() => router.push(`/place/${place.id}` as never))}
-                        style={styles.placeCardRow}>
-                        <Avatar size={46} initials={place.storeName[0]} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                            <Text style={styles.peopleName} numberOfLines={1}>{place.storeName}</Text>
-                            <View style={styles.proximityBadge}>
-                              <Ionicons name="navigate" size={10} color={palette.brand.orange} />
-                              <Text style={styles.proximityText}>{milesText}</Text>
-                            </View>
-                          </View>
+          {(tab === 'Top' || tab === 'Products') && products.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: ui.secondaryLabel }]}>PRODUCTS</Text>
+              {products.map((p, idx) => (
+                <Pressable
+                  key={p.id ? `product-${p.id}-${idx}` : `product-${idx}`}
+                  onPress={() => handleResultClick(() => router.push(`/product/${p.id}` as never))}
+                  style={[styles.cardRow, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+                  <Image
+                    source={p.media?.[0]?.url ? { uri: p.media[0].url } : PRODUCT_IMAGE}
+                    style={styles.productImg}
+                    contentFit="cover"
+                  />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.peopleName, { color: ui.label }]} numberOfLines={2}>
+                      {p.title}
+                    </Text>
+                    <Text style={[styles.productPrice, { color: ui.gold }]}>
+                      {formatKobo(p.price)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={ui.secondaryLabel} />
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <View style={styles.ratingBadgeMini}>
-                              <Ionicons name="star" size={11} color="#F4C464" />
-                              <Text style={[styles.ratingTextMini, { color: '#F4C464' }]}>{place.rating.toFixed(1)}</Text>
-                              {place.ratingCount ? (
-                                <Text style={styles.ratingCountMini}>({place.ratingCount})</Text>
-                              ) : null}
-                            </View>
-                            <Text style={styles.metaDot}>·</Text>
-                            <Ionicons name={isMasked ? 'shield-checkmark' : 'location-outline'} size={11} color={isMasked ? '#D89544' : 'rgba(255,255,255,0.6)'} />
-                            <Text style={[styles.locationText, isMasked && { color: '#D89544' }]} numberOfLines={1}>
-                              {locationLabel}
-                            </Text>
-                          </View>
-
-                          {place.matchedProductTitle && (
-                            <View style={styles.matchedProductPill}>
-                              <Ionicons name="bag-handle" size={11} color={palette.brand.orange} />
-                              <Text style={styles.matchedProductText} numberOfLines={1}>
-                                In Stock: {place.matchedProductTitle} {place.matchedProductPrice ? `(${formatKobo(place.matchedProductPrice)})` : ''}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
-
-              {!isLoading && !isError && people.length === 0 && products.length === 0 && tags.length === 0 && places.length === 0 ? (
-                <View style={styles.empty}>
-                  <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
-                  <Text style={styles.emptyTitle}>No results for &quot;{query}&quot;</Text>
-                  <Text style={styles.emptySub}>Try different keywords or check spelling.</Text>
-                </View>
-              ) : null}
-            </ScrollView>
-
-            {/* Floating Google Business Map Button */}
-            {places.length > 0 && (
-            <Pressable
-              onPress={() => setTab('Map')}
-              style={styles.floatingMapBtn}>
-              <Ionicons name="map" size={16} color="#FFFFFF" />
-              <Text style={styles.floatingMapBtnText}>
-                Nearby on Map ({places.filter((p) => p.showOnMap !== false).length})
-              </Text>
-            </Pressable>
-          )}
-        </>
+          {(tab === 'Top' || tab === 'Tags') && tags.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: ui.secondaryLabel }]}>TAGS</Text>
+              {tags.map((t) => (
+                <Pressable
+                  key={t.tag}
+                  style={[styles.cardRow, { backgroundColor: ui.card, borderColor: ui.separator }]}
+                  onPress={() => handleResultClick(() => setQuery(t.tag))}>
+                  <View style={[styles.tagBadge, { backgroundColor: ui.secondary }]}>
+                    <Text style={[styles.tagBadgeText, { color: ui.accent }]}>#</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.peopleName, { color: ui.label }]}>{t.tag}</Text>
+                    <Text style={[styles.peopleHandle, { color: ui.secondaryLabel }]}>
+                      {t.count.toLocaleString()} posts
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
       )}
 
       <ProductQuickViewModal
@@ -277,13 +243,14 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing['2'],
-    paddingVertical: spacing['2'],
+    gap: 8,
+    paddingVertical: 6,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -292,283 +259,126 @@ const styles = StyleSheet.create({
     height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing['2'],
-    paddingHorizontal: spacing['3'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
     flex: 1,
-    fontFamily: typography.body.fontFamily,
+    fontFamily: 'InstrumentSans_500Medium',
     fontSize: 14,
-    color: palette.ink.onDarkStrong,
     paddingVertical: 0,
   },
-  scroll: { paddingBottom: 40, gap: spacing['4'] },
-  section: { gap: spacing['2'] },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tabsWrap: {
+    maxHeight: 46,
+    marginBottom: 8,
+  },
+  tabsRow: {
+    gap: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  tab: {
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 12,
+  },
+  scroll: { paddingBottom: 40 },
+  results: { paddingBottom: 40, gap: 18 },
+  section: { gap: 8 },
   sectionTitle: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: palette.ink.onDarkMuted,
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 11,
+    letterSpacing: 0.9,
+    marginBottom: 4,
   },
-  sectionLink: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    color: palette.brand.orange,
-  },
-  recentRow: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing['2'],
-    paddingVertical: 8,
+    gap: 12,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...continuous,
   },
-  recentText: {
-    flex: 1,
-    fontFamily: typography.body.fontFamily,
+  peopleName: {
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 14,
-    color: palette.ink.onDarkStrong,
   },
-  trendingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-    paddingVertical: 8,
+  peopleHandle: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 12,
+    marginTop: 1,
+  },
+  productImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+  },
+  productPrice: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 14,
   },
   tagBadge: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(232, 93, 63,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   tagBadgeText: {
-    fontFamily: typography.h2.fontFamily,
+    fontFamily: 'BricolageGrotesque_700Bold',
     fontSize: 18,
-    color: palette.brand.orange,
-  },
-  tagText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
-  },
-  tagCount: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkMuted,
-  },
-  tabsRow: {
-    flexDirection: 'row',
-    gap: spacing['2'],
-    paddingVertical: spacing['2'],
-  },
-  tab: {
-    paddingHorizontal: spacing['3'],
-    paddingVertical: 8,
-    minHeight: 36,
-    borderRadius: 999,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabActive: { backgroundColor: palette.brand.gloryBlue, borderColor: palette.brand.gloryBlue },
-  tabLabel: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkSoft,
-  },
-  tabLabelActive: { color: '#FFFFFF' },
-  results: { paddingBottom: 40, gap: spacing['4'] },
-  peopleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    paddingVertical: 8,
-  },
-  peopleName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
-  },
-  peopleHandle: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkMuted,
-  },
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    paddingVertical: 8,
-  },
-  productImg: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
-  },
-  productName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkStrong,
-  },
-  productPrice: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.brand.gold,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 64,
-    gap: spacing['2'],
-  },
-  emptyTitle: {
-    fontFamily: typography.h2.fontFamily,
-    fontSize: 16,
-    color: palette.ink.onDarkStrong,
-  },
-  emptySub: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkSoft,
   },
   historyContainer: {
-    paddingVertical: spacing['4'],
+    paddingTop: 12,
+    gap: 4,
   },
   historyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 0,
-    paddingVertical: spacing['3'],
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   historyItem: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  historyIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
   },
   historyText: {
-    ...typography.bodyLg,
-    color: palette.ink.onDarkStrong,
-    marginLeft: spacing['3'],
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 14,
   },
-  floatingMapBtn: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
-    flexDirection: 'row',
+  empty: {
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radius.pill,
-    backgroundColor: palette.brand.orange,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
+    paddingVertical: 56,
+    gap: 8,
   },
-  floatingMapBtnText: {
-    fontFamily: typography.buttonLabel.fontFamily,
+  emptyIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    ...continuous,
+  },
+  emptyTitle: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 18,
+  },
+  emptySub: {
+    fontFamily: 'InstrumentSans_400Regular',
     fontSize: 13,
-    color: '#FFFFFF',
-  },
-  placeCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    padding: spacing['3'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: spacing['2'],
-  },
-  proximityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(232, 93, 63, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 93, 63, 0.35)',
-  },
-  proximityText: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    fontWeight: '700',
-    color: palette.brand.orange,
-  },
-  ratingBadgeMini: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  ratingTextMini: {
-    ...typography.caption,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  ratingCountMini: {
-    ...typography.caption,
-    color: 'rgba(245, 241, 234, 0.65)',
-    fontSize: 10,
-  },
-  metaDot: {
-    color: 'rgba(255, 255, 255, 0.3)',
-    fontSize: 12,
-  },
-  locationText: {
-    ...typography.caption,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: 11,
-    flexShrink: 1,
-  },
-  matchedProductPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  matchedProductText: {
-    ...typography.caption,
-    color: palette.brand.orange,
-    fontSize: 11,
-    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });
-
-function formatDistanceMiles(
-  place: { lat?: number; lng?: number; distanceKm?: number },
-  userLat = 6.5244,
-  userLng = 3.3792,
-) {
-  let km = place.distanceKm;
-  if (!km && place.lat && place.lng) {
-    const dLat = (place.lat - userLat) * 111;
-    const dLng = (place.lng - userLng) * 111;
-    km = Math.sqrt(dLat * dLat + dLng * dLng);
-  }
-  if (!km || isNaN(km)) km = 1.2;
-  const miles = (km * 0.621371).toFixed(1);
-  return `${miles} miles away`;
-}

@@ -9,85 +9,145 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { vibeHaptics } from '@/src/lib/haptics';
 import { useCart, useCartTotal } from '@/src/store/cart';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { continuous, useUi } from '@/src/theme/ui';
 
 export default function CartScreen() {
+  const ui = useUi();
   const lines = useCart((s) => s.lines);
   const setQuantity = useCart((s) => s.setQuantity);
   const remove = useCart((s) => s.remove);
   const total = useCartTotal();
 
+  const totalItems = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const uniqueVendors = Array.from(new Set(lines.map((l) => l.vendor || 'Aktive Seller')));
+
   const handleQtyChange = (id: string, qty: number, color?: string) => {
     vibeHaptics.selection();
-    setQuantity(id, qty, color);
-  };
-
-  const handleRemove = (id: string, color?: string) => {
-    vibeHaptics.light();
-    remove(id, color);
+    if (qty <= 0) {
+      remove(id, color);
+    } else {
+      setQuantity(id, qty, color);
+    }
   };
 
   return (
     <ScreenContainer variant="espresso">
-      <TopBar title="Your Cart" showBack />
+      <TopBar
+        title="Cart"
+        subtitle={totalItems > 0 ? `${totalItems} ${totalItems === 1 ? 'item' : 'items'}` : undefined}
+        showBack
+      />
 
       {lines.length === 0 ? (
         <View style={styles.empty}>
-          <View style={styles.emptyBubble}>
-            <Ionicons name="bag-outline" size={44} color={palette.brand.gloryBlue} />
+          <View style={[styles.emptyBubble, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="bag-handle-outline" size={38} color={ui.accent} />
           </View>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptySubtitle}>Browse the shop and add items you love.</Text>
+          <Text style={[styles.emptyTitle, { color: ui.label }]}>Your cart is empty</Text>
+          <Text style={[styles.emptySubtitle, { color: ui.secondaryLabel }]}>
+            Find something you love in the market and it&apos;ll show up here.
+          </Text>
           <View style={styles.emptyAction}>
-            <PrimaryButton label="Start shopping" onPress={() => router.replace('/(home-feed)/(tabs)/shop' as never)} />
+            <PrimaryButton
+              label="Go to market"
+              onPress={() => router.replace('/(home-feed)/(tabs)/market' as never)}
+            />
           </View>
         </View>
       ) : (
         <>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+            {/* Lovable Pickup / Delivery Banner */}
+            <View style={[styles.deliveryBanner, { backgroundColor: ui.secondary }]}>
+              <View style={styles.deliveryBannerHeader}>
+                <Ionicons name="car-outline" size={16} color={ui.accent} />
+                <Text style={[styles.deliveryBannerTitle, { color: ui.label }]}>
+                  Pick up free, or get it delivered
+                </Text>
+              </View>
+              <View style={styles.vendorDistanceList}>
+                {uniqueVendors.map((vendorName, i) => (
+                  <View key={vendorName + i} style={styles.vendorDistanceRow}>
+                    <Text style={[styles.vendorDistanceName, { color: ui.secondaryLabel }]}>
+                      {vendorName}
+                    </Text>
+                    <Text style={[styles.vendorDistanceKm, { color: ui.secondaryLabel }]}>
+                      {(2.4 + i * 1.7).toFixed(1)} km away
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Cart Items */}
             {lines.map((l) => (
-              <View key={l.id + (l.color ?? '')} style={styles.row}>
-                <Image source={l.image as any} style={styles.thumb} contentFit="cover" />
+              <Pressable
+                key={l.id + (l.color ?? '')}
+                onPress={() => router.push(`/product/${l.id}` as never)}
+                style={[
+                  styles.row,
+                  {
+                    backgroundColor: ui.card,
+                    borderColor: ui.separator,
+                  },
+                ]}>
+                <Image
+                  source={l.image as any}
+                  style={[styles.thumb, { backgroundColor: ui.cardRaised }]}
+                  contentFit="cover"
+                />
                 <View style={styles.rowBody}>
-                  <Text style={styles.name} numberOfLines={2}>{l.name}</Text>
-                  <Text style={styles.vendor}>{l.vendor}{l.color ? ` · ${l.color}` : ''}</Text>
+                  <Text style={[styles.name, { color: ui.label }]} numberOfLines={2}>
+                    {l.name}
+                  </Text>
+                  <Text style={[styles.vendor, { color: ui.secondaryLabel }]}>
+                    {l.vendor}
+                    {l.color ? ` · ${l.color}` : ' · One option'}
+                  </Text>
                   <View style={styles.rowFooter}>
-                    <Text style={styles.price}>₦{l.price.toLocaleString()}</Text>
+                    <Text style={[styles.price, { color: ui.label }]}>
+                      ₦{(l.price * l.quantity).toLocaleString('en-NG')}
+                    </Text>
                     <View style={styles.qty}>
                       <Pressable
                         onPress={() => handleQtyChange(l.id, l.quantity - 1, l.color)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        style={styles.qtyBtn}>
-                        <Ionicons name="remove" size={16} color={palette.ink.onDarkStrong} />
+                        hitSlop={8}
+                        style={[styles.qtyBtn, { backgroundColor: ui.secondary }]}>
+                        <Ionicons
+                          name={l.quantity === 1 ? 'trash-outline' : 'remove'}
+                          size={15}
+                          color={ui.label}
+                        />
                       </Pressable>
-                      <Text style={styles.qtyValue}>{l.quantity}</Text>
+                      <Text style={[styles.qtyValue, { color: ui.label }]}>{l.quantity}</Text>
                       <Pressable
                         onPress={() => handleQtyChange(l.id, l.quantity + 1, l.color)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        style={styles.qtyBtn}>
-                        <Ionicons name="add" size={16} color={palette.ink.onDarkStrong} />
+                        hitSlop={8}
+                        style={[styles.qtyBtn, { backgroundColor: ui.secondary }]}>
+                        <Ionicons name="add" size={15} color={ui.label} />
                       </Pressable>
                     </View>
                   </View>
                 </View>
-                <Pressable
-                  onPress={() => handleRemove(l.id, l.color)}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={styles.trashBtn}>
-                  <Ionicons name="trash-outline" size={18} color={palette.ink.onDarkMuted} />
-                </Pressable>
-              </View>
+              </Pressable>
             ))}
-
-            <View style={styles.summary}>
-              <SummaryRow label="Subtotal" value={`₦${total.toLocaleString()}`} />
-              <SummaryRow label="Delivery" value="₦4,300" />
-              <View style={styles.divider} />
-              <SummaryRow label="Total" value={`₦${(total + 4300).toLocaleString()}`} emphasized />
-            </View>
           </ScrollView>
 
-          <View style={styles.actions}>
+          {/* Sticky Bottom Bar */}
+          <View
+            style={[
+              styles.bottomBar,
+              {
+                backgroundColor: ui.card,
+                borderTopColor: ui.separator,
+              },
+            ]}>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { color: ui.secondaryLabel }]}>Subtotal</Text>
+              <Text style={[styles.subtotalValue, { color: ui.label }]}>
+                ₦{total.toLocaleString('en-NG')}
+              </Text>
+            </View>
             <PrimaryButton label="Checkout" onPress={() => router.push('/checkout')} />
           </View>
         </>
@@ -96,78 +156,101 @@ export default function CartScreen() {
   );
 }
 
-function SummaryRow({ label, value, emphasized }: { label: string; value: string; emphasized?: boolean }) {
-  return (
-    <View style={styles.summaryRow}>
-      <Text style={[styles.summaryLabel, emphasized && styles.summaryLabelStrong]}>{label}</Text>
-      <Text style={[styles.summaryValue, emphasized && styles.summaryValueStrong]}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing['5'],
-    gap: spacing['3'],
+    paddingHorizontal: 24,
+    gap: 10,
   },
   emptyBubble: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: 'rgba(232, 93, 63, 0.12)',
+    width: 76,
+    height: 76,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
+    ...continuous,
   },
   emptyTitle: {
-    fontFamily: typography.h2.fontFamily,
+    fontFamily: 'BricolageGrotesque_700Bold',
     fontSize: 20,
-    color: palette.ink.onDarkStrong,
+    letterSpacing: -0.4,
   },
   emptySubtitle: {
-    fontFamily: typography.body.fontFamily,
+    fontFamily: 'InstrumentSans_400Regular',
     fontSize: 14,
-    color: palette.ink.onDarkSoft,
     textAlign: 'center',
+    lineHeight: 20,
   },
   emptyAction: {
     width: '100%',
-    marginTop: spacing['4'],
+    marginTop: 12,
   },
-  list: { paddingBottom: spacing['8'], gap: spacing['3'] },
+  list: {
+    paddingTop: 8,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  deliveryBanner: {
+    padding: 14,
+    borderRadius: 18,
+    gap: 8,
+    ...continuous,
+  },
+  deliveryBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deliveryBannerTitle: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 13,
+  },
+  vendorDistanceList: {
+    gap: 4,
+  },
+  vendorDistanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  vendorDistanceName: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 12,
+  },
+  vendorDistanceKm: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 12,
+  },
   row: {
     flexDirection: 'row',
-    gap: spacing['3'],
-    padding: spacing['3'],
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 3,
+    gap: 12,
+    padding: 12,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...continuous,
   },
   thumb: {
     width: 80,
-    height: 80,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
+    height: 92,
+    borderRadius: 14,
+    ...continuous,
   },
-  rowBody: { flex: 1, gap: 4 },
+  rowBody: {
+    flex: 1,
+    justifyContent: 'space-between',
+    gap: 4,
+  },
   name: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 14,
     lineHeight: 19,
-    color: palette.ink.onDarkStrong,
   },
   vendor: {
-    fontFamily: typography.caption.fontFamily,
+    fontFamily: 'InstrumentSans_400Regular',
     fontSize: 12,
-    color: palette.ink.onDarkMuted,
   },
   rowFooter: {
     flexDirection: 'row',
@@ -176,69 +259,46 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   price: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 15,
-    color: palette.brand.gold,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 16,
+    letterSpacing: -0.3,
   },
   qty: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing['2'],
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing['2'],
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 6,
   },
   qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qtyValue: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    minWidth: 18,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 14,
+    minWidth: 22,
     textAlign: 'center',
-    color: palette.ink.onDarkStrong,
   },
-  trashBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  bottomBar: {
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  subtotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  summary: {
-    paddingTop: spacing['4'],
-    gap: spacing['2'],
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  summaryLabel: {
-    fontFamily: typography.body.fontFamily,
+  subtotalLabel: {
+    fontFamily: 'InstrumentSans_500Medium',
     fontSize: 14,
-    color: palette.ink.onDarkSoft,
   },
-  summaryLabelStrong: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    color: palette.ink.onDarkStrong,
+  subtotalValue: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 20,
+    letterSpacing: -0.4,
   },
-  summaryValue: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
-  },
-  summaryValueStrong: {
-    fontSize: 18,
-    color: palette.brand.gold,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(232, 93, 63, 0.16)',
-    marginVertical: spacing['1'],
-  },
-  actions: { paddingVertical: spacing['3'] },
 });

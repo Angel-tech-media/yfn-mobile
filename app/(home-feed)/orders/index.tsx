@@ -10,13 +10,14 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { useOrders, useSetOrderStatus } from '@/src/api/orders/hooks';
 import type { Order } from '@/src/api/types';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { continuous, useUi } from '@/src/theme/ui';
 import { formatKobo } from '@/src/utils/money';
 
 const FILTERS = ['All', 'Pending', 'Confirmed', 'Shipped', 'Completed'] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function OrdersScreen() {
+  const ui = useUi();
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const { data: orders = [], refetch, isFetching, isLoading, isError } = useOrders({ limit: 50 });
   const setStatus = useSetOrderStatus();
@@ -32,31 +33,35 @@ export default function OrdersScreen() {
 
   return (
     <ScreenContainer variant="espresso">
-      <TopBar
-        title="Orders"
-        showBack
-        rightAction={
-          <Pressable hitSlop={8}>
-            <Ionicons name="search" size={20} color={palette.ink.onDarkStrong} />
-          </Pressable>
-        }
-      />
+      <TopBar title="Orders" showBack />
 
       <View style={styles.chipsWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsRow}>
-          {FILTERS.map((f) => (
-            <Pressable
-              key={f}
-              onPress={() => setActiveFilter(f)}
-              style={[styles.chip, activeFilter === f && styles.chipActive]}>
-              <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
-                {f}
-              </Text>
-            </Pressable>
-          ))}
+          {FILTERS.map((f) => {
+            const active = activeFilter === f;
+            return (
+              <Pressable
+                key={f}
+                onPress={() => setActiveFilter(f)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active ? ui.ink : ui.secondary,
+                  },
+                ]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? ui.inkForeground : ui.secondaryForeground },
+                  ]}>
+                  {f}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -67,85 +72,95 @@ export default function OrdersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={palette.brand.orange}
-            colors={[palette.brand.orange]}
+            tintColor={ui.accent}
+            colors={[ui.accent]}
           />
         }>
         {isError ? (
           <View style={styles.empty}>
-            <Ionicons name="cloud-offline-outline" size={32} color={palette.ink.onLightSubtle} />
-            <Text style={styles.emptyTitle}>Couldn&apos;t load orders</Text>
+            <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
+            <Text style={[styles.emptyTitle, { color: ui.label }]}>Couldn&apos;t load orders</Text>
             <Pressable onPress={() => refetch()} disabled={isFetching}>
-              <Text style={styles.retryText}>{isFetching ? 'Retrying…' : 'Try again'}</Text>
+              <Text style={[styles.retryText, { color: ui.coral }]}>
+                {isFetching ? 'Retrying…' : 'Try again'}
+              </Text>
             </Pressable>
           </View>
         ) : isLoading ? (
           <View style={styles.empty}>
-            <Ionicons name="cube-outline" size={32} color={palette.ink.onLightSubtle} />
-            <Text style={styles.emptyTitle}>Loading orders…</Text>
+            <Ionicons name="cube-outline" size={32} color={ui.secondaryLabel} />
+            <Text style={[styles.emptyTitle, { color: ui.label }]}>Loading orders…</Text>
           </View>
-        ) : Array.from(new Map(filteredOrders.map((o) => [o.id, o])).values()).map((o, idx) => {
-          return (
+        ) : (
+          Array.from(new Map(filteredOrders.map((o) => [o.id, o])).values()).map((o, idx) => (
             <Pressable
               key={o.id ? 'order-' + o.id : 'order-idx-' + idx}
-              onPress={() => router.push(`/orders/${o.id}` as never)}
-              style={styles.card}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text style={styles.orderId}>#{o.id}</Text>
-                <View
-                  style={[
-                    styles.statusPill,
-                    o.status === 'released' && { backgroundColor: 'rgba(76,175,80,0.18)' },
-                    o.status === 'shipped' && { backgroundColor: 'rgba(232, 93, 63, 0.18)' },
-                  ]}>
-                  <Text style={styles.statusPillText}>{o.status.toUpperCase()}</Text>
-                </View>
-              </View>
-              <Text style={styles.thumbName}>
-                {o.items.map((i) => i.name).join(' · ')}
-              </Text>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total · in escrow</Text>
-                <Text style={styles.totalValue}>{formatKobo(o.grandTotal)}</Text>
-              </View>
-              <View style={styles.customerRow}>
-                <Avatar size={28} initials={o.vendor[0]} />
-                <Text style={styles.customerName}>{o.vendor}</Text>
-              </View>
-              {o.status === 'paid' ? (
-                <View style={styles.actions}>
-                  <View style={styles.acceptWrap}>
-                    <PrimaryButton
-                      label="Accept Order"
-                      loading={setStatus.isPending}
-                      onPress={() =>
-                        setStatus.mutate({
-                          id: o.id,
-                          input: { status: 'confirmed' },
-                        })
-                      }
-                      style={styles.acceptBtn}
-                    />
+              onPress={() => router.push(`/orders/${o.id}/track` as never)}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: ui.card,
+                  borderColor: ui.separator,
+                },
+              ]}>
+              <View style={styles.cardHeader}>
+                <View style={styles.customerRow}>
+                  <Avatar size={36} initials={o.vendor?.[0]?.toUpperCase() || 'A'} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.orderMeta, { color: ui.secondaryLabel }]}>
+                      #{o.id.slice(0, 8)} · {o.vendor}
+                    </Text>
+                    <Text style={[styles.itemSummary, { color: ui.label }]} numberOfLines={1}>
+                      {o.items.map((i) => i.name).join(' · ') || 'Order items'}
+                    </Text>
                   </View>
                 </View>
+                <Ionicons name="chevron-forward" size={16} color={ui.secondaryLabel} />
+              </View>
+
+              <View style={[styles.footerRow, { borderTopColor: ui.separator }]}>
+                <View style={[styles.statusBadge, { backgroundColor: ui.secondary }]}>
+                  <Text style={[styles.statusText, { color: ui.accent }]}>
+                    {o.status.toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.totalValue, { color: ui.label }]}>
+                  {formatKobo(o.grandTotal)}
+                </Text>
+              </View>
+
+              {o.status === 'paid' ? (
+                <PrimaryButton
+                  label="Confirm order"
+                  size="sm"
+                  loading={setStatus.isPending}
+                  onPress={() =>
+                    setStatus.mutate({
+                      id: o.id,
+                      input: { status: 'confirmed' },
+                    })
+                  }
+                />
               ) : null}
             </Pressable>
-          );
-        })}
+          ))
+        )}
+
         {!isLoading && !isError && filteredOrders.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="cube-outline" size={32} color={palette.ink.onLightSubtle} />
-            <Text style={styles.emptyTitle}>
-              No orders yet
+            <View style={[styles.emptyIconBox, { backgroundColor: ui.secondary }]}>
+              <Ionicons name="cube-outline" size={32} color={ui.accent} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: ui.label }]}>No orders yet</Text>
+            <Text style={[styles.emptySubtitle, { color: ui.secondaryLabel }]}>
+              When you buy something it&apos;ll show here.
             </Text>
-            <Text style={styles.emptySubtitle}>
-              Orders from the backend will appear here once created.
-            </Text>
+            <View style={{ width: '100%', marginTop: 12 }}>
+              <PrimaryButton
+                label="Start shopping"
+                onPress={() => router.replace('/(home-feed)/(tabs)/market' as never)}
+              />
+            </View>
           </View>
         ) : null}
       </ScrollView>
@@ -163,176 +178,104 @@ function matchesFilter(order: Order, filter: Filter) {
 
 const styles = StyleSheet.create({
   chipsWrap: {
-    maxHeight: 56,
-    marginBottom: spacing['2'],
+    maxHeight: 50,
+    marginBottom: 8,
   },
   chipsRow: {
-    paddingVertical: spacing['2'],
-    paddingRight: spacing['4'],
-    gap: spacing['2'],
+    paddingVertical: 6,
+    gap: 8,
     alignItems: 'center',
   },
   chip: {
-    paddingHorizontal: spacing['4'],
-    height: 38,
-    minWidth: 72,
+    paddingHorizontal: 14,
+    height: 36,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  chipActive: {
-    backgroundColor: palette.brand.gloryBlue,
-    borderColor: palette.brand.gloryBlue,
   },
   chipText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onLightStrong,
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
   },
   list: {
     paddingBottom: 40,
-    gap: spacing['3'],
+    gap: 10,
   },
   empty: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
     gap: 8,
   },
+  emptyIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    ...continuous,
+  },
   emptyTitle: {
-    ...typography.title,
-    color: palette.ink.onLightStrong,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 19,
   },
   emptySubtitle: {
-    ...typography.body,
-    color: palette.ink.onLightSubtle,
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 14,
     textAlign: 'center',
   },
   retryText: {
-    ...typography.bodyEmphasis,
-    color: palette.brand.orange,
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 14,
   },
   card: {
-    padding: spacing['4'],
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    gap: spacing['3'],
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 3,
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+    ...continuous,
   },
-  orderId: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette.ink.onDarkStrong,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    height: 22,
-    borderRadius: 999,
-    backgroundColor: 'rgba(91, 168, 232, 0.22)',
-    justifyContent: 'center',
-  },
-  statusPillText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    color: palette.ink.onLightStrong,
-  },
-  thumbRow: {
-    gap: spacing['2'],
-  },
-  thumbItem: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-  thumb: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
-  },
-  thumbName: {
-    flex: 1,
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkSoft,
-  },
-  totalRow: {
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing['2'],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(232, 93, 63, 0.16)',
-  },
-  totalLabel: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkMuted,
-  },
-  totalValue: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette.brand.gold,
+    justifyContent: 'space-between',
+    gap: 10,
   },
   customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['2'],
-  },
-  customerName: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing['2'],
-  },
-  rejectBtn: {
     flex: 1,
-    height: 44,
-    borderRadius: radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(244,67,54,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(244,67,54,0.40)',
+    gap: 10,
   },
-  rejectLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
+  orderMeta: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 12,
+  },
+  itemSummary: {
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 14,
-    color: '#FF6A55',
+    marginTop: 2,
   },
-  acceptWrap: { flex: 1 },
-  acceptBtn: {
-    height: 44,
-  },
-  trackBtn: {
-    height: 44,
-    borderRadius: radius.md,
+  footerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  trackLabel: {
-    fontFamily: typography.buttonLabel.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 0.6,
+  },
+  totalValue: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 16,
   },
 });

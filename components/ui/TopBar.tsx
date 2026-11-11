@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import { palette, spacing, typography } from '@/src/theme';
+import { spacing } from '@/src/theme';
+import { useUi } from '@/src/theme/ui';
 
 type Props = {
   title?: string;
+  subtitle?: string;
   onBack?: () => void;
   showBack?: boolean;
   rightAction?: React.ReactNode;
@@ -16,12 +18,12 @@ type Props = {
 
 export function TopBar({
   title,
+  subtitle,
   onBack,
   showBack = true,
   rightAction,
-  tone = 'onDark',
 }: Props) {
-  const tint = tone === 'onDark' ? palette.ink.onDarkStrong : palette.ink.onLightStrong;
+  const ui = useUi();
 
   return (
     <View style={styles.root}>
@@ -34,17 +36,30 @@ export function TopBar({
             scaleTo={0.9}
             hitSlop={8}
             onPress={onBack ?? (() => router.back())}
-            style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={22} color={tint} />
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: ui.card,
+                borderColor: ui.separator,
+              },
+            ]}>
+            <Ionicons name="chevron-back" size={20} color={ui.label} />
           </PressableScale>
         ) : null}
       </View>
       {title ? (
-        <Text style={[styles.title, { color: tint }]} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.titleBlock}>
+          <Text style={[styles.title, { color: ui.label }]} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: ui.secondaryLabel }]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
       ) : (
-        <View />
+        <View style={{ flex: 1 }} />
       )}
       <View style={styles.sideRight}>{rightAction}</View>
     </View>
@@ -53,17 +68,18 @@ export function TopBar({
 
 const styles = StyleSheet.create({
   root: {
-    height: 48,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   side: {
-    width: 44,
+    minWidth: 44,
     alignItems: 'flex-start',
   },
   sideRight: {
-    width: 44,
+    minWidth: 44,
     alignItems: 'flex-end',
   },
   backBtn: {
@@ -72,16 +88,22 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  titleBlock: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing['2'],
   },
   title: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: typography.title.fontFamily,
-    fontSize: typography.title.fontSize,
-    lineHeight: typography.title.lineHeight,
-    paddingHorizontal: spacing['2'],
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 18,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 11,
+    lineHeight: 14,
   },
 });

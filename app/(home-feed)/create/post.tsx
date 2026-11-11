@@ -13,18 +13,18 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
 import { UploadSheet } from '@/components/ui/UploadSheet';
 import { useMe } from '@/src/api/account/hooks';
-import { useUser } from '@/src/store/user';
-import { continuous, type, useUi } from '@/src/theme/ui';
 import { useCreatePost } from '@/src/api/feed/hooks';
-import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
 import { useToast } from '@/src/hooks/use-toast';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { useImagePicker, type PickedImage } from '@/src/hooks/useImagePicker';
+import { useUser } from '@/src/store/user';
+import { continuous, useUi } from '@/src/theme/ui';
 import { apiErrorMessage } from '@/src/utils/api-error-message';
 import { logApiFailure } from '@/src/utils/api-logging';
 import { assetUploadErrorMessage, uploadLocalAssets } from '@/src/utils/upload-media';
 
 const MAX_IMAGES = 6;
-const LOCATION_PRESETS = ['Yaba, Lagos', 'Lekki Phase 1', 'Victoria Island', 'Ikeja, Lagos', 'Abuja, Nigeria'];
+const MAX_CHARS = 280;
+const LOCATION_PRESETS = ['Yaba, Lagos', 'Lekki Phase 1', 'Victoria Island', 'Surulere, Lagos', 'Ikeja, Lagos'];
 
 type SelectedLocation = {
   label: string;
@@ -33,24 +33,24 @@ type SelectedLocation = {
 };
 
 export default function CreatePostScreen() {
+  const ui = useUi();
   const [text, setText] = useState('');
   const [images, setImages] = useState<PickedImage[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
-  const [locationQuery, setLocationQuery] = useState('');
-  const [locationResults, setLocationResults] = useState<SelectedLocation[]>([]);
-  const [locationSearching, setLocationSearching] = useState(false);
   const [locating, setLocating] = useState(false);
   const [isUploading, setUploading] = useState(false);
+
   const { pick, pickMany } = useImagePicker();
   const { data: me } = useMe();
-  const ui = useUi();
   const role = useUser((s) => s.role);
   const isVendor = role === 'vendor';
   const createPost = useCreatePost();
   const toast = useToast();
+
+  const charsLeft = MAX_CHARS - text.length;
 
   const fromCamera = async () => {
     const img = await pick('camera');
@@ -64,7 +64,7 @@ export default function CreatePostScreen() {
   };
 
   const caption = captionForPost(text, selectedLocation);
-  const canPost = caption.length > 0 || images.length > 0;
+  const canPost = (caption.length > 0 || images.length > 0) && charsLeft >= 0;
   const isSubmitting = isUploading || createPost.isPending;
 
   const addEmoji = (emoji: string) => {
@@ -78,65 +78,25 @@ export default function CreatePostScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        toast.error('Location unavailable', {
-          description: 'Location permission was not granted.',
-        });
+        toast.error('Location permission not granted');
         return;
       }
-
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
       const { latitude, longitude } = position.coords;
       const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      const parts = [place?.district, place?.city, place?.region].filter(Boolean);
       setSelectedLocation({
-        label: locationLabelFor(place, latitude, longitude),
+        label: parts.length ? parts.slice(0, 2).join(', ') : 'Lagos, Nigeria',
         lat: latitude,
         lng: longitude,
       });
       setLocationOpen(false);
-    } catch (err) {
-      console.error('[location] post composer location selection failed', err);
-      toast.error('Could not select location', {
-        description: 'Please try again or choose a nearby place.',
-      });
+    } catch {
+      toast.error('Could not detect location');
     } finally {
       setLocating(false);
-    }
-  };
-
-  const searchLocation = async () => {
-    const query = locationQuery.trim();
-    if (!query || locationSearching) return;
-    setLocationSearching(true);
-    try {
-      const matches = await Location.geocodeAsync(query);
-      const results = await Promise.all(
-        matches.slice(0, 5).map(async (match) => {
-          const [place] = await Location.reverseGeocodeAsync({
-            latitude: match.latitude,
-            longitude: match.longitude,
-          });
-          return {
-            label: locationLabelFor(place, match.latitude, match.longitude, query),
-            lat: match.latitude,
-            lng: match.longitude,
-          };
-        }),
-      );
-      setLocationResults(results);
-      if (!results.length) {
-        toast.error('No locations found', {
-          description: 'Try a more specific city, landmark, or address.',
-        });
-      }
-    } catch (err) {
-      console.error('[location] post composer location search failed', err);
-      toast.error('Could not search location', {
-        description: 'Please check the spelling and try again.',
-      });
-    } finally {
-      setLocationSearching(false);
     }
   };
 
@@ -148,9 +108,7 @@ export default function CreatePostScreen() {
       const uploaded = await uploadLocalAssets(images, 'post');
       mediaIds = uploaded.map((asset) => asset.mediaId);
     } catch (err) {
-      toast.error('Upload failed', {
-        description: assetUploadErrorMessage(err),
-      });
+      toast.error('Upload failed', { description: assetUploadErrorMessage(err) });
       setUploading(false);
       return;
     }
@@ -160,133 +118,128 @@ export default function CreatePostScreen() {
         caption,
         mediaIds,
       });
-      toast.success('Post published!', {
-        icon: 'checkmark-circle',
-      });
+      toast.success('Posted!');
       router.back();
     } catch (err) {
-      logApiFailure('POST /posts', err, {
-        endpoint: 'POST /posts',
-        flow: 'post',
-        mediaIds,
-        mediaCount: mediaIds.length,
-        captionLength: caption.length,
-        location: selectedLocation,
-      });
-      toast.error('Could not publish post', {
-        description: apiErrorMessage(err),
-      });
+      logApiFailure('POST /posts', err, { endpoint: 'POST /posts' });
+      toast.error('Could not publish post', { description: apiErrorMessage(err) });
     } finally {
       setUploading(false);
     }
   };
 
+  const displayName = me?.name || me?.displayName || me?.username || 'Me';
+
   return (
     <ScreenContainer variant="espresso">
       <TopBar
-        title={isVendor ? "Store Update" : "New post"}
+        title="New post"
         showBack
         rightAction={
           <Pressable
             disabled={!canPost || isSubmitting}
             hitSlop={8}
             onPress={handlePost}
-            style={[{ flexDirection: 'row', alignItems: 'center', gap: 6 }, (!canPost || isSubmitting) && { opacity: 0.5 }]}
-          >
+            style={[
+              styles.postPill,
+              { backgroundColor: ui.accent },
+              (!canPost || isSubmitting) && { opacity: 0.45 },
+            ]}>
             {isSubmitting ? (
-              <ActivityIndicator size="small" color={palette.brand.orange} />
+              <ActivityIndicator size="small" color={ui.onAccent} />
             ) : (
-              <Text style={styles.postBtn}>{isVendor ? "Broadcast" : "Post"}</Text>
+              <Text style={[styles.postBtnText, { color: ui.onAccent }]}>Post</Text>
             )}
           </Pressable>
         }
       />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerRow}>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled">
+        <View style={styles.composerRow}>
           <Avatar
-            size={40}
+            size={42}
             source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
-            initials={initialsFor(me?.name || me?.displayName || me?.username || 'Me')}
+            initials={initialsFor(displayName)}
           />
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.author}>{me?.name || me?.displayName || me?.username || 'Me'}</Text>
-              {isVendor ? (
-                <View style={{ backgroundColor: 'rgba(255, 159, 10, 0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                  <Text style={{ color: ui.accent, fontSize: 10, fontWeight: '700' }}>STORE</Text>
-                </View>
-              ) : null}
-            </View>
-            <View style={styles.audienceRow}>
-              <Ionicons name="earth" size={12} color={palette.ink.onDarkSoft} />
-              <Text style={styles.audience}>{isVendor ? 'Store Followers & Marketplace' : 'Public'}</Text>
-              <Ionicons name="chevron-down" size={12} color={palette.ink.onDarkSoft} />
-            </View>
-          </View>
-        </View>
-
-        {isVendor ? (
-          <View style={{ backgroundColor: ui.card, borderColor: ui.separator, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="chatbubble-ellipses-outline" size={15} color={ui.accent} />
-              <Text style={{ color: ui.label, fontSize: 13, fontWeight: '700' }}>Store Note / Announcement</Text>
-            </View>
-            <Text style={{ color: ui.secondaryLabel, fontSize: 12, marginTop: 4, lineHeight: 16 }}>
-              Broadcast quick updates, restock alerts, or studio notes directly to your store's followers. To add sellable inventory with pricing and variants, use "List a Product".
-            </Text>
-          </View>
-        ) : null}
-
-        <Text
-          accessibilityLabel="Post text"
-          style={styles.textInput}
-          onPress={() => {}}>
-          <Text style={text ? styles.textValue : styles.textPlaceholder}>
-            {text || (isVendor ? "What's happening at your store? Share an update, restock announcement, or behind-the-scenes thought..." : "What's on your mind?")}
-          </Text>
-        </Text>
-        <View style={styles.textInputCover}>
-          <PostTextInput value={text} onChange={setText} isVendor={isVendor} />
+          <TextInput
+            autoFocus
+            multiline
+            value={text}
+            onChangeText={setText}
+            placeholder={isVendor ? "What's dropping at your store?" : "What's the gist?"}
+            placeholderTextColor={ui.secondaryLabel}
+            style={[styles.realInput, { color: ui.label }]}
+          />
         </View>
 
         {selectedLocation ? (
-          <View style={styles.locationPill}>
-            <Ionicons name="location" size={14} color={palette.brand.orange} />
-            <Text style={styles.locationText} numberOfLines={1}>{selectedLocation.label}</Text>
+          <View style={[styles.locationPill, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="location" size={14} color={ui.accent} />
+            <Text style={[styles.locationText, { color: ui.label }]} numberOfLines={1}>
+              {selectedLocation.label}
+            </Text>
             <Pressable onPress={() => setSelectedLocation(null)} hitSlop={8}>
-              <Ionicons name="close" size={14} color={palette.ink.onDarkSoft} />
+              <Ionicons name="close" size={14} color={ui.secondaryLabel} />
             </Pressable>
           </View>
         ) : null}
 
         {images.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbsRow}>
             {images.map((img, i) => (
               <View key={img.uri + i} style={styles.thumbCell}>
-                <Image source={{ uri: img.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                <Image
+                  source={{ uri: img.uri }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
                 <Pressable
                   onPress={() => setImages((arr) => arr.filter((_, j) => j !== i))}
                   hitSlop={6}
                   style={styles.thumbDelete}>
-                  <Ionicons name="close" size={12} color="#FFFFFF" />
+                  <Ionicons name="close" size={13} color="#FFFFFF" />
                 </Pressable>
               </View>
             ))}
           </ScrollView>
         ) : null}
-
-
       </ScrollView>
 
-      <View style={styles.toolRow}>
-        <ToolBtn icon="image-outline" label="Photo" onPress={() => setSheetOpen(true)} />
-        <ToolBtn icon="happy-outline" label="Feeling" onPress={() => setEmojiOpen(true)} />
-        <ToolBtn
-          icon="location-outline"
-          label={selectedLocation ? 'Location added' : 'Location'}
-          active={Boolean(selectedLocation)}
-          onPress={() => setLocationOpen(true)}
-        />
+      {/* Lovable Bottom Composer Toolbar */}
+      <View style={[styles.toolRow, { borderTopColor: ui.separator }]}>
+        <View style={styles.toolBtnsLeft}>
+          <Pressable
+            onPress={() => setSheetOpen(true)}
+            style={[styles.toolBtn, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="image-outline" size={18} color={ui.label} />
+            <Text style={[styles.toolLabel, { color: ui.label }]}>Photo</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setLocationOpen(true)}
+            style={[styles.toolBtn, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="location-outline" size={18} color={ui.label} />
+            <Text style={[styles.toolLabel, { color: ui.label }]}>Location</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setEmojiOpen(true)}
+            style={[styles.toolBtn, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="happy-outline" size={18} color={ui.label} />
+          </Pressable>
+        </View>
+
+        <Text
+          style={[
+            styles.charCount,
+            { color: charsLeft < 20 ? ui.coral : ui.secondaryLabel },
+          ]}>
+          {charsLeft}
+        </Text>
       </View>
 
       <UploadSheet
@@ -298,157 +251,44 @@ export default function CreatePostScreen() {
       />
 
       {emojiOpen && (
-        <EmojiPicker
-          onEmojiSelected={addEmoji}
-          onClose={() => setEmojiOpen(false)}
-        />
+        <EmojiPicker onEmojiSelected={addEmoji} onClose={() => setEmojiOpen(false)} />
       )}
 
       <BottomSheet visible={locationOpen} onClose={() => setLocationOpen(false)}>
-        <Text style={styles.sheetTitle}>Location</Text>
-        <View style={styles.locationSearchWrap}>
-          <Ionicons name="search" size={18} color={palette.ink.onDarkMuted} />
-          <TextInput
-            value={locationQuery}
-            onChangeText={(value) => {
-              setLocationQuery(value);
-              if (!value.trim()) setLocationResults([]);
-            }}
-            onSubmitEditing={searchLocation}
-            returnKeyType="search"
-            placeholder="Search city, landmark, or address"
-            placeholderTextColor={palette.ink.onDarkMuted}
-            style={styles.locationSearchInput}
-          />
-          <Pressable
-            onPress={searchLocation}
-            disabled={!locationQuery.trim() || locationSearching}
-            hitSlop={8}
-            style={[styles.locationSearchBtn, (!locationQuery.trim() || locationSearching) && { opacity: 0.45 }]}>
-            {locationSearching ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-            )}
-          </Pressable>
-        </View>
-
+        <Text style={[styles.sheetTitle, { color: ui.label }]}>Tag location</Text>
         <Pressable
           onPress={selectCurrentLocation}
-          disabled={locating}
-          style={({ pressed }) => [styles.locationRow, pressed && { opacity: 0.82 }]}>
-          <View style={styles.locationIcon}>
-            {locating ? (
-              <ActivityIndicator size="small" color={palette.brand.orange} />
-            ) : (
-              <Ionicons name="navigate" size={18} color={palette.brand.orange} />
-            )}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.locationRowTitle}>{locating ? 'Finding location' : 'Current location'}</Text>
-            <Text style={styles.locationRowMeta}>Use device location</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={palette.ink.onDarkMuted} />
+          style={[styles.locationOptionRow, { borderBottomColor: ui.separator }]}>
+          <Ionicons name="navigate" size={18} color={ui.accent} />
+          <Text style={[styles.locationOptionLabel, { color: ui.label }]}>
+            {locating ? 'Detecting location…' : 'Use current location'}
+          </Text>
         </Pressable>
-
-        {locationResults.map((result) => {
-          const selected = selectedLocation?.label === result.label;
-          return (
-            <Pressable
-              key={`${result.label}-${result.lat ?? ''}-${result.lng ?? ''}`}
-              onPress={() => {
-                setSelectedLocation(result);
-                setLocationOpen(false);
-              }}
-              style={({ pressed }) => [styles.locationRow, pressed && { opacity: 0.82 }]}>
-              <View style={styles.locationIcon}>
-                <Ionicons name="pin" size={18} color={palette.brand.orange} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locationRowTitle} numberOfLines={1}>{result.label}</Text>
-                {result.lat && result.lng ? (
-                  <Text style={styles.locationRowMeta}>{result.lat.toFixed(4)}, {result.lng.toFixed(4)}</Text>
-                ) : null}
-              </View>
-              {selected ? (
-                <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
-              ) : null}
-            </Pressable>
-          );
-        })}
-
-        {LOCATION_PRESETS.filter((label) => matchesLocationQuery(label, locationQuery)).map((label) => {
-          const selected = selectedLocation?.label === label;
-          return (
-            <Pressable
-              key={label}
-              onPress={() => {
-                setSelectedLocation({ label });
-                setLocationOpen(false);
-              }}
-              style={({ pressed }) => [styles.locationRow, pressed && { opacity: 0.82 }]}>
-              <View style={styles.locationIcon}>
-                <Ionicons name="location" size={18} color={palette.brand.orange} />
-              </View>
-              <Text style={[styles.locationRowTitle, { flex: 1 }]}>{label}</Text>
-              {selected ? (
-                <Ionicons name="checkmark" size={18} color={palette.brand.orange} />
-              ) : null}
-            </Pressable>
-          );
-        })}
-
-        {selectedLocation ? (
-          <Pressable onPress={() => {
-            setSelectedLocation(null);
-            setLocationOpen(false);
-          }} style={styles.removeLocationBtn}>
-            <Text style={styles.removeLocationText}>Remove location</Text>
+        {LOCATION_PRESETS.map((label) => (
+          <Pressable
+            key={label}
+            onPress={() => {
+              setSelectedLocation({ label });
+              setLocationOpen(false);
+            }}
+            style={[styles.locationOptionRow, { borderBottomColor: ui.separator }]}>
+            <Ionicons name="location-outline" size={18} color={ui.secondaryLabel} />
+            <Text style={[styles.locationOptionLabel, { color: ui.label }]}>{label}</Text>
           </Pressable>
-        ) : null}
+        ))}
       </BottomSheet>
     </ScreenContainer>
   );
 }
 
-function PostTextInput({ value, onChange, isVendor }: { value: string; onChange: (v: string) => void; isVendor?: boolean }) {
-  return (
-    <TextInput
-      placeholder={isVendor ? "What's happening at your store? Share an update, restock announcement, or behind-the-scenes thought..." : "What's on your mind? Share your style, purchases, or thoughts..."}
-      placeholderTextColor={palette.ink.onDarkMuted}
-      multiline
-      value={value}
-      onChangeText={onChange}
-      style={styles.realInput}
-    />
-  );
-}
-
 function initialsFor(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'Y';
-}
-
-function ToolBtn({
-  icon,
-  label,
-  onPress,
-  active,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  active?: boolean;
-}) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.toolBtn, active && styles.toolBtnActive, pressed && { opacity: 0.85 }]}>
-      <Ionicons name={icon} size={20} color={palette.brand.orange} />
-      <Text style={styles.toolLabel}>{label}</Text>
-    </Pressable>
+    name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('') || 'A'
   );
 }
 
@@ -459,230 +299,114 @@ function captionForPost(value: string, location: SelectedLocation | null) {
   return caption ? `${caption}\n\n${locationLine}` : locationLine;
 }
 
-function locationLabelFor(
-  place: Location.LocationGeocodedAddress | undefined,
-  latitude: number,
-  longitude: number,
-  fallback?: string,
-) {
-  const parts = [
-    place?.name,
-    place?.district,
-    place?.city,
-    place?.region,
-    place?.country,
-  ].filter((part): part is string => Boolean(part));
-
-  if (parts.length) return Array.from(new Set(parts)).slice(0, 3).join(', ');
-  if (fallback?.trim()) return fallback.trim();
-  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-}
-
-function matchesLocationQuery(label: string, query: string) {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-  return label.toLowerCase().includes(normalized);
-}
-
 const styles = StyleSheet.create({
-  postBtn: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.brand.orange,
-  },
-  scroll: { paddingVertical: spacing['3'], gap: spacing['3'], paddingBottom: 100 },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-  },
-  author: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
-  },
-  audienceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  postPill: {
+    paddingHorizontal: 16,
+    height: 34,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    alignSelf: 'flex-start',
-    marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  audience: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkSoft,
+  postBtnText: {
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 13,
   },
-  textInput: { display: 'none' },
-  textValue: { color: palette.ink.onDarkStrong },
-  textPlaceholder: { color: palette.ink.onDarkMuted },
-  textInputCover: {},
+  scroll: {
+    paddingTop: 12,
+    paddingBottom: 60,
+    gap: 14,
+  },
+  composerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
   realInput: {
-    minHeight: 120,
-    fontFamily: typography.bodyLg.fontFamily,
-    fontSize: 16,
-    lineHeight: 22,
-    color: palette.ink.onDarkStrong,
+    flex: 1,
+    minHeight: 160,
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 17,
+    lineHeight: 24,
     textAlignVertical: 'top',
-    paddingVertical: 0,
+    paddingTop: 4,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    maxWidth: '100%',
-    paddingHorizontal: spacing['3'],
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(232, 93, 63,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 93, 63,0.32)',
   },
   locationText: {
-    flexShrink: 1,
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 12,
-    color: palette.ink.onDarkStrong,
   },
-  thumbsRow: { gap: spacing['2'] },
+  thumbsRow: {
+    gap: 10,
+  },
   thumbCell: {
-    width: 96,
-    height: 120,
-    borderRadius: radius.md,
+    width: 100,
+    height: 124,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    ...continuous,
   },
   thumbDelete: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(17, 21, 19, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tagPill: {
+  toolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  toolBtnsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing['3'],
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(232, 93, 63,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 93, 63,0.40)',
-  },
-  tagText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    color: palette.brand.orange,
-  },
-
-  toolRow: {
-    flexDirection: 'row',
-    gap: spacing['2'],
-    paddingVertical: spacing['3'],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0, 0, 0, 0.06)',
-    flexWrap: 'wrap',
   },
   toolBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: spacing['3'],
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  toolBtnActive: {
-    backgroundColor: 'rgba(232, 93, 63,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 93, 63,0.28)',
   },
   toolLabel: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkStrong,
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 13,
+  },
+  charCount: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 13,
   },
   sheetTitle: {
-    fontFamily: typography.h2.fontFamily,
+    fontFamily: 'BricolageGrotesque_700Bold',
     fontSize: 18,
-    lineHeight: 24,
-    color: palette.ink.onDarkStrong,
-    marginBottom: spacing['3'],
+    marginBottom: 12,
   },
-  locationSearchWrap: {
+  locationOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing['2'],
-    minHeight: 48,
-    paddingLeft: spacing['3'],
-    paddingRight: 6,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    marginBottom: spacing['2'],
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  locationSearchInput: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: typography.body.fontFamily,
+  locationOptionLabel: {
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 14,
-    color: palette.ink.onDarkStrong,
-    paddingVertical: 0,
-  },
-  locationSearchBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.brand.orange,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['3'],
-    minHeight: 56,
-    paddingVertical: spacing['2'],
-  },
-  locationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(232, 93, 63,0.12)',
-  },
-  locationRowTitle: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkStrong,
-  },
-  locationRowMeta: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 12,
-    color: palette.ink.onDarkMuted,
-    marginTop: 2,
-  },
-  removeLocationBtn: {
-    alignSelf: 'center',
-    paddingHorizontal: spacing['4'],
-    paddingVertical: spacing['3'],
-  },
-  removeLocationText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 13,
-    color: palette.status.danger,
   },
 });

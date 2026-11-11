@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -10,13 +10,17 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ProfileTabs, type TabKey } from '@/components/ui/ProfileTabs';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TopBar } from '@/components/ui/TopBar';
-import { useCart } from '@/src/store/cart';
-import { useWishlist, type WishlistItem } from '@/src/store/wishlist';
 import { useMyBookmarkedPosts } from '@/src/api/feed/hooks';
 import type { Post } from '@/src/api/types';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { useCart } from '@/src/store/cart';
+import { useWishlist, type WishlistItem } from '@/src/store/wishlist';
+import { continuous, layout, useUi } from '@/src/theme/ui';
+
+const { width } = Dimensions.get('window');
+const TILE_SIZE = (width - 4) / 3;
 
 export default function WishlistScreen() {
+  const ui = useUi();
   const [activeTab, setActiveTab] = useState<TabKey>('products');
   const items = useWishlist((s) => s.items);
   const remove = useWishlist((s) => s.remove);
@@ -30,57 +34,83 @@ export default function WishlistScreen() {
 
   return (
     <ScreenContainer variant="espresso" paddingHorizontal={0}>
-      <View style={{ paddingHorizontal: spacing['5'] }}>
-        <TopBar title="Wishlist" showBack />
+      <View style={{ paddingHorizontal: layout.gutter }}>
+        <TopBar
+          title="Wishlist"
+          subtitle={items.length ? `${items.length} saved` : undefined}
+          showBack
+        />
       </View>
 
-      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['posts', 'products']} />
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} tabs={['products', 'posts']} />
 
       {activeTab === 'products' ? (
         emptyProducts ? (
           <View style={styles.empty}>
-            <Ionicons name="cart-outline" size={40} color={palette.ink.onDarkMuted} />
-            <Text style={styles.emptyTitle}>No saved products</Text>
-            <Text style={styles.emptyText}>Products you heart from the backend catalog will appear here.</Text>
-            <PrimaryButton label="Browse shop" onPress={() => router.replace('/(home-feed)/(tabs)/shop' as never)} />
+            <View style={[styles.emptyIconBox, { backgroundColor: ui.secondary }]}>
+              <Ionicons name="heart-outline" size={34} color={ui.coral} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: ui.label }]}>Nothing saved yet</Text>
+            <Text style={[styles.emptyText, { color: ui.secondaryLabel }]}>
+              Tap the heart on any product to keep it here for later.
+            </Text>
+            <View style={{ width: '100%', marginTop: 12 }}>
+              <PrimaryButton
+                label="Browse the market"
+                onPress={() => router.replace('/(home-feed)/(tabs)/market' as never)}
+              />
+            </View>
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
             <View style={styles.grid}>
               {items.map((p, idx) => (
-                <Card
+                <WishlistProductCard
                   key={p.id ? `wishlist-item-${p.id}-${idx}` : `wishlist-item-${idx}`}
                   product={p}
                   onTap={() => router.push(`/product/${p.id}` as never)}
                   onRemove={() => remove(p.id)}
-                  onAddCart={() => addCart({ id: p.id, name: p.name, price: p.price, image: p.image, vendor: p.vendor })}
+                  onAddCart={() =>
+                    addCart({
+                      id: p.id,
+                      name: p.name,
+                      price: p.price,
+                      image: p.image,
+                      vendor: p.vendor,
+                    })
+                  }
                 />
               ))}
             </View>
           </ScrollView>
         )
-      ) : (
-        emptyPosts ? (
-          <View style={styles.empty}>
-            <Ionicons name="images-outline" size={40} color={palette.ink.onDarkMuted} />
-            <Text style={styles.emptyTitle}>No saved posts</Text>
-            <Text style={styles.emptyText}>Posts you bookmark from the home feed will appear here.</Text>
+      ) : emptyPosts ? (
+        <View style={styles.empty}>
+          <View style={[styles.emptyIconBox, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="bookmark-outline" size={34} color={ui.accent} />
           </View>
-        ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-            <View style={styles.postGrid}>
-              {bookmarkedPosts.map((post, idx) => (
-                <PostTile key={post.id ? `wishlist-post-${post.id}-${idx}` : `wishlist-post-${idx}`} post={post} />
-              ))}
-            </View>
-          </ScrollView>
-        )
+          <Text style={[styles.emptyTitle, { color: ui.label }]}>No saved posts</Text>
+          <Text style={[styles.emptyText, { color: ui.secondaryLabel }]}>
+            Posts you bookmark from the home feed will appear here.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          <View style={styles.postGrid}>
+            {bookmarkedPosts.map((post, idx) => (
+              <PostTile
+                key={post.id ? `wishlist-post-${post.id}-${idx}` : `wishlist-post-${idx}`}
+                post={post}
+              />
+            ))}
+          </View>
+        </ScrollView>
       )}
     </ScreenContainer>
   );
 }
 
-function Card({
+function WishlistProductCard({
   product,
   onTap,
   onRemove,
@@ -91,29 +121,45 @@ function Card({
   onRemove?: () => void;
   onAddCart: () => void;
 }) {
+  const ui = useUi();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: ui.card, borderColor: ui.separator }]}>
       <Pressable onPress={onTap} style={styles.imageWrap}>
         <Image source={product.image as any} style={styles.image} contentFit="cover" />
         {onRemove ? (
-          <Pressable onPress={onRemove} hitSlop={6} style={styles.removeBtn}>
-            <Ionicons name="heart" size={16} color="#FF3B47" />
+          <Pressable
+            onPress={onRemove}
+            hitSlop={6}
+            style={[styles.removeBtn, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+            <Ionicons name="heart" size={16} color={ui.coral} />
           </Pressable>
         ) : null}
       </Pressable>
-      <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-      <Text style={styles.vendor} numberOfLines={1}>{product.vendor}</Text>
-      <View style={styles.cardFooter}>
-        <Text style={styles.price}>₦{product.price.toLocaleString()}</Text>
-        <Pressable onPress={onAddCart} hitSlop={6} style={styles.cartBtn}>
-          <Ionicons name="bag-add-outline" size={16} color={palette.ink.onLightStrong} />
-        </Pressable>
+      <View style={styles.cardBody}>
+        <Text style={[styles.vendor, { color: ui.secondaryLabel }]} numberOfLines={1}>
+          {product.vendor?.toUpperCase() || 'AKTIVE MARKET'}
+        </Text>
+        <Text style={[styles.name, { color: ui.label }]} numberOfLines={2}>
+          {product.name}
+        </Text>
+        <View style={styles.cardFooter}>
+          <Text style={[styles.price, { color: ui.label }]}>
+            ₦{product.price.toLocaleString('en-NG')}
+          </Text>
+          <Pressable
+            onPress={onAddCart}
+            hitSlop={6}
+            style={[styles.cartBtn, { backgroundColor: ui.lime }]}>
+            <Ionicons name="bag-add-outline" size={16} color={ui.limeForeground} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
 function PostTile({ post }: { post: Post }) {
+  const ui = useUi();
   const imageUrl = post.imageUrls?.[0];
 
   return (
@@ -123,138 +169,100 @@ function PostTile({ post }: { post: Post }) {
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" />
       ) : (
-        <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.postImage} />
+        <LinearGradient colors={ui.gradient} style={styles.postImage} />
       )}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
-      <View style={styles.tileBadge}>
-        <Ionicons name="repeat" size={14} color="#fff" />
-      </View>
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.65)']}
+        locations={[0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.tileMeta}>
-        <Text style={styles.tilePrice} numberOfLines={1}>@{post.author.handle}</Text>
+        <Text style={styles.tileHandle} numberOfLines={1}>
+          @{post.author.handle}
+        </Text>
       </View>
     </Pressable>
   );
 }
 
-import { Dimensions } from 'react-native';
-
-const { width } = Dimensions.get('window');
-const TILE_SIZE = (width - 4) / 3;
-
 const styles = StyleSheet.create({
-  tabsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing['5'],
-    paddingTop: spacing['2'],
-    paddingBottom: spacing['4'],
-    gap: spacing['3'],
-  },
-  tabBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  tabBtnActive: {
-    backgroundColor: palette.brand.orange,
-  },
-  tabText: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.ink.onDarkMuted,
-  },
-  tabTextActive: {
-    color: '#fff',
-  },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingTop: 12, paddingBottom: 40 },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing['3'],
-    paddingHorizontal: spacing['5'],
+    gap: 8,
+    paddingHorizontal: 28,
+  },
+  emptyIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    ...continuous,
   },
   emptyTitle: {
-    fontFamily: typography.h2.fontFamily,
-    fontSize: 18,
-    color: palette.ink.onDarkStrong,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 20,
+    letterSpacing: -0.3,
   },
   emptyText: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    color: palette.ink.onDarkSoft,
-    textAlign: 'center',
-  },
-  intro: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontFamily: 'InstrumentSans_400Regular',
     fontSize: 14,
-    color: palette.ink.onDarkSoft,
-    marginBottom: spacing['3'],
+    textAlign: 'center',
+    lineHeight: 20,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing['3'],
+    gap: 12,
     justifyContent: 'space-between',
-    paddingHorizontal: spacing['5'],
+    paddingHorizontal: layout.gutter,
   },
-  postGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 2,
-    marginTop: 2,
-  },
-  postTile: {
-    width: TILE_SIZE,
-    aspectRatio: 1,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  postImage: { width: '100%', height: '100%' },
-  tileBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileMeta: { position: 'absolute', bottom: 8, left: 8, right: 8, gap: 1 },
-  tilePrice: { fontFamily: typography.bodyEmphasis.fontFamily, color: '#fff', fontSize: 13 },
   card: {
     width: '48%',
-    gap: 4,
+    padding: 7,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+    ...continuous,
   },
-  imageWrap: { position: 'relative' },
+  imageWrap: {
+    position: 'relative',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
   image: {
     width: '100%',
-    aspectRatio: 1,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    aspectRatio: 4 / 5,
   },
   removeBtn: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette.ink.onDarkStrong,
+  cardBody: {
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    gap: 3,
   },
   vendor: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: 11,
-    color: palette.ink.onDarkMuted,
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 10,
+    letterSpacing: 0.6,
+  },
+  name: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 14,
+    lineHeight: 18,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -263,16 +271,31 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   price: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 14,
-    color: palette.brand.orange,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 15,
   },
   cartBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  postGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  postTile: {
+    width: TILE_SIZE,
+    aspectRatio: 1,
+    overflow: 'hidden',
+  },
+  postImage: { width: '100%', height: '100%' },
+  tileMeta: { position: 'absolute', bottom: 8, left: 8, right: 8 },
+  tileHandle: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    color: '#FFFFFF',
+    fontSize: 12,
   },
 });

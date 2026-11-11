@@ -4,8 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PressableScale } from '@/components/ui/PressableScale';
+import { useMe } from '@/src/api/account/hooks';
+import { useToast } from '@/src/hooks/use-toast';
 import { useUser } from '@/src/store/user';
-import { continuous, corner, type, useUi } from '@/src/theme/ui';
+import { continuous, useUi } from '@/src/theme/ui';
 import { BottomSheet } from './BottomSheet';
 
 type Props = {
@@ -13,22 +15,22 @@ type Props = {
   onClose: () => void;
 };
 
-type ActionItem = {
+type CreateOption = {
   key: string;
-  label: string;
-  subtitle: string;
-  badge?: string;
+  title: string;
+  body: string;
   icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-  iconColor: string;
-  href: string;
-  isPrimary?: boolean;
+  toneBg: string;
+  toneFg: string;
+  onPress: () => void;
 };
 
 export function CreateSheet({ visible, onClose }: Props) {
   const ui = useUi();
+  const toast = useToast();
+  const { data: me } = useMe();
   const role = useUser((s) => s.role);
-  const isVendor = role === 'vendor';
+  const storeLive = Boolean(me?.hasStore || me?.role === 'vendor' || role === 'vendor');
   const pendingActionRef = useRef<(() => void) | null>(null);
 
   const runPendingAction = useCallback(() => {
@@ -37,9 +39,9 @@ export function CreateSheet({ visible, onClose }: Props) {
     action?.();
   }, []);
 
-  const closeThenNavigate = useCallback(
-    (href: string) => {
-      pendingActionRef.current = () => router.push(href as never);
+  const closeThenRun = useCallback(
+    (fn: () => void) => {
+      pendingActionRef.current = fn;
       onClose();
 
       if (Platform.OS !== 'ios') {
@@ -49,170 +51,85 @@ export function CreateSheet({ visible, onClose }: Props) {
     [onClose, runPendingAction],
   );
 
-  // Distinct Apple-style actions for Vendor vs Buyer
-  const vendorActions: ActionItem[] = [
-    {
-      key: 'product',
-      label: 'List a Product',
-      subtitle: 'Upload product photos, set price, sizes, and stock inventory',
-      badge: 'Primary',
-      icon: 'pricetag',
-      tint: 'rgba(255, 159, 10, 0.16)',
-      iconColor: ui.accent,
-      href: '/products/add',
-      isPrimary: true,
-    },
-    {
-      key: 'banner',
-      label: 'Store Banner & Details',
-      subtitle: 'Change your shop header cover photo, store logo, bio & location',
-      badge: 'Branding',
-      icon: 'image-outline',
-      tint: 'rgba(175, 82, 222, 0.14)',
-      iconColor: '#AF52DE',
-      href: '/vendor-store-setup/store-details',
-    },
+  const options: CreateOption[] = [
     {
       key: 'post',
-      label: 'Store Announcement',
-      subtitle: 'Publish quick news, restock alerts, or studio notes to your followers',
-      badge: 'Update',
-      icon: 'chatbubble-ellipses-outline',
-      tint: 'rgba(10, 132, 255, 0.14)',
-      iconColor: '#0A84FF',
-      href: '/create/post',
-    },
-  ];
-
-  const buyerActions: ActionItem[] = [
-    {
-      key: 'post',
-      label: 'Community Post',
-      subtitle: 'Share an outfit, unboxing, review, or lifestyle photo',
-      badge: 'Feed',
-      icon: 'camera-outline',
-      tint: 'rgba(52, 199, 89, 0.14)',
-      iconColor: '#34C759',
-      href: '/create/post',
+      title: 'Write a post',
+      body: 'Share a thought, a fit or the gist',
+      icon: 'create-outline',
+      toneBg: ui.lime,
+      toneFg: ui.limeForeground,
+      onPress: () => closeThenRun(() => router.push('/create/post' as never)),
     },
     {
       key: 'story',
-      label: 'Daily Story',
-      subtitle: 'Share a 24-hour photo or quick moment with your circle',
-      icon: 'sparkles-outline',
-      tint: 'rgba(175, 82, 222, 0.14)',
-      iconColor: '#AF52DE',
-      href: '/create/story',
+      title: 'Add a story',
+      body: 'Disappears after 24 hours',
+      icon: 'camera-outline',
+      toneBg: ui.coral,
+      toneFg: '#FFFFFF',
+      onPress: () => closeThenRun(() => router.push('/create/story' as never)),
     },
     {
-      key: 'reel',
-      label: 'Video Reel',
-      subtitle: 'Record or upload a short styling clip or video review',
-      icon: 'play-circle-outline',
-      tint: 'rgba(255, 59, 48, 0.14)',
-      iconColor: '#FF3B30',
-      href: '/create/reel',
+      key: 'store',
+      title: storeLive ? 'List a product' : 'Start selling',
+      body: storeLive ? 'Add something new to your store' : 'Open your store in 3 quick steps',
+      icon: 'storefront-outline',
+      toneBg: '#1D4A38',
+      toneFg: '#F4F2E8',
+      onPress: () =>
+        closeThenRun(() =>
+          router.push((storeLive ? '/products/add' : '/vendor-verify') as never),
+        ),
+    },
+    {
+      key: 'live',
+      title: 'Go live',
+      body: 'Live shopping & drops',
+      icon: 'radio-outline',
+      toneBg: ui.secondary,
+      toneFg: ui.secondaryForeground,
+      onPress: () =>
+        closeThenRun(() => {
+          toast.show({ variant: 'info', title: 'Live shopping is coming soon 👀' });
+        }),
     },
   ];
-
-  const actions = isVendor ? vendorActions : buyerActions;
 
   return (
     <BottomSheet visible={visible} onClose={onClose} onDismiss={runPendingAction}>
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={[type.title2, { color: ui.label }]}>
-            {isVendor ? 'Vendor Studio' : 'Create'}
-          </Text>
-          <View style={[styles.roleBadge, { backgroundColor: isVendor ? 'rgba(255, 159, 10, 0.14)' : ui.card }]}>
-            <Ionicons
-              name={isVendor ? 'storefront' : 'person'}
-              size={12}
-              color={isVendor ? ui.accent : ui.secondaryLabel}
-            />
-            <Text style={[type.caption2, { color: isVendor ? ui.accent : ui.secondaryLabel, fontWeight: '700' }]}>
-              {isVendor ? 'VENDOR' : 'BUYER'}
-            </Text>
-          </View>
-        </View>
-        <Text style={[type.subhead, { color: ui.secondaryLabel, marginTop: 4 }]}>
-          {isVendor
-            ? 'Manage your storefront, list products, or broadcast store announcements.'
-            : 'Share your purchases, fits, and moments with the community.'}
+        <Text style={[styles.title, { color: ui.label }]}>Create</Text>
+        <Text style={[styles.subtitle, { color: ui.secondaryLabel }]}>
+          What are you making today?
         </Text>
       </View>
 
-      <View style={styles.list}>
-        {actions.map((a) => (
+      <View style={styles.grid}>
+        {options.map((o) => (
           <PressableScale
-            key={a.key}
-            onPress={() => closeThenNavigate(a.href)}
-            haptic={a.isPrimary ? 'medium' : 'light'}
+            key={o.key}
+            haptic="light"
             scaleTo={0.97}
+            onPress={o.onPress}
             style={[
               styles.card,
-              continuous,
               {
-                borderRadius: corner.lg,
-                backgroundColor: a.isPrimary ? (ui.isDark ? '#1C150A' : '#FFF9F0') : ui.card,
-                borderColor: a.isPrimary ? ui.accent : ui.separator,
-                borderWidth: a.isPrimary ? 1.5 : 1,
+                backgroundColor: ui.card,
+                borderColor: ui.separator,
               },
             ]}>
-            <View style={[styles.iconWrap, continuous, { borderRadius: corner.md, backgroundColor: a.tint }]}>
-              <Ionicons name={a.icon} size={22} color={a.iconColor} />
+            <View style={[styles.iconBox, { backgroundColor: o.toneBg }]}>
+              <Ionicons name={o.icon} size={20} color={o.toneFg} />
             </View>
-
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <Text style={[type.body, { color: ui.label, fontWeight: '700' }]}>
-                  {a.label}
-                </Text>
-                {a.badge ? (
-                  <View
-                    style={[
-                      styles.itemBadge,
-                      continuous,
-                      {
-                        borderRadius: corner.sm,
-                        backgroundColor: a.isPrimary ? ui.accent : (ui.isDark ? 'rgba(22, 22, 27, 0.76)' : '#E5E5EA'),
-                      },
-                    ]}>
-                    <Text
-                      style={[
-                        type.caption2,
-                        {
-                          color: a.isPrimary ? ui.onAccent : ui.secondaryLabel,
-                          fontWeight: '700',
-                          fontSize: 10,
-                        },
-                      ]}>
-                      {a.badge}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={[type.caption, { color: ui.secondaryLabel, marginTop: 2 }]} numberOfLines={2}>
-                {a.subtitle}
+            <View style={styles.cardText}>
+              <Text style={[styles.cardTitle, { color: ui.label }]}>{o.title}</Text>
+              <Text style={[styles.cardBody, { color: ui.secondaryLabel }]} numberOfLines={2}>
+                {o.body}
               </Text>
             </View>
-
-            <Ionicons name="chevron-forward" size={18} color={ui.tertiaryLabel} />
           </PressableScale>
         ))}
-      </View>
-
-      <View style={[styles.footerNote, continuous, { borderRadius: corner.md, backgroundColor: ui.card }]}>
-        <Ionicons
-          name={isVendor ? 'information-circle-outline' : 'sparkles-outline'}
-          size={16}
-          color={isVendor ? ui.accent : ui.secondaryLabel}
-        />
-        <Text style={[type.caption2, { color: ui.secondaryLabel, flex: 1 }]}>
-          {isVendor
-            ? 'Looking to customize your shop cover? Tap "Store Banner & Details" above.'
-            : 'Looking to sell? You can switch or apply for a Vendor account in your Profile.'}
-        </Text>
       </View>
     </BottomSheet>
   );
@@ -221,52 +138,51 @@ export function CreateSheet({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
+    gap: 2,
   },
-  titleRow: {
+  title: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 24,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 13,
+  },
+  grid: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  list: {
     gap: 10,
+    paddingBottom: 8,
   },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    width: '48.2%',
     padding: 14,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+    ...continuous,
   },
-  iconWrap: {
+  iconBox: {
     width: 44,
     height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    ...continuous,
   },
-  cardContent: {
-    flex: 1,
+  cardText: {
+    gap: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  cardTitle: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 15,
+    letterSpacing: -0.2,
   },
-  itemBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  footerNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    marginTop: 16,
+  cardBody: {
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

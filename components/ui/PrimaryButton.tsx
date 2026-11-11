@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PressableScale, type HapticKind } from '@/components/ui/PressableScale';
 import { apiErrorMessage } from '@/src/utils/api-error-message';
 import { useToast } from '@/src/hooks/use-toast';
-import { radius, spacing, typography } from '@/src/theme';
-import { glass, plasma } from '@/src/theme/plasma';
+import { radius, spacing } from '@/src/theme';
+import { useUi } from '@/src/theme/ui';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -25,21 +24,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-const HEIGHT: Record<Size, number> = { sm: 38, md: 46, lg: 54 };
-
-function colorsFor(variant: Variant) {
-  switch (variant) {
-    case 'primary':
-      return { bg: '#E85D3F', fg: '#FFFFFF', border: 'rgba(255, 255, 255, 0.24)' };
-    case 'danger':
-      return { bg: '#E5262F', fg: '#FFFFFF', border: 'rgba(255, 255, 255, 0.20)' };
-    case 'secondary':
-      return { bg: glass.dark.fillRaised, fg: '#FAFAFA', border: glass.dark.rimStrong };
-    case 'ghost':
-    default:
-      return { bg: glass.dark.fillSubtle, fg: '#FAFAFA', border: glass.dark.rim };
-  }
-}
+const HEIGHT: Record<Size, number> = { sm: 38, md: 46, lg: 52 };
 
 export function PrimaryButton({
   label,
@@ -53,6 +38,7 @@ export function PrimaryButton({
   haptic = 'light',
   style,
 }: Props) {
+  const ui = useUi();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
@@ -92,7 +78,36 @@ export function PrimaryButton({
 
   const isLoading = Boolean(loading) || busy;
   const isPrimary = variant === 'primary';
-  const colors = colorsFor(variant);
+
+  const colors = (() => {
+    switch (variant) {
+      case 'primary':
+        return {
+          bg: ui.accent,
+          fg: ui.onAccent,
+          border: ui.accent,
+        };
+      case 'danger':
+        return {
+          bg: ui.danger,
+          fg: '#FFFFFF',
+          border: ui.danger,
+        };
+      case 'secondary':
+        return {
+          bg: ui.card,
+          fg: ui.label,
+          border: ui.separator,
+        };
+      case 'ghost':
+      default:
+        return {
+          bg: ui.secondary,
+          fg: ui.label,
+          border: ui.separator,
+        };
+    }
+  })();
 
   return (
     <PressableScale
@@ -111,14 +126,6 @@ export function PrimaryButton({
         isLoading && !disabled && styles.loadingDim,
         style,
       ]}>
-      {isPrimary ? (
-        <LinearGradient
-          colors={['#E85D3F', '#C94124']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
       <View style={styles.contentRow} pointerEvents="none">
         {isLoading ? (
           <ActivityIndicator color={colors.fg} />
@@ -151,11 +158,11 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
   },
   primaryShadow: {
-    shadowColor: '#000',
+    shadowColor: '#162821',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    elevation: 4,
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 3,
   },
   bordered: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -167,10 +174,10 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    fontFamily: typography.buttonLabel.fontFamily,
-    fontSize: typography.buttonLabel.fontSize,
-    lineHeight: typography.buttonLabel.lineHeight,
-    letterSpacing: -0.3,
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   labelSmall: {
     fontSize: 13,

@@ -12,8 +12,8 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { palette, radius, spacing, typography } from '@/src/theme';
-import { glass, plasma } from '@/src/theme/plasma';
+import { spacing } from '@/src/theme';
+import { useUi } from '@/src/theme/ui';
 
 type Props = TextInputProps & {
   label?: string;
@@ -33,18 +33,21 @@ export function TextField({
   style,
   ...rest
 }: Props) {
+  const ui = useUi();
   const [hidden, setHidden] = useState(true);
   const [focused, setFocused] = useState(false);
   const effectiveSecure = isPassword ? hidden : secureTextEntry;
 
   return (
     <View style={[styles.root, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, { color: ui.secondaryLabel }]}>{label}</Text> : null}
       <View
         style={[
           styles.field,
-          focused ? styles.fieldFocused : null,
-          error ? styles.fieldError : null,
+          {
+            backgroundColor: ui.card,
+            borderColor: error ? ui.danger : focused ? ui.accent : ui.separator,
+          },
         ]}>
         <TextInput
           {...rest}
@@ -57,9 +60,9 @@ export function TextField({
             rest.onBlur?.(e);
           }}
           secureTextEntry={effectiveSecure}
-          placeholderTextColor="rgba(245, 246, 250, 0.52)"
-          selectionColor={plasma.cyan}
-          style={[styles.input, style]}
+          placeholderTextColor={ui.secondaryLabel}
+          selectionColor={ui.accent}
+          style={[styles.input, { color: ui.label }, style]}
         />
         {isPassword ? (
           <Pressable
@@ -70,13 +73,13 @@ export function TextField({
             <Ionicons
               name={hidden ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color="rgba(245, 246, 250, 0.78)"
+              color={ui.secondaryLabel}
             />
           </Pressable>
         ) : null}
         {rightAdornment}
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, { color: ui.danger }]}>{error}</Text> : null}
     </View>
   );
 }
@@ -86,42 +89,30 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: typography.caption.fontSize,
-    lineHeight: typography.caption.lineHeight,
-    color: 'rgba(245, 246, 250, 0.85)',
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 12,
+    lineHeight: 16,
     marginBottom: spacing['2'],
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
+    height: 52,
     paddingHorizontal: spacing['4'],
     borderRadius: 16,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: glass.dark.rimStrong,
-  },
-  fieldFocused: {
-    borderColor: plasma.nude,
-    backgroundColor: 'rgba(32, 32, 39, 0.86)',
-  },
-  fieldError: {
-    borderColor: palette.status.danger,
   },
   input: {
     flex: 1,
-    fontFamily: typography.bodyLg.fontFamily,
-    fontSize: typography.bodyLg.fontSize,
-    lineHeight: typography.bodyLg.lineHeight,
-    color: '#F5F6FA',
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 15,
+    lineHeight: 20,
     paddingVertical: 0,
   },
   error: {
-    fontFamily: typography.caption.fontFamily,
-    fontSize: typography.caption.fontSize,
-    lineHeight: typography.caption.lineHeight,
-    color: palette.status.danger,
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 12,
+    lineHeight: 16,
     marginTop: spacing['1'],
   },
 });

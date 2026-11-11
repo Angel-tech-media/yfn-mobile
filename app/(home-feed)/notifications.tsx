@@ -11,24 +11,23 @@ import {
   useNotifications,
 } from '@/src/api/notifications/hooks';
 import type { NotificationItem } from '@/src/api/types';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { continuous, useUi } from '@/src/theme/ui';
 
-const ICON_BY_KIND: Record<string, { icon: keyof typeof Ionicons.glyphMap; tint: string }> = {
-  order: { icon: 'cube', tint: 'rgba(91, 168, 232, 0.20)' },
-  follow: { icon: 'person-add', tint: 'rgba(63, 201, 192, 0.20)' },
-  like: { icon: 'heart', tint: 'rgba(255, 111, 74, 0.22)' },
-  comment: { icon: 'chatbubble', tint: 'rgba(155, 139, 232, 0.22)' },
-  sale: { icon: 'pricetag', tint: 'rgba(232, 93, 63, 0.22)' },
-  referral: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
-  repost: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
-  escrow: { icon: 'lock-closed', tint: 'rgba(91, 168, 232, 0.20)' },
-  bot: { icon: 'sparkles', tint: 'rgba(155, 139, 232, 0.22)' },
-  news: { icon: 'newspaper', tint: 'rgba(63, 201, 192, 0.20)' },
+const ICON_BY_KIND: Record<string, keyof typeof Ionicons.glyphMap> = {
+  order: 'cube-outline',
+  follow: 'person-add-outline',
+  like: 'heart-outline',
+  comment: 'chatbubble-outline',
+  sale: 'pricetag-outline',
+  referral: 'repeat',
+  repost: 'repeat',
+  escrow: 'lock-closed-outline',
+  bot: 'sparkles-outline',
+  news: 'newspaper-outline',
 };
 
-const DEFAULT_ICON = { icon: 'notifications' as const, tint: 'rgba(232, 93, 63,0.18)' };
-
 export default function NotificationsScreen() {
+  const ui = useUi();
   const { data: notifications = [], isError, isLoading, refetch } = useNotifications({ limit: 80 });
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -45,20 +44,30 @@ export default function NotificationsScreen() {
         title="Notifications"
         showBack
         rightAction={
-          <Pressable hitSlop={8} onPress={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-            <Ionicons name="checkmark-done" size={20} color={palette.brand.orange} />
+          <Pressable
+            hitSlop={8}
+            onPress={() => markAllRead.mutate()}
+            disabled={markAllRead.isPending}
+            style={[styles.markBtn, { backgroundColor: ui.secondary }]}>
+            <Ionicons name="checkmark-done" size={16} color={ui.accent} />
           </Pressable>
         }
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
         {isLoading ? (
-          <Text style={styles.stateText}>Loading notifications...</Text>
+          <Text style={[styles.stateText, { color: ui.secondaryLabel }]}>
+            Loading notifications...
+          </Text>
         ) : isError ? (
           <View style={styles.stateBlock}>
-            <Text style={styles.stateText}>Could not load notifications.</Text>
-            <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Retry</Text>
+            <Text style={[styles.stateText, { color: ui.secondaryLabel }]}>
+              Could not load notifications.
+            </Text>
+            <Pressable
+              onPress={() => refetch()}
+              style={[styles.retryBtn, { backgroundColor: ui.accent }]}>
+              <Text style={[styles.retryText, { color: ui.onAccent }]}>Retry</Text>
             </Pressable>
           </View>
         ) : notifications.length ? (
@@ -70,7 +79,15 @@ export default function NotificationsScreen() {
             />
           ))
         ) : (
-          <Text style={styles.stateText}>No notifications yet.</Text>
+          <View style={styles.stateBlock}>
+            <View style={[styles.emptyIconBox, { backgroundColor: ui.secondary }]}>
+              <Ionicons name="notifications-outline" size={28} color={ui.accent} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: ui.label }]}>All caught up</Text>
+            <Text style={[styles.stateText, { color: ui.secondaryLabel }]}>
+              New likes, escrow updates, and drops will appear here.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </ScreenContainer>
@@ -84,7 +101,8 @@ function NotificationRow({
   notification: NotificationItem;
   onPress: () => void;
 }) {
-  const meta = ICON_BY_KIND[notification.kind] ?? DEFAULT_ICON;
+  const ui = useUi();
+  const icon = ICON_BY_KIND[notification.kind] ?? 'notifications-outline';
   const unread = !notification.readAt;
 
   return (
@@ -92,20 +110,37 @@ function NotificationRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        unread && styles.unread,
+        {
+          backgroundColor: ui.card,
+          borderColor: unread ? ui.accent : ui.separator,
+        },
         pressed && { opacity: 0.85 },
       ]}>
-      <View style={[styles.iconWrap, { backgroundColor: meta.tint }]}>
-        <Ionicons name={meta.icon} size={20} color={palette.ink.onDarkStrong} />
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: unread ? ui.lime : ui.secondary },
+        ]}>
+        <Ionicons
+          name={icon}
+          size={19}
+          color={unread ? ui.limeForeground : ui.label}
+        />
       </View>
       <View style={styles.body}>
         <View style={styles.titleRow}>
-          <Text style={styles.titleText} numberOfLines={1}>{notification.title}</Text>
-          <Text style={styles.time}>{ageLabel(notification.createdAt)}</Text>
+          <Text style={[styles.titleText, { color: ui.label }]} numberOfLines={1}>
+            {notification.title}
+          </Text>
+          <Text style={[styles.time, { color: ui.secondaryLabel }]}>
+            {ageLabel(notification.createdAt)}
+          </Text>
         </View>
-        <Text style={styles.bodyText} numberOfLines={2}>{notification.body}</Text>
+        <Text style={[styles.bodyText, { color: ui.secondaryLabel }]} numberOfLines={2}>
+          {notification.body}
+        </Text>
       </View>
-      {unread ? <View style={styles.dot} /> : null}
+      {unread ? <View style={[styles.dot, { backgroundColor: ui.coral }]} /> : null}
     </Pressable>
   );
 }
@@ -132,68 +167,91 @@ function ageLabel(value: string) {
 }
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 40, gap: spacing['2'] },
-  stateBlock: { gap: spacing['3'], alignItems: 'center', padding: spacing['5'] },
+  markBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  list: {
+    paddingTop: 8,
+    paddingBottom: 40,
+    gap: 8,
+  },
+  stateBlock: {
+    gap: 8,
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    ...continuous,
+  },
+  emptyTitle: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 18,
+  },
   stateText: {
-    ...typography.body,
-    color: palette.ink.onDarkSoft,
+    fontFamily: 'InstrumentSans_400Regular',
+    fontSize: 14,
     textAlign: 'center',
-    padding: spacing['4'],
+    lineHeight: 20,
   },
   retryBtn: {
-    height: 36,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing['4'],
-    backgroundColor: palette.brand.orange,
+    height: 38,
+    borderRadius: 999,
+    paddingHorizontal: 18,
     justifyContent: 'center',
   },
-  retryText: { ...typography.bodyEmphasis, color: '#fff' },
+  retryText: {
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 13,
+  },
   row: {
     flexDirection: 'row',
-    gap: spacing['3'],
-    padding: spacing['3'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(22, 22, 27, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 12,
+    padding: 13,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
-  },
-  unread: {
-    borderColor: 'rgba(232, 93, 63,0.30)',
-    backgroundColor: 'rgba(232, 93, 63,0.06)',
+    ...continuous,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    ...continuous,
   },
   body: { flex: 1, gap: 2 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   titleText: {
     flex: 1,
-    fontFamily: typography.bodyEmphasis.fontFamily,
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 14,
     lineHeight: 19,
-    color: palette.ink.onDarkStrong,
   },
   time: {
-    marginLeft: spacing['2'],
-    fontFamily: typography.caption.fontFamily,
+    marginLeft: 8,
+    fontFamily: 'InstrumentSans_500Medium',
     fontSize: 11,
-    color: palette.ink.onDarkMuted,
   },
   bodyText: {
-    fontFamily: typography.body.fontFamily,
+    fontFamily: 'InstrumentSans_400Regular',
     fontSize: 13,
     lineHeight: 18,
-    color: palette.ink.onDarkSoft,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: palette.brand.orange,
   },
 });
