@@ -1,82 +1,90 @@
 import { StyleSheet } from 'react-native';
 
 /**
- * Obsidian Glass & Warm Sunset Terracotta Design System for Vibe.
- *
- * Combines Apple / Threads razor-sharp neutral carbon glass (#08080C + rgba(22, 22, 27, 0.76))
- * with warm African-sunlit plasma accents (Sunset Terracotta #E85D3F, Burnished Amber #F59E0B,
- * Hibiscus Wine #881337, and 24k Gold #F5C469).
+ * Aktive Design System — "Lagos Paper" (Light) & "Lagos Night" (Dark)
+ * Ported directly from Lovable (`yfnisaktive/src/styles.css`):
+ * - Light: warm cream paper (#F6F4EB), deep forest-green ink (#162821),
+ *   forest primary (#1D4A38), electric lime (#C8FF3B), coral (#F06543).
+ * - Dark: neutral forest charcoal (#111513), elevated card (#1A201D),
+ *   warm cream text (#F4F2E8), electric lime primary/accent (#C8FF3B), coral (#F26E4B).
  */
-
 export const plasma = {
-  /** True deep OLED carbon base — crisp, never muddy. */
-  baseDark: '#121815',
+  /** Base screen backgrounds. */
+  baseDark: '#111513',
   baseLight: '#F6F4EB',
 
-  /** Warm Sunset & Earth Plasma Palette. */
-  terracotta: '#E85D3F',
-  terracottaDeep: '#C94124',
-  amber: '#F59E0B',
-  gold: '#F5C469',
-  hibiscus: '#9F1239',
-  alabaster: '#F8FAFC',
-
-  /** High-Energy Electric Lime Accent from Lovable ("Lagos Paper"). */
+  /** Lovable Core Brand Tokens. */
   lime: '#C8FF3B',
-  limeForeground: '#121815',
+  limeForeground: '#12281E',
   forestInk: '#162821',
+  forestPrimary: '#1D4A38',
+  coral: '#F06543',
+  coralDark: '#F26E4B',
+  sun: '#E8B228',
+  sky: '#8EC5E8',
 
-  /** Semantic aliases used across components. */
-  nude: '#E85D3F',
-  nudeDeep: '#C94124',
-  sand: '#F5C469',
-  champagne: '#F5C469',
-  taupe: '#A1A1AA',
-  stone: '#18181D',
-  espresso: '#0E0E12',
+  /** Backwards-compatible semantic aliases mapped to Lagos Paper / Night. */
+  terracotta: '#F06543',
+  terracottaDeep: '#1D4A38',
+  amber: '#E8B228',
+  gold: '#E8B228',
+  hibiscus: '#F06543',
+  alabaster: '#F6F4EB',
+  nude: '#1D4A38',
+  nudeDeep: '#162821',
+  sand: '#E8B228',
+  champagne: '#E8B228',
+  taupe: '#6C7D73',
+  stone: '#1A201D',
+  espresso: '#111513',
 
-  blue: '#E85D3F',
-  violet: '#C94124',
-  cyan: '#F59E0B',
-  magenta: '#9F1239',
-  mint: '#30D158',
-  coral: '#E5262F',
+  blue: '#1D4A38',
+  violet: '#162821',
+  cyan: '#C8FF3B',
+  magenta: '#F06543',
+  mint: '#2BB673',
 
-  /** Gradients. */
-  cool: ['#E85D3F', '#C94124'] as const,
-  warm: ['#F59E0B', '#E85D3F'] as const,
-  aurora: ['#E85D3F', '#C94124', '#9F1239'] as const,
-  spectrum: ['#F59E0B', '#E85D3F'] as const,
-  story: ['#C8FF3B', '#F06543', '#F5C469', '#C8FF3B'] as const,
+  /** Gradients matching Lovable's `--gradient-ink`, `--gradient-lime`, `--gradient-story`. */
+  inkGradient: ['#1E4434', '#132B21'] as const,
+  limeGradient: ['#D4FF52', '#B7F024'] as const,
+  cool: ['#1E4434', '#132B21'] as const,
+  warm: ['#C8FF3B', '#F06543'] as const,
+  aurora: ['#C8FF3B', '#F06543', '#E8B228'] as const,
+  spectrum: ['#C8FF3B', '#F06543'] as const,
+  story: ['#C8FF3B', '#F06543', '#E8B228', '#C8FF3B'] as const,
 } as const;
 
 /**
- * Crisp Apple iOS 18 neutral smoked-obsidian glass surface tokens.
+ * Surface tokens for "Lagos Night" (dark) and "Lagos Paper" (light).
  */
 export const glass = {
   dark: {
-    /** Standard card / grouped row fill — neutral carbon glass with zero brown muddiness. */
-    fill: 'rgba(22, 22, 27, 0.76)',
-    /** Raised surface (modals, floating sheets, inputs). */
-    fillRaised: 'rgba(32, 32, 39, 0.86)',
-    /** Subtle pill / search bar fill. */
-    fillSubtle: 'rgba(255, 255, 255, 0.07)',
-    /** Top-to-bottom specular highlight gradient inside a glass card. */
-    sheen: ['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.00)'] as const,
-    /** Crisp white hairline border catching the ambient light. */
-    rim: 'rgba(255, 255, 255, 0.12)',
-    /** Stronger rim for tab bar, sheets, and focused inputs. */
-    rimStrong: 'rgba(255, 255, 255, 0.22)',
+    /** Elevated charcoal card surface (`oklch(0.22 0.006 150)`). */
+    fill: '#1A201D',
+    /** Raised modal / sheet / input surface (`oklch(0.26 0.006 150)`). */
+    fillRaised: '#222925',
+    /** Subtle pill / muted surface. */
+    fillSubtle: '#222925',
+    /** Subtle top highlight sheen. */
+    sheen: ['rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0.00)'] as const,
+    /** Border token (`oklch(1 0 0 / 10%)`). */
+    rim: 'rgba(255, 255, 255, 0.10)',
+    /** Stronger border (`oklch(1 0 0 / 15%)`). */
+    rimStrong: 'rgba(255, 255, 255, 0.16)',
     blurIntensity: 50,
     blurTint: 'dark' as const,
   },
   light: {
-    fill: '#FFFFFF',
-    fillRaised: '#FCFBF8',
-    fillSubtle: 'rgba(22, 40, 33, 0.05)',
+    /** Crisp warm-white paper card (`oklch(0.993 0.006 95)`). */
+    fill: '#FDFCF8',
+    /** Raised surface. */
+    fillRaised: '#FFFFFF',
+    /** Muted cream surface (`oklch(0.945 0.014 95)`). */
+    fillSubtle: '#ECE9DF',
     sheen: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.40)'] as const,
-    rim: '#E5E3D8',
-    rimStrong: '#D9D7C7',
+    /** Warm paper border (`oklch(0.9 0.018 100)`). */
+    rim: '#E5E2D6',
+    rimStrong: '#D8D4C5',
     blurIntensity: 55,
     blurTint: 'light' as const,
   },
@@ -84,35 +92,34 @@ export const glass = {
 
 export const display = StyleSheet.create({
   hero: {
-    fontFamily: 'InterTight_800ExtraBold',
+    fontFamily: 'BricolageGrotesque_800ExtraBold',
     fontSize: 40,
     lineHeight: 42,
-    letterSpacing: -1.4,
+    letterSpacing: -1.2,
   },
-  heroCaps: {
-    fontFamily: 'InterTight_800ExtraBold',
+  largeTitle: {
+    fontFamily: 'BricolageGrotesque_800ExtraBold',
     fontSize: 32,
-    lineHeight: 34,
-    letterSpacing: -1.1,
-    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -0.9,
   },
-  section: {
-    fontFamily: 'InterTight_700Bold',
-    fontSize: 26,
-    lineHeight: 30,
-    letterSpacing: -0.8,
+  title1: {
+    fontFamily: 'BricolageGrotesque_800ExtraBold',
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.7,
+  },
+  title2: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 22,
+    lineHeight: 26,
+    letterSpacing: -0.5,
   },
   stat: {
-    fontFamily: 'InterTight_700Bold',
-    fontSize: 34,
-    lineHeight: 38,
-    letterSpacing: -1.0,
-  },
-  eyebrow: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 26,
+    lineHeight: 30,
+    letterSpacing: -0.6,
+    fontVariant: ['tabular-nums'],
   },
 });

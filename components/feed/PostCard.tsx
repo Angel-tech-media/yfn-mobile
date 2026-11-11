@@ -16,7 +16,6 @@ import { router } from 'expo-router';
 
 import { Badge } from '@/components/kit/Chip';
 import { Card } from '@/components/kit/Card';
-import { PriceTag } from '@/components/kit/Fields';
 import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -56,7 +55,7 @@ function initialsFor(name: string) {
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())
-      .join('') || 'Y'
+      .join('') || 'A'
   );
 }
 
@@ -66,13 +65,6 @@ function compact(value: number) {
   return String(value);
 }
 
-/**
- * Editorial Apple-grade social commerce feed card:
- * - Warm smoked-stone glass container with a 1px warm-bone specular rim.
- * - Clean author header with subtle typography hierarchy.
- * - Inset squircle media frame (10pt inset) so the glass card frames the photography evenly.
- * - Quiet action bar and a refined, minimalist nude-accent Shop bar.
- */
 export function PostCard({ post }: { post: PostItem }) {
   const ui = useUi();
   const toast = useToast();
@@ -206,7 +198,7 @@ export function PostCard({ post }: { post: PostItem }) {
         />
         <Action
           icon="repeat"
-          color={reposted ? ui.lime : ui.label}
+          color={reposted ? ui.accent : ui.label}
           count={repostCount}
           label="Repost"
           onPress={() => setRepostOpen(true)}
@@ -230,12 +222,12 @@ export function PostCard({ post }: { post: PostItem }) {
           style={styles.caption}>
           <Text style={[type.subhead, styles.captionText, { color: ui.label }]} numberOfLines={3}>
             <Text style={styles.captionAuthor}>{post.author}  </Text>
-            <Text style={{ color: 'rgba(245, 242, 236, 0.88)' }}>{post.caption}</Text>
+            <Text style={{ color: ui.label, opacity: 0.9 }}>{post.caption}</Text>
           </Text>
         </PressableScale>
       ) : null}
 
-      {/* Lovable-inspired Inset Product Commerce Card */}
+      {/* Lovable Inset Product Commerce Card */}
       {shoppable ? (
         <PressableScale
           accessibilityRole="button"
@@ -249,10 +241,24 @@ export function PostCard({ post }: { post: PostItem }) {
               router.push(`/place/${post.authorHandle}` as never);
             }
           }}
-          style={[styles.shop, { backgroundColor: 'rgba(24, 24, 30, 0.72)', borderColor: ui.separator }]}>
-          <View style={[styles.shopIconBox, { backgroundColor: ui.cardRaised, borderColor: ui.separator }]}>
-            <Ionicons name="bag-handle" size={17} color={ui.lime} />
-          </View>
+          style={[
+            styles.shop,
+            {
+              backgroundColor: ui.cardRaised,
+              borderColor: ui.separator,
+            },
+          ]}>
+          {post.imageUrls[0] ? (
+            <Image
+              source={{ uri: post.imageUrls[0] }}
+              style={[styles.shopThumb, { borderColor: ui.separator }]}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.shopIconBox, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+              <Ionicons name="bag-handle" size={17} color={ui.accent} />
+            </View>
+          )}
           <View style={styles.shopText}>
             <Text style={[type.subhead, styles.shopTitle, { color: ui.label }]} numberOfLines={1}>
               {post.product}
@@ -262,7 +268,7 @@ export function PostCard({ post }: { post: PostItem }) {
             </Text>
           </View>
           <View style={[styles.shopCtaRound, { backgroundColor: ui.lime }]}>
-            <Ionicons name="arrow-forward" size={15} color={ui.limeForeground} />
+            <Ionicons name="bag-handle-outline" size={16} color={ui.limeForeground} />
           </View>
         </PressableScale>
       ) : null}
@@ -474,7 +480,7 @@ const styles = StyleSheet.create({
   authorTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
   authorText: { flexShrink: 1, gap: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  name: { fontFamily: 'Inter_600SemiBold', letterSpacing: -0.3, flexShrink: 1 },
+  name: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.3, flexShrink: 1 },
   moreBtn: {
     width: 32,
     height: 32,
@@ -511,58 +517,49 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionCount: { fontFamily: 'Inter_500Medium', fontVariant: ['tabular-nums'] },
+  actionCount: { fontFamily: 'InstrumentSans_600SemiBold', fontVariant: ['tabular-nums'] },
   caption: { paddingHorizontal: 14, paddingBottom: 12 },
   captionText: { lineHeight: 20 },
-  captionAuthor: { fontFamily: 'Inter_600SemiBold', letterSpacing: -0.2 },
+  captionAuthor: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.2 },
   shop: {
-    marginHorizontal: 10,
-    marginBottom: 10,
+    marginHorizontal: 12,
+    marginBottom: 12,
     padding: 10,
-    paddingLeft: 10,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     ...continuous,
   },
+  shopThumb: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   shopIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 46,
+    height: 46,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
     ...continuous,
   },
-  shopText: { flex: 1, gap: 1 },
-  shopTitle: { fontFamily: 'Inter_500Medium', letterSpacing: -0.2 },
+  shopText: { flex: 1, gap: 2 },
+  shopTitle: { fontFamily: 'InstrumentSans_600SemiBold', letterSpacing: -0.2 },
   shopPriceText: {
-    fontFamily: 'InterTight_700Bold',
-    fontSize: 14,
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 15,
     letterSpacing: -0.3,
   },
   shopCtaRound: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  shopCta: {
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: corner.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    ...continuous,
-  },
-  shopCtaText: {
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: -0.2,
   },
   sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 20 },
 });

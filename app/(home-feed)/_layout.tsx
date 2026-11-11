@@ -26,6 +26,7 @@ export default function HomeFeedLayout() {
           <Stack.Screen name="reels" />
           <Stack.Screen name="reel" />
           <Stack.Screen name="product/[id]" />
+          <Stack.Screen name="news/[id]" />
           <Stack.Screen name="orders/index" />
           <Stack.Screen name="orders/[id]" />
           <Stack.Screen name="orders/[id]/track" />

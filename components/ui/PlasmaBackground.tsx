@@ -79,22 +79,18 @@ const Orb = memo(function Orb({ spec, width, height, still }: { spec: OrbSpec; w
 });
 
 /**
- * Warm African Sunset Plasma over deep OLED Carbon (#08080C):
- * - Top-left: Sunset Terracotta (#E85D3F)
- * - Mid-right: Deep Hibiscus Wine (#9F1239)
- * - Top-right: Burnished Amber Gold (#F59E0B)
- * - Bottom-left: Warm Copper (#C94124)
+ * Lovable "Lagos Night" & "Lagos Paper" ambient radial stage glows:
+ * Matches `@utility app-stage` in `yfnisaktive/src/styles.css`
+ * (top-left electric lime #C8FF3B at 15% 20%, bottom-right coral #F06543 at 85% 80%).
  */
 const DARK_ORBS: OrbSpec[] = [
-  { color: '#E85D3F', size: 1.25, x: 0.08, y: 0.14, dx: 0.11, dy: 0.07, period: 15, opacity: 0.26 },
-  { color: '#9F1239', size: 1.15, x: 0.92, y: 0.44, dx: 0.09, dy: 0.1, period: 18, opacity: 0.22 },
-  { color: '#F59E0B', size: 0.85, x: 0.86, y: 0.06, dx: 0.08, dy: 0.05, period: 21, opacity: 0.16 },
-  { color: '#C94124', size: 1.1, x: 0.16, y: 0.88, dx: 0.12, dy: 0.07, period: 17, opacity: 0.20 },
+  { color: '#C8FF3B', size: 1.15, x: 0.15, y: 0.18, dx: 0.08, dy: 0.05, period: 20, opacity: 0.08 },
+  { color: '#F26E4B', size: 1.05, x: 0.85, y: 0.80, dx: 0.08, dy: 0.06, period: 22, opacity: 0.08 },
 ];
 
 const LIGHT_ORBS: OrbSpec[] = [
-  { color: '#C8FF3B', size: 1.1, x: 0.15, y: 0.20, dx: 0.08, dy: 0.05, period: 20, opacity: 0.12 },
-  { color: '#F06543', size: 1.0, x: 0.85, y: 0.80, dx: 0.08, dy: 0.06, period: 22, opacity: 0.10 },
+  { color: '#C8FF3B', size: 1.1, x: 0.15, y: 0.20, dx: 0.08, dy: 0.05, period: 20, opacity: 0.10 },
+  { color: '#F06543', size: 1.0, x: 0.85, y: 0.80, dx: 0.08, dy: 0.06, period: 22, opacity: 0.08 },
 ];
 
 export function PlasmaBackground() {

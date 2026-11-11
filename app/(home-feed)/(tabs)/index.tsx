@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,35 +8,72 @@ import { router } from 'expo-router';
 import { Badge, Chip } from '@/components/kit/Chip';
 import { NavIconButton } from '@/components/kit/Fields';
 import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
-import { BrandLogo } from '@/components/ui/BrandLogo';
-import { ProductCard } from '@/components/product/ProductCard';
 import { PostCard, type PostItem } from '@/components/feed/PostCard';
+import { ProductCard } from '@/components/product/ProductCard';
 import { Avatar } from '@/components/ui/Avatar';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMe } from '@/src/api/account/hooks';
 import { useConversations } from '@/src/api/chat/hooks';
 import { useFeed, useFeedReels, useStoriesInbox } from '@/src/api/feed/hooks';
 import { useMarketplaceHome } from '@/src/api/marketplace/hooks';
+import { useNewsFeed } from '@/src/api/news/hooks';
+import { CURATED_NEWS } from '@/src/data/curated-news';
 import { useCartCount } from '@/src/store/cart';
+import { getDynamicHomeTabs, useHomeTabs, type HomeTab } from '@/src/store/home-tabs';
 import { plasma } from '@/src/theme/plasma';
 import { continuous, corner, layout, solidBackground, type, useUi } from '@/src/theme/ui';
 import { formatKobo } from '@/src/utils/money';
 
-import type { Post, Story } from '@/src/api/types';
+import type { Article, Post, Story } from '@/src/api/types';
 
 export default function HomeFeedScreen() {
   const ui = useUi();
   const { data, isError, isFetching, refetch } = useFeed({ limit: 30 });
   const { data: storiesData = [], refetch: refetchStories } = useStoriesInbox();
   const { data: reels = [], refetch: refetchReels } = useFeedReels({ limit: 10 });
+  const { data: marketData, refetch: refetchMarket } = useMarketplaceHome({ limit: 12 });
+  const { data: newsData, refetch: refetchNews } = useNewsFeed({ limit: 12 });
   const { data: me } = useMe();
   const { data: threads = [] } = useConversations();
   const cartCount = useCartCount();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'For you' | 'Following' | 'Shop drops'>('For you');
-  const { data: marketData } = useMarketplaceHome({ limit: 12 });
+
+  const activeTab = useHomeTabs((s) => s.activeTab);
+  const lastSeenAt = useHomeTabs((s) => s.lastSeenAt);
+  const latestUpdatedAt = useHomeTabs((s) => s.latestUpdatedAt);
+  const setActiveTab = useHomeTabs((s) => s.setActiveTab);
+  const reportStreamUpdate = useHomeTabs((s) => s.reportStreamUpdate);
+
+  const orderedTabs = useMemo(
+    () => getDynamicHomeTabs(lastSeenAt, latestUpdatedAt),
+    [lastSeenAt, latestUpdatedAt],
+  );
+
   const drops = marketData?.products ?? [];
+  const articles: Article[] = useMemo(() => {
+    const remote = newsData?.articles ?? [];
+    return remote.length > 0 ? remote : CURATED_NEWS;
+  }, [newsData?.articles]);
+
+  // Report stream freshness so dynamic tabs bubble closer to the left when updated
+  useEffect(() => {
+    if (articles.length > 0) {
+      const newestArticleMs = Math.max(
+        ...articles.map((a) => (a.publishedAt ? new Date(a.publishedAt).getTime() : 0)),
+      );
+      if (newestArticleMs > 0) {
+        reportStreamUpdate('News', newestArticleMs);
+      }
+    }
+  }, [articles, reportStreamUpdate]);
+
+  useEffect(() => {
+    if (drops.length > 0) {
+      reportStreamUpdate('Shop drops', Date.now() - 3 * 60_000);
+    }
+  }, [drops.length, reportStreamUpdate]);
 
   const unreadCount = threads.filter((t) => {
     const mine = t.participants?.find((p) => p.userId === me?.id);
@@ -47,9 +84,9 @@ export default function HomeFeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchStories(), refetchReels()]);
+    await Promise.all([refetch(), refetchStories(), refetchReels(), refetchMarket(), refetchNews()]);
     setRefreshing(false);
-  }, [refetch, refetchStories, refetchReels]);
+  }, [refetch, refetchStories, refetchReels, refetchMarket, refetchNews]);
 
   const posts = data?.items.map(toPostItem) ?? [];
   const authors = Array.from(
@@ -72,7 +109,8 @@ export default function HomeFeedScreen() {
         trailing={
           <>
             <NavIconButton icon="search-outline" label="Search" onPress={() => router.push('/search' as never)} />
-            <NavIconButton icon="notifications-outline" label="Notifications" badge={unreadCount} onPress={() => router.push('/notifications')} />
+            <NavIconButton icon="paper-plane-outline" label="Messages" badge={unreadCount} onPress={() => router.push('/inbox' as never)} />
+            <NavIconButton icon="notifications-outline" label="Notifications" onPress={() => router.push('/notifications')} />
             <NavIconButton icon="bag-outline" label="Cart" badge={cartCount} onPress={() => router.push('/cart' as never)} />
           </>
         }
@@ -84,11 +122,11 @@ export default function HomeFeedScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing || isFetching} onRefresh={onRefresh} tintColor={ui.accent} />
         }>
-        
-        {/* Lovable Filter Tabs */}
+        {/* Dynamic Filter Tabs (ordered by unseen updates & freshness / lastSeen) */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabChips}>
-          {(['For you', 'Following', 'Shop drops'] as const).map((t) => {
+          {orderedTabs.map((t: HomeTab) => {
             const isSelected = activeTab === t;
+            const hasUnseen = !isSelected && (latestUpdatedAt[t] ?? 0) > (lastSeenAt[t] ?? 0);
             return (
               <PressableScale
                 key={t}
@@ -98,108 +136,86 @@ export default function HomeFeedScreen() {
                 style={[
                   styles.tabChip,
                   isSelected
-                    ? { backgroundColor: ui.isDark ? '#FAFAFA' : '#162821' }
+                    ? { backgroundColor: ui.label }
                     : { backgroundColor: ui.card, borderColor: ui.separator, borderWidth: StyleSheet.hairlineWidth },
                 ]}>
                 <Text
                   style={[
                     type.caption,
                     styles.tabChipText,
-                    { color: isSelected ? (ui.isDark ? '#09090B' : '#F6F4EB') : ui.secondaryLabel },
+                    { color: isSelected ? ui.background : ui.secondaryLabel },
                   ]}>
                   {t}
                 </Text>
+                {hasUnseen ? (
+                  <View style={[styles.unseenDot, { backgroundColor: ui.coral }]} />
+                ) : null}
               </PressableScale>
             );
           })}
         </ScrollView>
 
-        {/* Stories */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stories}>
-          <StoryTile
-            name="Your story"
-            onPress={() => router.push('/create/story' as never)}
-            avatar={<Avatar size={60} source={myAvatar} initials={initials(myName)} />}
-            addable
-          />
-          {authors.map((a, idx) => (
-            <StoryTile
-              key={a?.id ? `story-${a.id}` : `story-${idx}`}
-              name={a?.name || 'User'}
-              onPress={() => router.push(`/story/${a?.id}` as never)}
-              avatar={
-                a?.avatarUrl ? (
-                  <Avatar size={60} source={{ uri: a.avatarUrl }} />
-                ) : (
-                  <Avatar size={60} initials={initials(a?.name || 'U')} />
-                )
-              }
-              ring
-            />
-          ))}
-        </ScrollView>
-
-        {/* Quick Post Prompt Card (Lovable) */}
-        <PressableScale
-          haptic="light"
-          scaleTo={0.985}
-          onPress={() => router.push('/create' as never)}
-          style={[styles.composerCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
-          <Avatar size={34} source={myAvatar} initials={initials(myName)} />
-          <Text style={[type.subhead, { color: ui.secondaryLabel, flex: 1 }]}>
-            What’s the gist today?
-          </Text>
-          <View style={[styles.composerPostPill, { backgroundColor: ui.lime }]}>
-            <Text style={[styles.composerPostText, { color: ui.limeForeground }]}>Post</Text>
-          </View>
-        </PressableScale>
-
-        {/* Reels */}
-        {reels.length ? (
-          <View style={styles.section}>
-            <SectionHeader
-              title="Watch & shop"
-              action={
-                <PressableScale haptic="light" onPress={() => router.push('/reels' as never)}>
-                  <Text style={[type.subhead, { color: ui.accent }]}>See all</Text>
-                </PressableScale>
-              }
-            />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
-              {reels.map((reel, idx) => (
+        {activeTab === 'News' ? (
+          /* Lovable News Tab: Editorial cards, first card in deep Forest Ink with Lime tag */
+          <View style={styles.newsSection}>
+            {articles.map((article, idx) => {
+              const isHero = idx === 0;
+              return (
                 <PressableScale
-                  key={reel.id ? `reel-${reel.id}` : `reel-${idx}`}
+                  key={article.id ? `news-${article.id}` : `news-${idx}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`Reel by ${reel.author.name}`}
+                  accessibilityLabel={article.title}
                   haptic="light"
-                  scaleTo={0.97}
-                  onPress={() => router.push(`/reel?id=${reel.id}` as never)}
-                  style={[styles.reel, { backgroundColor: ui.card, borderColor: ui.separator }]}>
-                  {reel.coverUrl ? (
-                    <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-                  ) : null}
-                  <LinearGradient colors={['transparent', 'rgba(5,7,15,0.78)']} style={StyleSheet.absoluteFill} />
-                  {reel.product ? (
-                    <View style={styles.reelBadge}>
-                      <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
+                  scaleTo={0.985}
+                  onPress={() => router.push(`/news/${article.id}` as never)}
+                  style={[
+                    styles.newsCard,
+                    isHero
+                      ? { backgroundColor: ui.ink, borderColor: 'rgba(200, 255, 59, 0.22)' }
+                      : { backgroundColor: ui.card, borderColor: ui.separator },
+                  ]}>
+                  {article.coverUrl ? (
+                    <View style={[styles.newsImageWrap, { height: isHero ? 208 : 148 }]}>
+                      <Image
+                        source={{ uri: article.coverUrl }}
+                        style={StyleSheet.absoluteFill}
+                        contentFit="cover"
+                        transition={180}
+                      />
                     </View>
                   ) : null}
-                  <View style={styles.reelMeta}>
-                    <Text style={[type.subhead, { color: '#FFF', fontFamily: 'Inter_600SemiBold' }]} numberOfLines={1}>
-                      {reel.author.name}
+                  <View style={styles.newsBody}>
+                    <Text
+                      style={[
+                        styles.newsMeta,
+                        { color: isHero ? ui.lime : ui.accent },
+                      ]}>
+                      {article.category} · {article.readMin || 4} min read
                     </Text>
-                    <Text style={[type.footnote, { color: 'rgba(255,255,255,0.78)' }]} numberOfLines={1}>
-                      {reel.caption}
+                    <Text
+                      style={[
+                        type.title3,
+                        styles.newsTitle,
+                        { color: isHero ? ui.inkForeground : ui.label },
+                      ]}>
+                      {article.title}
                     </Text>
+                    {article.excerpt ? (
+                      <Text
+                        style={[
+                          type.subhead,
+                          { color: isHero ? ui.inkMuted : ui.secondaryLabel },
+                        ]}
+                        numberOfLines={3}>
+                        {article.excerpt}
+                      </Text>
+                    ) : null}
                   </View>
                 </PressableScale>
-              ))}
-            </ScrollView>
+              );
+            })}
           </View>
-        ) : null}
-
-        {/* Feed Content based on active tab */}
-        {activeTab === 'Shop drops' ? (
+        ) : activeTab === 'Shop drops' ? (
           <View style={styles.dropsSection}>
             <View style={styles.dropsGrid}>
               {drops.map((product, idx) => (
@@ -213,66 +229,153 @@ export default function HomeFeedScreen() {
             </View>
           </View>
         ) : (
-          <View style={styles.posts}>
-            {isError ? (
-              <View style={styles.empty}>
-                <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
-                <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn’t load your feed.</Text>
-                <Chip label="Try again" selected onPress={() => refetch()} />
-              </View>
-            ) : null}
-            {!isError && !posts.length ? (
-              <View style={styles.empty}>
-                <Ionicons name="bag-handle-outline" size={32} color={ui.secondaryLabel} />
-                <Text style={[type.callout, { color: ui.secondaryLabel }]}>Nothing here yet. Follow vendors to fill your feed.</Text>
-              </View>
-            ) : null}
+          <>
+            {/* Stories */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stories}>
+              <StoryTile
+                name="Your story"
+                onPress={() => router.push('/create/story' as never)}
+                avatar={<Avatar size={60} source={myAvatar} initials={initials(myName)} />}
+                addable
+              />
+              {authors.map((a, idx) => (
+                <StoryTile
+                  key={a?.id ? `story-${a.id}` : `story-${idx}`}
+                  name={a?.name || 'User'}
+                  onPress={() => router.push(`/story/${a?.id}` as never)}
+                  avatar={
+                    a?.avatarUrl ? (
+                      <Avatar size={60} source={{ uri: a.avatarUrl }} />
+                    ) : (
+                      <Avatar size={60} initials={initials(a?.name || 'U')} />
+                    )
+                  }
+                  ring
+                />
+              ))}
+            </ScrollView>
 
-            {/* First 2 posts */}
-            {posts.slice(0, 2).map((post, idx) => (
-              <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
-            ))}
+            {/* Quick Post Prompt Card (Lovable) */}
+            <PressableScale
+              haptic="light"
+              scaleTo={0.985}
+              onPress={() => router.push('/create/post' as never)}
+              style={[styles.composerCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+              <Avatar size={34} source={myAvatar} initials={initials(myName)} />
+              <Text style={[type.subhead, { color: ui.secondaryLabel, flex: 1 }]}>
+                What’s the gist today?
+              </Text>
+              <View style={[styles.composerPostPill, { backgroundColor: ui.lime }]}>
+                <Text style={[styles.composerPostText, { color: ui.limeForeground }]}>Post</Text>
+              </View>
+            </PressableScale>
 
-            {/* Inset Picked For You Carousel (Lovable) */}
-            {activeTab === 'For you' && drops.length > 0 ? (
-              <View style={styles.pickedSection}>
-                <View style={styles.pickedHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="sparkles" size={16} color={ui.coral} />
-                    <Text style={[type.title3, { color: ui.label, fontFamily: 'InterTight_700Bold' }]}>
-                      Picked for you
-                    </Text>
-                  </View>
-                  <PressableScale haptic="light" onPress={() => router.push('/market' as never)}>
-                    <Text style={[type.subhead, { color: ui.accent, fontFamily: 'Inter_600SemiBold' }]}>
-                      Shop all
-                    </Text>
-                  </PressableScale>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickedScroll}>
-                  {drops.slice(0, 6).map((product, idx) => (
-                    <ProductCard
-                      key={product.id ? `picked-${product.id}` : `picked-${idx}`}
-                      product={product}
-                      style={styles.pickedItem}
-                      onPress={() => router.push(`/product/${product.id}` as never)}
-                    />
+            {/* Reels */}
+            {reels.length ? (
+              <View style={styles.section}>
+                <SectionHeader
+                  title="Watch & shop"
+                  action={
+                    <PressableScale haptic="light" onPress={() => router.push('/reels' as never)}>
+                      <Text style={[type.subhead, { color: ui.accent }]}>See all</Text>
+                    </PressableScale>
+                  }
+                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
+                  {reels.map((reel, idx) => (
+                    <PressableScale
+                      key={reel.id ? `reel-${reel.id}` : `reel-${idx}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Reel by ${reel.author.name}`}
+                      haptic="light"
+                      scaleTo={0.97}
+                      onPress={() => router.push(`/reel?id=${reel.id}` as never)}
+                      style={[styles.reel, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+                      {reel.coverUrl ? (
+                        <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+                      ) : null}
+                      <LinearGradient colors={['transparent', 'rgba(5,7,15,0.78)']} style={StyleSheet.absoluteFill} />
+                      {reel.product ? (
+                        <View style={styles.reelBadge}>
+                          <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
+                        </View>
+                      ) : null}
+                      <View style={styles.reelMeta}>
+                        <Text style={[type.subhead, { color: '#FFF', fontFamily: 'InstrumentSans_600SemiBold' }]} numberOfLines={1}>
+                          {reel.author.name}
+                        </Text>
+                        <Text style={[type.footnote, { color: 'rgba(255,255,255,0.78)' }]} numberOfLines={1}>
+                          {reel.caption}
+                        </Text>
+                      </View>
+                    </PressableScale>
                   ))}
                 </ScrollView>
               </View>
             ) : null}
 
-            {/* Remaining posts */}
-            {posts.slice(2).map((post, idx) => (
-              <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
-            ))}
+            {/* Posts */}
+            <View style={styles.posts}>
+              {isError ? (
+                <View style={styles.empty}>
+                  <Ionicons name="cloud-offline-outline" size={32} color={ui.secondaryLabel} />
+                  <Text style={[type.callout, { color: ui.secondaryLabel }]}>Couldn’t load your feed.</Text>
+                  <Chip label="Try again" selected onPress={() => refetch()} />
+                </View>
+              ) : null}
+              {!isError && !posts.length ? (
+                <View style={styles.empty}>
+                  <Ionicons name="bag-handle-outline" size={32} color={ui.secondaryLabel} />
+                  <Text style={[type.callout, { color: ui.secondaryLabel }]}>Nothing here yet. Follow vendors to fill your feed.</Text>
+                </View>
+              ) : null}
 
-            {posts.length > 0 ? (
-              <Text style={[type.footnote, styles.caughtUp, { color: ui.tertiaryLabel }]}>
-                You’re all caught up ✨
-              </Text>
-            ) : null}
-          </View>
+              {/* First 2 posts */}
+              {posts.slice(0, 2).map((post, idx) => (
+                <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
+              ))}
+
+              {/* Inset Picked For You Carousel (Lovable) */}
+              {activeTab === 'For you' && drops.length > 0 ? (
+                <View style={[styles.pickedSection, { borderColor: ui.separator }]}>
+                  <View style={styles.pickedHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="sparkles" size={16} color={ui.coral} />
+                      <Text style={[type.title3, { color: ui.label }]}>
+                        Picked for you
+                      </Text>
+                    </View>
+                    <PressableScale haptic="light" onPress={() => router.push('/market' as never)}>
+                      <Text style={[type.subhead, { color: ui.accent, fontFamily: 'InstrumentSans_600SemiBold' }]}>
+                        Shop all
+                      </Text>
+                    </PressableScale>
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pickedScroll}>
+                    {drops.slice(0, 6).map((product, idx) => (
+                      <ProductCard
+                        key={product.id ? `picked-${product.id}` : `picked-${idx}`}
+                        product={product}
+                        style={styles.pickedItem}
+                        onPress={() => router.push(`/product/${product.id}` as never)}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+
+              {/* Remaining posts */}
+              {posts.slice(2).map((post, idx) => (
+                <PostCard key={post.id ? `post-${post.id}` : `post-${idx}`} post={post} />
+              ))}
+
+              {posts.length > 0 ? (
+                <Text style={[type.footnote, styles.caughtUp, { color: ui.tertiaryLabel }]}>
+                  You’re all caught up ✨
+                </Text>
+              ) : null}
+            </View>
+          </>
         )}
       </ScrollView>
     </EspressoBackground>
@@ -351,24 +454,34 @@ function initials(name: string) {
       .filter(Boolean)
       .slice(0, 2)
       .map((p) => p.charAt(0).toUpperCase())
-      .join('') || 'Y'
+      .join('') || 'A'
   );
 }
 
 const styles = StyleSheet.create({
-  tabChips: { paddingHorizontal: layout.gutter, gap: 8, paddingBottom: 6 },
+  scroll: { paddingBottom: 120, gap: layout.sectionGap },
+  tabChips: { paddingHorizontal: layout.gutter, gap: 8, paddingBottom: 4 },
   tabChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingVertical: 8,
+    borderRadius: 999,
   },
   tabChipText: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 13,
+  },
+  unseenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   composerCard: {
     marginHorizontal: layout.gutter,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
@@ -379,19 +492,48 @@ const styles = StyleSheet.create({
   composerPostPill: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 14,
+    borderRadius: 999,
   },
   composerPostText: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'InstrumentSans_700Bold',
     fontSize: 12,
     letterSpacing: -0.1,
   },
+  newsSection: {
+    paddingHorizontal: layout.gutter,
+    gap: 16,
+    paddingBottom: 28,
+  },
+  newsCard: {
+    borderRadius: corner.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    ...continuous,
+  },
+  newsImageWrap: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  newsBody: {
+    padding: 16,
+    gap: 6,
+  },
+  newsMeta: {
+    fontFamily: 'InstrumentSans_700Bold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  newsTitle: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 19,
+    lineHeight: 24,
+  },
   pickedSection: {
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   pickedHeader: {
     flexDirection: 'row',
@@ -413,7 +555,7 @@ const styles = StyleSheet.create({
   dropsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 14,
   },
   gridItem: {
     width: '47.5%',
@@ -423,15 +565,14 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     letterSpacing: -0.1,
   },
-  scroll: { paddingBottom: 120, gap: layout.sectionGap },
   stories: { paddingHorizontal: layout.gutter, gap: 14 },
   story: { width: 72, alignItems: 'center', gap: 6 },
   storyRingWrapper: {
-    shadowColor: '#C94124',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowColor: '#162821',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   storyRingGradient: {
     width: 70,
@@ -481,6 +622,6 @@ const styles = StyleSheet.create({
   },
   reelBadge: { position: 'absolute', top: 10, left: 10 },
   reelMeta: { padding: 12, gap: 2 },
-  posts: { paddingHorizontal: layout.gutter, gap: 20 },
-  empty: { alignItems: 'center', gap: 12, padding: 32 },
+  posts: { paddingHorizontal: layout.gutter, gap: 16 },
+  empty: { alignItems: 'center', gap: 12, paddingVertical: 48 },
 });

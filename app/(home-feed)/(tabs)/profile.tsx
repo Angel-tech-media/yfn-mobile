@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -9,44 +8,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
-import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ProfileTabContent } from '@/components/ui/ProfileTabContent';
+import { VerifiedCheck } from '@/components/ui/VerifiedCheck';
 import { useMe } from '@/src/api/account/hooks';
 import { useMyRepostedPosts } from '@/src/api/feed/hooks';
 import { useMyReposts } from '@/src/api/reposts/hooks';
-import { useVendor, useVendorProducts, useVendorReviews, useUserPosts } from '@/src/api/vendors/hooks';
+import { useUserPosts, useVendor, useVendorProducts } from '@/src/api/vendors/hooks';
 import { useCartCount } from '@/src/store/cart';
+import { useTheme } from '@/src/store/theme';
 import { useWishlistCount } from '@/src/store/wishlist';
-import { glass, plasma, palette, radius, spacing, typography } from '@/src/theme';
-
-import { formatKobo } from '@/src/utils/money';
-
-import type { Post, RankedProduct, Repost } from '@/src/api/types';
+import { continuous, corner, layout, type, useUi } from '@/src/theme/ui';
 
 export default function ProfileTabScreen() {
+  const ui = useUi();
   const { data: me, isLoading } = useMe();
   const hasStore = Boolean(me?.hasStore || me?.role === 'vendor');
-  const title = hasStore ? 'My Store' : `@${me?.handle || me?.username || 'profile'}`;
 
   return (
     <EspressoBackground variant="espresso">
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
-          <View style={styles.headerRight}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => router.push('/settings')}
-              style={styles.iconBtn}
-              accessibilityLabel="Settings">
-              <Ionicons name={hasStore ? 'settings-outline' : 'menu'} size={20} color="#FFFFFF" />
-            </Pressable>
-          </View>
-        </View>
-
         {isLoading ? (
           <View style={styles.center}>
-            <Text style={styles.stateText}>Loading profile...</Text>
+            <ActivityIndicator color={ui.accent} />
+            <Text style={[type.subhead, { color: ui.secondaryLabel, marginTop: 8 }]}>Loading profile...</Text>
           </View>
         ) : hasStore ? (
           <VendorView handle={me?.handle || me?.username} />
@@ -59,6 +44,9 @@ export default function ProfileTabScreen() {
 }
 
 function BuyerView() {
+  const ui = useUi();
+  const themeMode = useTheme((s) => s.mode);
+  const setThemeMode = useTheme((s) => s.setMode);
   const { data: me } = useMe();
   const { data: reposts = [] } = useMyReposts();
   const { data: repostedPostsData } = useMyRepostedPosts();
@@ -67,70 +55,126 @@ function BuyerView() {
   const wishlistCount = useWishlistCount();
   const displayName = me?.name || me?.displayName || me?.username || 'Profile';
   const handle = me?.handle || me?.username || 'profile';
-  
+
   const { data: userPostsData } = useUserPosts(me?.username);
   const userPosts = userPostsData?.items ?? [];
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vendorScroll}>
-      <View style={styles.buyerPadded}>
-        <View style={styles.profileTop}>
-          <Avatar
-            size={86}
-            source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
-            initials={initialsFor(displayName)}
-          />
-          <View style={styles.statsRow}>
-            <StatColumn value={String(reposts.length)} label="Reposts" />
-            <StatColumn value={String(cartCount)} label="Cart" />
-            <StatColumn value={String(wishlistCount)} label="Wishlist" />
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      {/* Deep Forest Ink Cover Banner */}
+      <View style={styles.bannerWrap}>
+        <LinearGradient
+          colors={ui.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.banner}
+        />
+        <View style={styles.bannerTopActions}>
+          <PressableScale
+            haptic="light"
+            onPress={() => router.push('/settings' as never)}
+            style={styles.bannerActionCircle}
+            accessibilityLabel="Settings">
+            <Ionicons name="settings-outline" size={18} color="#F4F2E8" />
+          </PressableScale>
+        </View>
+      </View>
+
+      <View style={styles.paddedBody}>
+        {/* Overlapping Avatar + Edit Profile Row */}
+        <View style={styles.avatarOverlapRow}>
+          <View style={[styles.avatarRing, { backgroundColor: ui.background, borderColor: ui.background }]}>
+            <Avatar
+              size={84}
+              source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
+              initials={initialsFor(displayName)}
+            />
           </View>
+          <PressableScale
+            haptic="light"
+            onPress={() => router.push('/account/edit' as never)}
+            style={[styles.editPill, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+            <Text style={[styles.editPillText, { color: ui.label }]}>Edit profile</Text>
+          </PressableScale>
         </View>
 
+        {/* Identity */}
         <View style={styles.identity}>
           <View style={styles.nameRow}>
-            <Text style={styles.displayName}>{displayName}</Text>
-            {me?.kycVerified ? (
-              <View style={styles.kycBadge}>
-                <Ionicons name="shield-checkmark" size={10} color="#fff" />
-                <Text style={styles.kycBadgeText}>Aktive Verified</Text>
-              </View>
-            ) : null}
+            <Text style={[styles.displayName, { color: ui.label }]}>{displayName}</Text>
+            {me?.kycVerified ? <Ionicons name="checkmark-circle" size={18} color={ui.accent} /> : null}
           </View>
-          {me?.bio ? <Text style={styles.bio}>{me.bio}</Text> : null}
-          <Text style={styles.bioLink}>aktive.app/u/{handle}</Text>
+          <Text style={[type.footnote, { color: ui.secondaryLabel }]}>@{handle}</Text>
+          {me?.bio ? (
+            <Text style={[type.subhead, { color: ui.label, marginTop: 6, lineHeight: 20 }]}>{me.bio}</Text>
+          ) : null}
         </View>
 
-        <View style={styles.buttonRow}>
-          <Pressable onPress={() => router.push('/account/edit')} style={styles.button}>
-            <Text style={styles.buttonLabel}>Edit profile</Text>
-          </Pressable>
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonLabel}>Share profile</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/vendor-verify' as never)}
-            accessibilityLabel="Become a vendor"
-            style={styles.iconButton}>
-            <Ionicons name="storefront-outline" size={16} color={palette.brand.orange} />
-          </Pressable>
+        {/* Stats 3-Column Card */}
+        <View style={[styles.statsCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <StatColumn value={String(userPosts.length)} label="Posts" />
+          <View style={[styles.statDivider, { backgroundColor: ui.separator }]} />
+          <StatColumn value={String(reposts.length)} label="Reposts" />
+          <View style={[styles.statDivider, { backgroundColor: ui.separator }]} />
+          <StatColumn value={String(wishlistCount)} label="Wishlist" onPress={() => router.push('/wishlist' as never)} />
         </View>
 
-        <View style={styles.quickRow}>
-          <QuickAction icon="cube-outline" label="Orders" onPress={() => router.push('/orders')} />
-          <QuickAction
-            icon="bag-outline"
-            label="Cart"
-            badge={cartCount ? String(cartCount) : undefined}
-            onPress={() => router.push('/cart')}
+        {/* Lovable Electric Lime Store CTA Banner */}
+        <PressableScale
+          haptic="medium"
+          scaleTo={0.985}
+          onPress={() => router.push('/vendor-verify' as never)}
+          style={[styles.limeCtaCard, { backgroundColor: ui.lime }]}>
+          <View style={[styles.limeCtaIcon, { backgroundColor: ui.ink }]}>
+            <Ionicons name="storefront-outline" size={20} color={ui.lime} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.limeCtaTitle, { color: ui.limeForeground }]}>
+              Turn your hustle into a store
+            </Text>
+            <Text style={[styles.limeCtaSub, { color: ui.limeForeground }]}>
+              Get verified, list products & receive escrow payouts
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={ui.limeForeground} />
+        </PressableScale>
+
+        {/* Lovable Menu Card with Night Mode Toggle */}
+        <View style={[styles.menuCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <MenuRow
+            icon="bag-handle-outline"
+            label="My orders"
+            badge={cartCount ? `${cartCount} in cart` : undefined}
+            onPress={() => router.push('/orders' as never)}
           />
-          <QuickAction
+          <MenuRow
             icon="heart-outline"
-            label="Wishlist"
+            label="Saved & wishlist"
             badge={wishlistCount ? String(wishlistCount) : undefined}
-            onPress={() => router.push('/wishlist')}
+            onPress={() => router.push('/wishlist' as never)}
           />
-          <QuickAction icon="wallet-outline" label="Wallet" onPress={() => router.push('/(home-feed)/(tabs)/wallet' as never)} />
+          <MenuRow
+            icon="wallet-outline"
+            label="Wallet & escrow"
+            onPress={() => router.push('/(home-feed)/(tabs)/wallet' as never)}
+          />
+          <View style={[styles.menuItem, { borderBottomWidth: 0 }]}>
+            <View style={[styles.menuIconWrap, { backgroundColor: ui.secondary }]}>
+              <Ionicons name={ui.isDark ? 'moon' : 'moon-outline'} size={17} color={ui.label} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuLabel, { color: ui.label }]}>Lagos Night mode</Text>
+              <Text style={[type.caption2, { color: ui.secondaryLabel }]}>
+                {ui.isDark ? 'Dark mode active' : 'Warm Lagos Paper light mode'}
+              </Text>
+            </View>
+            <Switch
+              value={ui.isDark}
+              onValueChange={(val) => setThemeMode(val ? 'dark' : 'light')}
+              trackColor={{ false: ui.separator, true: ui.accent }}
+              thumbColor={ui.isDark ? ui.limeForeground : '#FFFFFF'}
+            />
+          </View>
         </View>
       </View>
 
@@ -147,10 +191,11 @@ function BuyerView() {
 }
 
 function VendorView({ handle }: { handle?: string }) {
+  const ui = useUi();
+  const setThemeMode = useTheme((s) => s.setMode);
   const { data: me } = useMe();
   const { data: vendor } = useVendor(handle);
   const { data: products = [] } = useVendorProducts(handle);
-  const { data: reviews = [] } = useVendorReviews(handle);
   const { data: userPostsData } = useUserPosts(handle || me?.username);
   const { data: reposts = [] } = useMyReposts();
   const { data: repostedPostsData } = useMyRepostedPosts();
@@ -161,65 +206,100 @@ function VendorView({ handle }: { handle?: string }) {
   const bannerUrl = vendor?.photos?.[0];
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.vendorScroll}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
       <View style={styles.bannerWrap}>
         {bannerUrl ? (
           <Image source={{ uri: bannerUrl }} style={styles.banner} contentFit="cover" />
         ) : (
-          <LinearGradient colors={[plasma.blue, plasma.violet, plasma.baseDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.banner} />
-        )}
-        <LinearGradient colors={['transparent', 'rgba(5,7,15,0.92)']} style={[StyleSheet.absoluteFill, { top: '50%' }]} />
-        <View style={styles.bannerActions}>
-          <Pressable onPress={() => router.push('/vendor-store-setup/store-details' as never)} style={styles.bannerEditBtn} hitSlop={8}>
-            <Ionicons name="camera" size={14} color="#FFFFFF" />
-            <Text style={styles.bannerEditLabel}>Edit cover</Text>
-          </Pressable>
-        </View>
-        <View style={styles.avatarRing}>
-          <Avatar
-            size={88}
-            source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
-            initials={initialsFor(avatarName)}
+          <LinearGradient
+            colors={ui.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.banner}
           />
+        )}
+        <View style={styles.bannerTopActions}>
+          <PressableScale
+            haptic="light"
+            onPress={() => router.push('/vendor-store-setup/store-details' as never)}
+            style={styles.bannerEditBtn}>
+            <Ionicons name="camera" size={14} color="#F4F2E8" />
+            <Text style={styles.bannerEditLabel}>Edit cover</Text>
+          </PressableScale>
+          <PressableScale
+            haptic="light"
+            onPress={() => router.push('/settings' as never)}
+            style={styles.bannerActionCircle}
+            accessibilityLabel="Settings">
+            <Ionicons name="settings-outline" size={18} color="#F4F2E8" />
+          </PressableScale>
         </View>
       </View>
 
-      <View style={styles.storeIdBlock}>
-        <View style={styles.storeNameRow}>
-          <Text style={styles.storeName}>{name}</Text>
-          {vendor?.verified ? <VerifiedCheck tone="success" size={16} /> : null}
-        </View>
-        <Text style={styles.storeHandle}>@{handle || me?.username || 'store'}</Text>
-        {vendor ? (
-          <View style={styles.starRow}>
-            <Ionicons name="star" size={14} color={palette.brand.amber} />
-            <Text style={styles.rating}>{vendor.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewsCount}>({vendor.reviews} Reviews)</Text>
+      <View style={styles.paddedBody}>
+        <View style={styles.avatarOverlapRow}>
+          <View style={[styles.avatarRing, { backgroundColor: ui.background, borderColor: ui.background }]}>
+            <Avatar
+              size={84}
+              source={me?.avatarUrl ? { uri: me.avatarUrl } : undefined}
+              initials={initialsFor(avatarName)}
+            />
           </View>
-        ) : null}
-      </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <PressableScale
+              haptic="light"
+              onPress={() => router.push('/vendor-dashboard' as never)}
+              style={[styles.editPill, { backgroundColor: ui.ink, borderColor: ui.ink }]}>
+              <Text style={[styles.editPillText, { color: ui.inkForeground }]}>Dashboard</Text>
+            </PressableScale>
+            <PressableScale
+              haptic="light"
+              onPress={() => router.push('/products/add' as never)}
+              style={[styles.editPill, { backgroundColor: ui.lime, borderColor: ui.lime }]}>
+              <Text style={[styles.editPillText, { color: ui.limeForeground }]}>+ Add Drop</Text>
+            </PressableScale>
+          </View>
+        </View>
 
-      <View style={styles.bioBlock}>
-        {vendor?.category ? <Text style={styles.bioLine}>{vendor.category}</Text> : null}
-        {vendor?.about ? <Text style={styles.bioText}>{vendor.about}</Text> : null}
-        {vendor?.address ? <Text style={styles.bioLink}>{vendor.address}</Text> : null}
-      </View>
+        <View style={styles.identity}>
+          <View style={styles.nameRow}>
+            <Text style={[styles.displayName, { color: ui.label }]}>{name}</Text>
+            {vendor?.verified ? <VerifiedCheck tone="success" size={16} /> : null}
+          </View>
+          <Text style={[type.footnote, { color: ui.secondaryLabel }]}>@{handle || me?.username || 'store'}</Text>
+          {vendor?.about ? (
+            <Text style={[type.subhead, { color: ui.label, marginTop: 6, lineHeight: 20 }]}>{vendor.about}</Text>
+          ) : null}
+        </View>
 
-      <View style={styles.storeStatsRow}>
-        <StoreStat value={String(vendor?.posts ?? products.length)} label="Posts" />
-        <StoreStat value={compact(vendor?.followers ?? 0)} label="Followers" />
-        <StoreStat value={compact(vendor?.following ?? 0)} label="Following" />
-      </View>
+        <View style={[styles.statsCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <StatColumn value={String(vendor?.posts ?? products.length)} label="Drops" />
+          <View style={[styles.statDivider, { backgroundColor: ui.separator }]} />
+          <StatColumn value={compact(vendor?.followers ?? 0)} label="Followers" />
+          <View style={[styles.statDivider, { backgroundColor: ui.separator }]} />
+          <StatColumn value={compact(vendor?.following ?? 0)} label="Following" />
+        </View>
 
-      <View style={styles.vendorActions}>
-        <Pressable onPress={() => router.push('/vendor-dashboard')} style={[styles.vendorBtn, styles.vendorBtnPrimary]}>
-          <Ionicons name="stats-chart" size={16} color="#FFFFFF" />
-          <Text style={styles.vendorBtnLabel}>Dashboard</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/products/add')} style={[styles.vendorBtn, styles.vendorBtnGhost]}>
-          <Ionicons name="add" size={18} color={palette.ink.onDarkStrong} />
-          <Text style={styles.vendorBtnLabelGhost}>Add product</Text>
-        </Pressable>
+        {/* Night mode quick toggle */}
+        <View style={[styles.menuCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+          <View style={[styles.menuItem, { borderBottomWidth: 0 }]}>
+            <View style={[styles.menuIconWrap, { backgroundColor: ui.secondary }]}>
+              <Ionicons name={ui.isDark ? 'moon' : 'moon-outline'} size={17} color={ui.label} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuLabel, { color: ui.label }]}>Lagos Night mode</Text>
+              <Text style={[type.caption2, { color: ui.secondaryLabel }]}>
+                {ui.isDark ? 'Dark mode active' : 'Warm Lagos Paper light mode'}
+              </Text>
+            </View>
+            <Switch
+              value={ui.isDark}
+              onValueChange={(val) => setThemeMode(val ? 'dark' : 'light')}
+              trackColor={{ false: ui.separator, true: ui.accent }}
+              thumbColor={ui.isDark ? ui.limeForeground : '#FFFFFF'}
+            />
+          </View>
+        </View>
       </View>
 
       <ProfileTabContent
@@ -235,10 +315,6 @@ function VendorView({ handle }: { handle?: string }) {
   );
 }
 
-
-
-
-
 function compact(value: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
@@ -246,24 +322,27 @@ function compact(value: number) {
 }
 
 function initialsFor(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'Y';
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('') || 'A'
+  );
 }
 
 function StatColumn({ value, label, onPress }: { value: string; label: string; onPress?: () => void }) {
+  const ui = useUi();
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={styles.statColumn}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color: ui.label }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: ui.secondaryLabel }]}>{label}</Text>
     </Pressable>
   );
 }
 
-function QuickAction({
+function MenuRow({
   icon,
   label,
   badge,
@@ -274,235 +353,186 @@ function QuickAction({
   badge?: string;
   onPress: () => void;
 }) {
+  const ui = useUi();
   return (
-    <Pressable onPress={onPress} style={styles.quickItem}>
-      <View style={styles.quickIcon}>
-        <Ionicons name={icon} size={20} color={palette.brand.orange} />
-        {badge ? (
-          <View style={styles.quickBadge}>
-            <Text style={styles.quickBadgeText}>{badge}</Text>
-          </View>
-        ) : null}
+    <Pressable onPress={onPress} style={[styles.menuItem, { borderBottomColor: ui.separator }]}>
+      <View style={[styles.menuIconWrap, { backgroundColor: ui.secondary }]}>
+        <Ionicons name={icon} size={17} color={ui.label} />
       </View>
-      <Text style={styles.quickLabel}>{label}</Text>
+      <Text style={[styles.menuLabel, { color: ui.label, flex: 1 }]}>{label}</Text>
+      {badge ? (
+        <View style={[styles.menuBadge, { backgroundColor: ui.secondary }]}>
+          <Text style={[styles.menuBadgeText, { color: ui.label }]}>{badge}</Text>
+        </View>
+      ) : null}
+      <Ionicons name="chevron-forward" size={16} color={ui.secondaryLabel} />
     </Pressable>
-  );
-}
-
-function StoreStat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={styles.storeStat}>
-      <Text style={styles.storeStatValue}>{value}</Text>
-      <Text style={styles.storeStatLabel}>{label}</Text>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stateText: { ...typography.body, color: 'rgba(255, 255, 255, 0.7)' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing['5'],
-    paddingVertical: spacing['3'],
-  },
-  title: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 18,
-    lineHeight: 24,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  headerRight: { flexDirection: 'row', gap: spacing['2'] },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: glass.dark.fill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.dark.rim,
-  },
-  buyerPadded: {
-    paddingHorizontal: spacing['5'],
-    gap: spacing['3'],
-  },
-  scroll: { paddingHorizontal: spacing['5'], paddingBottom: 100, gap: spacing['3'] },
-  profileTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing['4'],
-  },
-  statsRow: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statColumn: { alignItems: 'center', gap: 2 },
-  statValue: { ...typography.h2, color: '#FFFFFF', fontWeight: '700' },
-  statLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
-  identity: { gap: spacing['1'] },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['2'] },
-  displayName: { ...typography.title, color: '#FFFFFF', fontWeight: '700', fontSize: 18 },
-  kycBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    height: 22,
-    borderRadius: 999,
-    backgroundColor: 'rgba(46, 125, 50, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.4)',
-  },
-  kycBadgeText: {
-    ...typography.small,
-    color: '#81C784',
-    fontFamily: typography.bodyEmphasis.fontFamily,
-  },
-  bio: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 20 },
-  bioLink: { ...typography.bodyEmphasis, color: palette.brand.orange, fontSize: 13 },
-  buttonRow: { flexDirection: 'row', gap: spacing['2'], marginTop: spacing['1'] },
-  button: {
-    flex: 1,
-    height: 38,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: glass.dark.fill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.dark.rimStrong,
-  },
-  buttonLabel: { ...typography.bodyEmphasis, color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(232, 93, 63, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 93, 63, 0.35)',
-  },
-  quickRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing['2'],
-    marginTop: spacing['3'],
-  },
-  quickItem: { alignItems: 'center', gap: 6, flex: 1 },
-  quickIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: glass.dark.fill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.dark.rim,
-    position: 'relative',
-  },
-  quickBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.brand.orange,
-  },
-  quickBadgeText: { ...typography.small, color: '#fff', fontFamily: typography.bodyEmphasis.fontFamily },
-  quickLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.75)', fontWeight: '500' },
-
-  vendorScroll: { paddingBottom: 100 },
+  scrollContent: { paddingBottom: 110 },
   bannerWrap: { position: 'relative' },
-  banner: { width: '100%', height: 160 },
-  bannerActions: { position: 'absolute', top: 12, right: 12 },
+  banner: { width: '100%', height: 118 },
+  bannerTopActions: {
+    position: 'absolute',
+    top: 12,
+    right: layout.gutter,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bannerActionCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(17, 21, 19, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bannerEditBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
+    gap: 5,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(17, 21, 19, 0.45)',
   },
   bannerEditLabel: {
-    fontFamily: typography.bodyEmphasis.fontFamily,
-    fontSize: 11,
-    color: '#FFFFFF',
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 12,
+    color: '#F4F2E8',
+  },
+  paddedBody: {
+    paddingHorizontal: layout.gutter,
+  },
+  avatarOverlapRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: -42,
+    marginBottom: 12,
   },
   avatarRing: {
-    position: 'absolute',
-    bottom: -42,
-    left: spacing['5'],
-    padding: 3,
+    padding: 4,
     borderRadius: 999,
-    backgroundColor: plasma.baseDark,
     borderWidth: 2,
-    borderColor: glass.dark.rimStrong,
   },
-  storeIdBlock: { paddingTop: 52, paddingHorizontal: spacing['5'], gap: 4 },
-  storeNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
-  storeName: { ...typography.h2, color: '#FFFFFF' },
-  storeHandle: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
-  starRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  rating: { ...typography.bodyEmphasis, color: '#FFFFFF' },
-  reviewsCount: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
-  bioBlock: { paddingHorizontal: spacing['5'], paddingTop: spacing['3'], gap: 4 },
-  bioLine: { ...typography.bodyEmphasis, color: palette.brand.orange },
-  bioText: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)' },
-  storeStatsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing['5'],
-    paddingTop: spacing['3'],
-    gap: spacing['4'],
-  },
-  storeStat: { gap: 2 },
-  storeStatValue: { ...typography.h2, color: '#FFFFFF' },
-  storeStatLabel: { ...typography.caption, color: 'rgba(255, 255, 255, 0.65)' },
-  vendorActions: {
-    flexDirection: 'row',
-    gap: spacing['2'],
-    paddingHorizontal: spacing['5'],
-    paddingTop: spacing['3'],
-  },
-  vendorBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  editPill: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: corner.pill,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editPillText: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 13,
+  },
+  identity: {
+    marginBottom: 16,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    height: 40,
-    paddingHorizontal: spacing['3'],
-    borderRadius: radius.md,
   },
-  vendorBtnPrimary: { backgroundColor: palette.brand.orange },
-  vendorBtnGhost: {
-    backgroundColor: glass.dark.fill,
+  displayName: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.dark.rimStrong,
+    paddingVertical: 14,
+    marginBottom: 14,
+    ...continuous,
   },
-  vendorBtnLabel: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
-  vendorBtnLabelGhost: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
-  padded: { paddingHorizontal: spacing['5'] },
-  reviewList: { paddingHorizontal: spacing['5'], paddingTop: spacing['2'], gap: spacing['2'] },
-  reviewCard: {
-    padding: spacing['3'],
-    borderRadius: radius.md,
-    backgroundColor: glass.dark.fill,
+  statColumn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 28,
+  },
+  statValue: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 11,
+  },
+  limeCtaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 14,
+    ...continuous,
+  },
+  limeCtaIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  limeCtaTitle: {
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontSize: 15,
+    letterSpacing: -0.3,
+  },
+  limeCtaSub: {
+    fontFamily: 'InstrumentSans_500Medium',
+    fontSize: 12,
+    opacity: 0.8,
+    marginTop: 1,
+  },
+  menuCard: {
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: glass.dark.rim,
+    overflow: 'hidden',
+    marginBottom: 18,
+    ...continuous,
   },
-  reviewAuthor: { ...typography.bodyEmphasis, color: '#FFFFFF' },
-  reviewText: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  menuIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 14,
+  },
+  menuBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  menuBadgeText: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 11,
+  },
 });

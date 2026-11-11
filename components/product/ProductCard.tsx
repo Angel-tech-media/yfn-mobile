@@ -17,12 +17,6 @@ export type ProductCardProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-/**
- * Editorial Apple-grade social commerce product card inspired by Lovable ("Lagos Paper"):
- * - 4:5 aspect ratio photography frame with smooth squircle corners.
- * - Floating top-left scarcity badge ("Only 3 left" / "Verified") & top-right wishlist heart.
- * - Restrained typography: uppercase category tracking, clean title, and 24k Champagne Gold pricing.
- */
 export function ProductCard({ product, onPress, style }: ProductCardProps) {
   const ui = useUi();
   const toast = useToast();
@@ -63,7 +57,6 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
         },
         style,
       ]}>
-      {/* Specular glass highlight sheen */}
       <LinearGradient
         pointerEvents="none"
         colors={g.sheen}
@@ -82,30 +75,20 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
           </View>
         )}
 
-        {/* Ambient bottom shadow gradient on image */}
-        <LinearGradient
-          pointerEvents="none"
-          colors={['rgba(0,0,0,0.02)', 'rgba(5, 7, 15, 0.45)']}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {/* Floating Top Badges */}
+        {/* Top Badges */}
         <View style={styles.topBadges}>
-          {product.isYfnVerified ? (
-            <View style={[styles.pillBadge, { backgroundColor: 'rgba(18, 24, 21, 0.78)', borderColor: 'rgba(200, 255, 59, 0.35)' }]}>
-              <Ionicons name="checkmark-circle" size={11} color={ui.lime} />
-              <Text style={[styles.pillText, { color: ui.lime }]}>Verified</Text>
-            </View>
-          ) : isLowStock ? (
-            <View style={[styles.pillBadge, { backgroundColor: 'rgba(22, 22, 27, 0.82)', borderColor: 'rgba(240, 101, 67, 0.35)' }]}>
-              <View style={[styles.dot, { backgroundColor: ui.coral }]} />
-              <Text style={[styles.pillText, { color: ui.coral }]}>Only {product.stock} left</Text>
-            </View>
-          ) : product.category ? (
-            <View style={[styles.pillBadge, { backgroundColor: 'rgba(22, 22, 27, 0.70)', borderColor: ui.separator }]}>
-              <Text style={[styles.pillText, { color: ui.secondaryLabel }]}>{product.category}</Text>
-            </View>
-          ) : null}
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            {product.isYfnVerified ? (
+              <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'rgba(200, 255, 59, 0.35)' }]}>
+                <Ionicons name="checkmark-circle" size={11} color={ui.lime} />
+                <Text style={[styles.pillText, { color: ui.lime }]}>Verified</Text>
+              </View>
+            ) : product.category ? (
+              <View style={[styles.pillBadge, { backgroundColor: ui.card, borderColor: ui.separator }]}>
+                <Text style={[styles.pillText, { color: ui.label }]}>{product.category}</Text>
+              </View>
+            ) : null}
+          </View>
 
           {/* Wishlist Heart Button */}
           <PressableScale
@@ -115,21 +98,28 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
             scaleTo={0.88}
             hitSlop={8}
             onPress={handleToggleWishlist}
-            style={[styles.heartBtn, { backgroundColor: 'rgba(18, 22, 27, 0.68)', borderColor: ui.separator }]}>
+            style={[styles.heartBtn, { backgroundColor: ui.card, borderColor: ui.separator }]}>
             <Ionicons
               name={isWishlisted ? 'heart' : 'heart-outline'}
               size={15}
-              color={isWishlisted ? ui.coral : '#FAFAFA'}
+              color={isWishlisted ? ui.coral : ui.label}
             />
           </PressableScale>
         </View>
 
-        {/* Floating Bottom Left: Distance if present */}
-        {product.distanceKm !== undefined ? (
+        {/* Bottom Scarcity / Distance Pill */}
+        {isLowStock ? (
           <View style={styles.bottomBadge}>
-            <View style={[styles.pillBadge, { backgroundColor: 'rgba(10, 14, 20, 0.75)', borderColor: ui.separator }]}>
-              <Ionicons name="location-outline" size={11} color={ui.secondaryLabel} />
-              <Text style={[styles.pillText, { color: ui.secondaryLabel }]}>
+            <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'transparent' }]}>
+              <View style={[styles.dot, { backgroundColor: ui.coral }]} />
+              <Text style={[styles.pillText, { color: ui.inkForeground }]}>Only {product.stock} left</Text>
+            </View>
+          </View>
+        ) : product.distanceKm !== undefined ? (
+          <View style={styles.bottomBadge}>
+            <View style={[styles.pillBadge, { backgroundColor: ui.ink, borderColor: 'transparent' }]}>
+              <Ionicons name="location-outline" size={11} color={ui.inkForeground} />
+              <Text style={[styles.pillText, { color: ui.inkForeground }]}>
                 {product.distanceKm.toFixed(1)} km
               </Text>
             </View>
@@ -140,7 +130,7 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
       {/* Metadata */}
       <View style={styles.meta}>
         <Text style={[type.caption2, styles.categoryLabel, { color: ui.secondaryLabel }]} numberOfLines={1}>
-          {product.category?.toUpperCase() || 'MARKET'}
+          {product.category?.toUpperCase() || 'AKTIVE MARKET'}
         </Text>
         <Text style={[type.subhead, styles.title, { color: ui.label }]} numberOfLines={2}>
           {product.title}
@@ -149,9 +139,10 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
           <Text style={[styles.priceText, { color: ui.gold }]}>
             {formatKobo(product.price)}
           </Text>
-          {product.stock !== undefined && product.stock > 5 ? (
-            <Text style={[type.caption2, { color: ui.secondaryLabel }]}>In stock</Text>
-          ) : null}
+          <View style={styles.starRow}>
+            <Ionicons name="star" size={11} color={ui.coral} />
+            <Text style={[styles.ratingText, { color: ui.label }]}>4.9</Text>
+          </View>
         </View>
       </View>
     </PressableScale>
@@ -181,29 +172,29 @@ const styles = StyleSheet.create({
   },
   topBadges: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    right: 6,
+    top: 8,
+    left: 8,
+    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   bottomBadge: {
     position: 'absolute',
-    bottom: 6,
-    left: 6,
+    bottom: 8,
+    left: 8,
   },
   pillBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3.5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
   pillText: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 10,
     letterSpacing: -0.1,
   },
@@ -213,9 +204,9 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   heartBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
@@ -226,13 +217,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   categoryLabel: {
-    letterSpacing: 0.6,
-    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.8,
+    fontFamily: 'InstrumentSans_600SemiBold',
     fontSize: 10,
-    opacity: 0.75,
   },
   title: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'InstrumentSans_600SemiBold',
     letterSpacing: -0.2,
     fontSize: 14,
     lineHeight: 18,
@@ -244,8 +234,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   priceText: {
-    fontFamily: 'InterTight_700Bold',
+    fontFamily: 'BricolageGrotesque_700Bold',
     fontSize: 16,
     letterSpacing: -0.3,
+  },
+  starRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ratingText: {
+    fontFamily: 'InstrumentSans_600SemiBold',
+    fontSize: 11,
   },
 });
