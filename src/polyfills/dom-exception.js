@@ -1,6 +1,5 @@
 /**
- * Universal DOMException Polyfill for React Native & Hermes
- * Ensures DOMException exists on global, globalThis, and window across all engines.
+ * Universal DOMException Polyfill & Safe defineProperty Guard for React Native & Hermes
  */
 (function (globalScope) {
   var root =
@@ -11,6 +10,27 @@
       : typeof window !== 'undefined'
       ? window
       : globalScope || {};
+
+  // Guard Object.defineProperty against non-configurable accessor/data collisions (e.g. VirtualizedList state)
+  var origDefineProperty = Object.defineProperty;
+  if (origDefineProperty && !origDefineProperty.__vibeGuarded) {
+    var guardedDefineProperty = function (obj, prop, descriptor) {
+      try {
+        return origDefineProperty(obj, prop, descriptor);
+      } catch (err) {
+        if (descriptor && 'value' in descriptor) {
+          try {
+            obj[prop] = descriptor.value;
+          } catch (_) {}
+        }
+        return obj;
+      }
+    };
+    guardedDefineProperty.__vibeGuarded = true;
+    try {
+      Object.defineProperty = guardedDefineProperty;
+    } catch (_) {}
+  }
 
   var ERROR_NAME_TO_CODE = {
     IndexSizeError: 1,
@@ -85,30 +105,8 @@
     DOMException.prototype[key] = CONSTANTS[key];
   }
 
-  try {
-    Object.defineProperty(root, 'DOMException', {
-      value: DOMException,
-      writable: true,
-      enumerable: true,
-      configurable: false,
-    });
-  } catch (e) {
-    root.DOMException = DOMException;
-  }
-
-  if (typeof globalThis !== 'undefined' && globalThis !== root) {
-    try {
-      globalThis.DOMException = DOMException;
-    } catch (e) {}
-  }
-  if (typeof global !== 'undefined' && global !== root) {
-    try {
-      global.DOMException = DOMException;
-    } catch (e) {}
-  }
-  if (typeof window !== 'undefined' && window !== root) {
-    try {
-      window.DOMException = DOMException;
-    } catch (e) {}
-  }
+  root.DOMException = DOMException;
+  if (typeof globalThis !== 'undefined') globalThis.DOMException = DOMException;
+  if (typeof global !== 'undefined') global.DOMException = DOMException;
+  if (typeof window !== 'undefined') window.DOMException = DOMException;
 })(typeof globalThis !== 'undefined' ? globalThis : typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this);

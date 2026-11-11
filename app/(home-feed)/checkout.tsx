@@ -193,7 +193,7 @@ export default function CheckoutScreen() {
         <Text style={styles.sectionTitle}>Payment</Text>
         <View style={styles.walletPayCard}>
           <LinearGradient
-            colors={['#2F6BFF', '#2050D8']}
+            colors={['#E85D3F', '#C94124']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -213,7 +213,7 @@ export default function CheckoutScreen() {
             </View>
           </View>
           <Text style={styles.walletPayNote}>
-            Funds leave your eWallet into Vibe escrow. The vendor is notified but
+            Funds leave your eWallet into Aktive escrow. The vendor is notified but
             the money only releases to them when you confirm delivery.
           </Text>
           {wallet && balanceNaira < estimatedTotal ? (
@@ -291,7 +291,7 @@ export default function CheckoutScreen() {
           title: isGift ? 'Gift Dispatched! 🎁' : 'Order Confirmed! ⚡',
           subtitle: isGift
             ? 'Your gift claim voucher has been sent to the recipient. They will confirm delivery!'
-            : 'Payment held in Vibe Escrow until you confirm receipt.',
+            : 'Payment held in Aktive Escrow until you confirm receipt.',
           isGift,
           recipientHandle: isGift ? (recipientHandle || '@fellow_buyer') : undefined,
           isAnonymous: isAnonymousGift,
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing['4'],
     gap: spacing['2'],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(47, 107, 255, 0.16)',
+    borderTopColor: 'rgba(232, 93, 63, 0.16)',
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
   summaryLabel: {
@@ -465,17 +465,17 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(47, 107, 255, 0.16)',
+    backgroundColor: 'rgba(232, 93, 63, 0.16)',
     marginVertical: spacing['1'],
   },
   actions: { paddingVertical: spacing['3'] },
   giftCard: {
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderRadius: radius.lg,
     padding: spacing['4'],
     marginBottom: spacing['4'],
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.20)',
+    borderColor: 'rgba(232, 93, 63, 0.20)',
   },
   giftHeader: {
     flexDirection: 'row',
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },

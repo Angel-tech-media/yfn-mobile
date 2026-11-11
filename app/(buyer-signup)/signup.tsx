@@ -129,7 +129,7 @@ export default function SignupScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.titleBlock}>
           <Text style={styles.title}>
-            {isVendor ? 'Start selling\non Vibe' : 'Create your\naccount'}
+            {isVendor ? 'Start selling\non Aktive' : 'Create your\naccount'}
           </Text>
         </View>
 
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   roleTabActive: {
     backgroundColor: '#2A201B',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.4)',
+    borderColor: 'rgba(232, 93, 63, 0.4)',
   },
   roleTabText: {
     fontFamily: typography.caption.fontFamily,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   sheetRowSelected: {
-    backgroundColor: 'rgba(47, 107, 255,0.10)',
+    backgroundColor: 'rgba(232, 93, 63,0.10)',
   },
   sheetLabel: {
     fontFamily: typography.bodyLg.fontFamily,

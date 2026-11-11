@@ -1,13 +1,16 @@
 import type { PropsWithChildren } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { PressableScale } from '@/components/ui/PressableScale';
+import { glass } from '@/src/theme/plasma';
 import { continuous, corner, useUi } from '@/src/theme/ui';
 
 type Props = PropsWithChildren<{
   onPress?: () => void;
   onLongPress?: () => void;
-  /** Soft subtle night-glow elevation. */
+  /** Soft drop shadow so the panel floats above the plasma. */
   elevated?: boolean;
   padded?: boolean;
   radius?: keyof typeof corner;
@@ -15,7 +18,10 @@ type Props = PropsWithChildren<{
   accessibilityLabel?: string;
 }>;
 
-/** The single card surface. Squircle corners, Night Surface tone (#121833), subtle ambient glow. */
+/**
+ * The single card surface: frosted glass with a bright hairline rim and a top sheen.
+ * Translucent so the plasma field behind it tints the card as it drifts.
+ */
 export function Card({
   children,
   onPress,
@@ -27,24 +33,34 @@ export function Card({
   accessibilityLabel,
 }: Props) {
   const ui = useUi();
+  const g = ui.isDark ? glass.dark : glass.light;
   const base: ViewStyle = {
     backgroundColor: ui.card,
     borderRadius: corner[radius],
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: ui.separator,
     ...continuous,
     ...(padded ? { padding: 16 } : null),
     ...(elevated
       ? {
-          shadowColor: '#2F6BFF',
-          shadowOpacity: 0.06,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 3,
+          shadowColor: '#000',
+          shadowOpacity: 0.3,
+          shadowRadius: 22,
+          shadowOffset: { width: 0, height: 10 },
         }
       : null),
   };
+
+  const sheen = (
+    <LinearGradient
+      pointerEvents="none"
+      colors={g.sheen}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 0.4 }}
+      style={StyleSheet.absoluteFill}
+    />
+  );
 
   if (onPress || onLongPress) {
     return (
@@ -56,9 +72,15 @@ export function Card({
         scaleTo={0.98}
         haptic="light"
         style={[base, style]}>
+        {sheen}
         {children}
       </PressableScale>
     );
   }
-  return <View style={[base, style]}>{children}</View>;
+  return (
+    <View style={[base, style]}>
+      {sheen}
+      {children}
+    </View>
+  );
 }

@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { palette, spacing, typography } from '@/src/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -44,10 +44,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 56,
     paddingHorizontal: spacing['4'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(245, 242, 236, 0.19)',
   },
   leftIcon: {
     marginRight: spacing['3'],

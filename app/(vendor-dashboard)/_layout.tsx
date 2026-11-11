@@ -5,17 +5,17 @@ import { RequireAuth } from '@/components/ui/RequireAuth';
 export default function VendorDashboardLayout() {
   return (
     <RequireAuth>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="vendor-dashboard" />
-      <Stack.Screen name="vendor-store" />
-      <Stack.Screen name="vendor-dashboard/products" />
-      <Stack.Screen name="vendor-dashboard/withdraw" />
-      <Stack.Screen name="vendor-dashboard/withdraw-confirmed" options={{ animation: 'fade' }} />
-      <Stack.Screen name="vendor-dashboard/sales" />
-      <Stack.Screen name="products/add" />
-      <Stack.Screen name="products/saved" options={{ animation: 'fade' }} />
-      <Stack.Screen name="products/[id]" />
-    </Stack>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack.Screen name="vendor-dashboard" />
+        <Stack.Screen name="vendor-store" />
+        <Stack.Screen name="vendor-dashboard/products" />
+        <Stack.Screen name="vendor-dashboard/withdraw" />
+        <Stack.Screen name="vendor-dashboard/withdraw-confirmed" options={{ animation: 'fade' }} />
+        <Stack.Screen name="vendor-dashboard/sales" />
+        <Stack.Screen name="products/add" />
+        <Stack.Screen name="products/saved" options={{ animation: 'fade' }} />
+        <Stack.Screen name="products/[id]" />
+      </Stack>
     </RequireAuth>
   );
 }

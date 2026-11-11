@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/ui/CreateSheet';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { glass, plasma } from '@/src/theme/plasma';
 import { continuous, type, useUi } from '@/src/theme/ui';
 
 type TabKey = 'index' | 'market' | 'wallet' | 'profile' | 'hive';
@@ -44,12 +45,14 @@ function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; o
       onPress={onPress}
       haptic="selection"
       scaleTo={0.88}
-      style={styles.slot}>
-      <Ionicons name={name} size={24} color={color} />
-      <Text style={[type.caption2, { color }]}>{t.label}</Text>
+      style={[styles.slot, focused && styles.slotFocused]}>
+      <Ionicons name={name} size={22} color={color} />
+      <Text style={[type.caption2, { color, fontFamily: focused ? 'Inter_600SemiBold' : 'Inter_500Medium' }]}>
+        {t.label}
+      </Text>
       {focused ? (
         <LinearGradient
-          colors={['#FF3B3B', '#2F6BFF']}
+          colors={[plasma.blue, plasma.cyan]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.activeIndicator}
@@ -64,6 +67,7 @@ function TabBarButton({ t, focused, onPress }: { t: TabSpec; focused: boolean; o
 function CustomTabBar(props: any) {
   const { state, navigation, navigateToTab, emitter } = props;
   const ui = useUi();
+  const g = ui.isDark ? glass.dark : glass.light;
   const activeName = state.routes[state.index]?.name;
   const go = (key: string) => () => {
     if (navigateToTab) {
@@ -88,8 +92,21 @@ function CustomTabBar(props: any) {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.safe} pointerEvents="box-none">
-      <View style={[styles.bar, { borderColor: ui.separator, backgroundColor: 'rgba(18, 24, 51, 0.85)' }]}>
-        <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[styles.bar, { borderColor: g.rimStrong }]}>
+        <BlurView
+          intensity={65}
+          tint={g.blurTint}
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: g.fill }]} />
+        <LinearGradient
+          pointerEvents="none"
+          colors={g.sheen}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+        />
         {TABS_LEFT.map((t) => (
           <TabBarButton key={t.key} t={t} focused={activeName === t.key} onPress={go(t.key)} />
         ))}
@@ -101,7 +118,7 @@ function CustomTabBar(props: any) {
           onPress={handleCreate}
           style={styles.createBtnWrapper}>
           <LinearGradient
-            colors={['#FF3B3B', '#2F6BFF']}
+            colors={['#E85D3F', '#C94124']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.createBtnGradient}>
@@ -122,7 +139,11 @@ export default function TabLayout() {
   return (
     <>
       <Tabs
-        screenOptions={{ headerShown: false, animation: 'shift' }}
+        screenOptions={{
+          headerShown: false,
+          animation: 'shift',
+          sceneStyle: { backgroundColor: 'transparent' },
+        }}
         screenListeners={{
           // @ts-ignore - custom event
           openCreate: () => setCreateOpen(true),
@@ -148,39 +169,48 @@ const styles = StyleSheet.create({
   safe: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   bar: {
     marginHorizontal: 16,
-    marginBottom: 6,
-    height: 64,
-    borderRadius: 32,
+    marginBottom: 8,
+    height: 66,
+    borderRadius: 33,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 8,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     ...continuous,
   },
-  slot: { width: 60, height: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  slot: {
+    width: 62,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  slotFocused: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
   activeIndicator: {
     width: 14,
-    height: 3,
+    height: 2.5,
     borderRadius: 1.5,
     marginTop: 2,
-    shadowColor: '#2F6BFF',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
   },
   activeIndicatorSpacer: {
-    height: 3,
+    height: 2.5,
     marginTop: 2,
   },
   createBtnWrapper: {
-    shadowColor: '#2F6BFF',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 5,
   },
   createBtnGradient: {
     width: 48,
@@ -188,5 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.32)',
   },
 });

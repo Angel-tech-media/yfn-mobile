@@ -85,17 +85,15 @@ export default function LoginScreen() {
         />
 
         {__DEV__ ? (
-          <View style={{ marginTop: 16, padding: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: palette.ink.onDarkMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>
-              Quick Fill Demo Accounts
-            </Text>
+          <View style={styles.demoCard}>
+            <Text style={styles.demoHeader}>Quick Fill Demo Accounts</Text>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Pressable
                 onPress={() => {
                   setUsernameOrEmail('vendor@example.com');
                   setPassword('Password123!');
                 }}
-                style={{ flex: 1, backgroundColor: 'rgba(255, 159, 10, 0.14)', padding: 10, borderRadius: 8, alignItems: 'center' }}>
+                style={styles.demoVendor}>
                 <Text style={{ color: palette.brand.orange, fontSize: 12, fontWeight: '700' }}>
                   Demo Vendor
                 </Text>
@@ -105,7 +103,7 @@ export default function LoginScreen() {
                   setUsernameOrEmail('buyer@example.com');
                   setPassword('Password123!');
                 }}
-                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', padding: 10, borderRadius: 8, alignItems: 'center' }}>
+                style={styles.demoBuyer}>
                 <Text style={{ color: palette.ink.onDarkStrong, fontSize: 12, fontWeight: '700' }}>
                   Demo Buyer
                 </Text>
@@ -116,7 +114,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>New to Vibe?</Text>
+        <Text style={styles.footerText}>New to Aktive?</Text>
         <Pressable onPress={() => router.push('/signup')} hitSlop={8}>
           <Text style={styles.footerLink}>Create account</Text>
         </Pressable>
@@ -134,14 +132,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.h1.fontFamily,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.9,
     color: palette.ink.onDarkStrong,
   },
   subtitle: {
     fontFamily: typography.body.fontFamily,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 21,
     color: palette.ink.onDarkMuted,
     textAlign: 'center',
     paddingHorizontal: spacing['5'],
@@ -160,6 +159,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: palette.brand.orange,
+  },
+  demoCard: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  demoHeader: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: palette.ink.onDarkMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  demoVendor: {
+    flex: 1,
+    backgroundColor: 'rgba(232, 93, 63, 0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(232, 93, 63, 0.4)',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  demoBuyer: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   footer: {
     paddingVertical: spacing['5'],

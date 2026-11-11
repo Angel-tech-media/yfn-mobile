@@ -120,7 +120,7 @@ export default function VendorDashboardScreen() {
               <Switch
                 value={effectiveShowOnMap}
                 onValueChange={handleToggleShowOnMap}
-                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#2F6BFF' }}
+                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#E85D3F' }}
                 thumbColor="#F5F1EA"
               />
             </View>
@@ -137,7 +137,7 @@ export default function VendorDashboardScreen() {
               <Switch
                 value={!effectiveShowExactLocation}
                 onValueChange={(masked) => handleToggleShowExactLocation(!masked)}
-                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#2F6BFF' }}
+                trackColor={{ false: 'rgba(245,241,234,0.16)', true: '#E85D3F' }}
                 thumbColor="#F5F1EA"
               />
             </View>
@@ -247,15 +247,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
   },
   scroll: { paddingHorizontal: spacing['5'], paddingBottom: 40, gap: spacing['4'] },
   balanceCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
   },
   balanceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
     flex: 1,
     aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing['1'],
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
   },
   tileLabel: {
     fontFamily: typography.caption.fontFamily,
@@ -313,9 +313,9 @@ const styles = StyleSheet.create({
   sectionCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
   },
   sectionHead: {
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   emptyState: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   emptyText: {
     fontFamily: typography.body.fontFamily,
@@ -386,15 +386,15 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   thumb: {
     width: 44,
     height: 44,
     borderRadius: 8,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -421,9 +421,9 @@ const styles = StyleSheet.create({
   privacyCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
   },
   privacyTitle: {

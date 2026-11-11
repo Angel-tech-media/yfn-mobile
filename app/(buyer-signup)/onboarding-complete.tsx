@@ -23,7 +23,7 @@ export default function OnboardingCompleteScreen() {
     <ScreenContainer variant="espresso">
       <View style={styles.spacer} />
       <Animated.View style={[styles.copy, { opacity: fade, transform: [{ translateY: lift }] }]}>
-        <Text style={styles.title}>Welcome to Vibe</Text>
+        <Text style={styles.title}>Welcome to Aktive</Text>
         <Text style={styles.subtitle}>Start exploring vendors, products{'\n'}and stories near you</Text>
       </Animated.View>
       <Animated.View style={{ opacity: fade }}>

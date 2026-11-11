@@ -18,7 +18,7 @@ const ICON_BY_KIND: Record<string, { icon: keyof typeof Ionicons.glyphMap; tint:
   follow: { icon: 'person-add', tint: 'rgba(63, 201, 192, 0.20)' },
   like: { icon: 'heart', tint: 'rgba(255, 111, 74, 0.22)' },
   comment: { icon: 'chatbubble', tint: 'rgba(155, 139, 232, 0.22)' },
-  sale: { icon: 'pricetag', tint: 'rgba(47, 107, 255, 0.22)' },
+  sale: { icon: 'pricetag', tint: 'rgba(232, 93, 63, 0.22)' },
   referral: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
   repost: { icon: 'repeat', tint: 'rgba(232, 192, 74, 0.22)' },
   escrow: { icon: 'lock-closed', tint: 'rgba(91, 168, 232, 0.20)' },
@@ -26,7 +26,7 @@ const ICON_BY_KIND: Record<string, { icon: keyof typeof Ionicons.glyphMap; tint:
   news: { icon: 'newspaper', tint: 'rgba(63, 201, 192, 0.20)' },
 };
 
-const DEFAULT_ICON = { icon: 'notifications' as const, tint: 'rgba(47, 107, 255,0.18)' };
+const DEFAULT_ICON = { icon: 'notifications' as const, tint: 'rgba(232, 93, 63,0.18)' };
 
 export default function NotificationsScreen() {
   const { data: notifications = [], isError, isLoading, refetch } = useNotifications({ limit: 80 });
@@ -153,14 +153,14 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
   },
   unread: {
-    borderColor: 'rgba(47, 107, 255,0.30)',
-    backgroundColor: 'rgba(47, 107, 255,0.06)',
+    borderColor: 'rgba(232, 93, 63,0.30)',
+    backgroundColor: 'rgba(232, 93, 63,0.06)',
   },
   iconWrap: {
     width: 44,

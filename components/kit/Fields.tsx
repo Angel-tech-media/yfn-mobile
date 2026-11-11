@@ -11,8 +11,7 @@ type Props = {
 };
 
 /**
- * Tappable search / ask field (the iOS search bar look). Used as the entry point to search
- * and to Carty, instead of a floating button that covers content.
+ * Tappable glass search / ask field with a hairline luminous rim.
  */
 export function SearchField({ placeholder, onPress, icon = 'search' }: Props) {
   const ui = useUi();
@@ -23,7 +22,13 @@ export function SearchField({ placeholder, onPress, icon = 'search' }: Props) {
       onPress={onPress}
       haptic="light"
       scaleTo={0.985}
-      style={[styles.field, { backgroundColor: ui.fill }]}>
+      style={[
+        styles.field,
+        {
+          backgroundColor: ui.card,
+          borderColor: ui.separator,
+        },
+      ]}>
       <Ionicons name={icon} size={18} color={ui.secondaryLabel} />
       <Text style={[type.body, styles.text, { color: ui.secondaryLabel }]} numberOfLines={1}>
         {placeholder}
@@ -32,14 +37,14 @@ export function SearchField({ placeholder, onPress, icon = 'search' }: Props) {
   );
 }
 
-/** Formats a price consistently: gold #F4C464, bold amount, no decoration. */
+/** Formats a price consistently: gold #F4C464, tight neo-grotesk bold amount. */
 export function PriceTag({ value, size = 'md' }: { value: string; size?: 'sm' | 'md' | 'lg' }) {
   const ui = useUi();
   const style = size === 'lg' ? type.title2 : size === 'sm' ? type.subhead : type.headline;
-  return <Text style={[style, { color: ui.gold }]}>{value}</Text>;
+  return <Text style={[style, { color: ui.gold, fontFamily: 'InterTight_700Bold' }]}>{value}</Text>;
 }
 
-/** Icon-only circular button with a quiet fill; the standard nav-bar action. */
+/** Icon-only circular glass button with a hairline rim; the standard nav-bar action. */
 export function NavIconButton({
   icon,
   label,
@@ -60,7 +65,13 @@ export function NavIconButton({
       haptic="light"
       scaleTo={0.9}
       hitSlop={6}
-      style={[styles.navBtn, { backgroundColor: ui.fill }]}>
+      style={[
+        styles.navBtn,
+        {
+          backgroundColor: ui.card,
+          borderColor: ui.separator,
+        },
+      ]}>
       <Ionicons name={icon} size={20} color={ui.label} />
       {badge && badge > 0 ? (
         <View style={[styles.dot, { backgroundColor: ui.accent }]}>
@@ -74,11 +85,12 @@ export function NavIconButton({
 const styles = StyleSheet.create({
   field: {
     height: 44,
-    borderRadius: corner.md,
-    paddingHorizontal: 12,
+    borderRadius: corner.pill,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     ...continuous,
   },
   text: { flex: 1 },
@@ -88,6 +100,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
   },
   dot: {
     position: 'absolute',

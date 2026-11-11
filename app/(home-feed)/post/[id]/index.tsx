@@ -159,8 +159,8 @@ function SinglePostCard({ rawPost }: { rawPost: Post }) {
     try {
       await Share.share({
         title: 'Share Post',
-        message: `${post.author} posted: ${post.caption} - https://yfn.app/post/${post.id}`,
-        url: `https://yfn.app/post/${post.id}`,
+        message: `${post.author} posted: ${post.caption} - https://aktive.app/post/${post.id}`,
+        url: `https://aktive.app/post/${post.id}`,
       });
     } catch (error: any) {
       if (error.message !== 'User did not share') {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.50)',
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   card: {
     padding: spacing['3'],

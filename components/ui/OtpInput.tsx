@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     color: palette.ink.onDarkStrong,
     textAlign: 'center',
     fontFamily: typography.h2.fontFamily,

@@ -1,26 +1,26 @@
 {
   "expo": {
-    "name": "Vibe",
-    "slug": "vibe",
+    "name": "Aktive",
+    "slug": "aktive",
     "owner": "davidokpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "vibe",
+    "scheme": "aktive",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ng.vibe.app",
+      "bundleIdentifier": "ng.aktive.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Vibe needs access to your camera so you can capture photos and videos for products and reels.",
-        "NSPhotoLibraryUsageDescription": "Vibe needs access to your photo library to let you select product images and reel media.",
-        "NSMicrophoneUsageDescription": "Vibe needs access to your microphone when recording video reels."
+        "NSCameraUsageDescription": "Aktive needs access to your camera so you can capture photos and videos for products and reels.",
+        "NSPhotoLibraryUsageDescription": "Aktive needs access to your photo library to let you select product images and reel media.",
+        "NSMicrophoneUsageDescription": "Aktive needs access to your microphone when recording video reels."
       }
     },
     "android": {
-      "package": "ng.vibe.app",
+      "package": "ng.aktive.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0A0E1F",
@@ -47,9 +47,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vibe needs access to your photo library so you can choose media to upload.",
-          "cameraPermission": "Vibe needs access to your camera so you can capture photos and videos to upload.",
-          "microphonePermission": "Vibe needs access to your microphone when recording videos."
+          "photosPermission": "Aktive needs access to your photo library so you can choose media to upload.",
+          "cameraPermission": "Aktive needs access to your camera so you can capture photos and videos to upload.",
+          "microphonePermission": "Aktive needs access to your microphone when recording videos."
         }
       ],
       [

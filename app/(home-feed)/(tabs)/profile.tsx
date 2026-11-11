@@ -17,7 +17,7 @@ import { useMyReposts } from '@/src/api/reposts/hooks';
 import { useVendor, useVendorProducts, useVendorReviews, useUserPosts } from '@/src/api/vendors/hooks';
 import { useCartCount } from '@/src/store/cart';
 import { useWishlistCount } from '@/src/store/wishlist';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { glass, plasma, palette, radius, spacing, typography } from '@/src/theme';
 
 import { formatKobo } from '@/src/utils/money';
 
@@ -93,12 +93,12 @@ function BuyerView() {
             {me?.kycVerified ? (
               <View style={styles.kycBadge}>
                 <Ionicons name="shield-checkmark" size={10} color="#fff" />
-                <Text style={styles.kycBadgeText}>YFN Verified</Text>
+                <Text style={styles.kycBadgeText}>Aktive Verified</Text>
               </View>
             ) : null}
           </View>
           {me?.bio ? <Text style={styles.bio}>{me.bio}</Text> : null}
-          <Text style={styles.bioLink}>vibe.app/u/{handle}</Text>
+          <Text style={styles.bioLink}>aktive.app/u/{handle}</Text>
         </View>
 
         <View style={styles.buttonRow}>
@@ -166,9 +166,9 @@ function VendorView({ handle }: { handle?: string }) {
         {bannerUrl ? (
           <Image source={{ uri: bannerUrl }} style={styles.banner} contentFit="cover" />
         ) : (
-          <LinearGradient colors={['#3a2818', '#1f1108']} style={styles.banner} />
+          <LinearGradient colors={[plasma.blue, plasma.violet, plasma.baseDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.banner} />
         )}
-        <LinearGradient colors={['transparent', 'rgba(22,9,3,0.95)']} style={[StyleSheet.absoluteFill, { top: '50%' }]} />
+        <LinearGradient colors={['transparent', 'rgba(5,7,15,0.92)']} style={[StyleSheet.absoluteFill, { top: '50%' }]} />
         <View style={styles.bannerActions}>
           <Pressable onPress={() => router.push('/vendor-store-setup/store-details' as never)} style={styles.bannerEditBtn} hitSlop={8}>
             <Ionicons name="camera" size={14} color="#FFFFFF" />
@@ -323,9 +323,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rim,
   },
   buyerPadded: {
     paddingHorizontal: spacing['5'],
@@ -373,9 +373,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.28)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rimStrong,
   },
   buttonLabel: { ...typography.bodyEmphasis, color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   iconButton: {
@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.35)',
+    borderColor: 'rgba(232, 93, 63, 0.35)',
   },
   quickRow: {
     flexDirection: 'row',
@@ -401,9 +401,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.22)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rim,
     position: 'relative',
   },
   quickBadge: {
@@ -447,9 +447,9 @@ const styles = StyleSheet.create({
     left: spacing['5'],
     padding: 3,
     borderRadius: 999,
-    backgroundColor: '#0A0603',
+    backgroundColor: plasma.baseDark,
     borderWidth: 2,
-    borderColor: 'rgba(47, 107, 255, 0.4)',
+    borderColor: glass.dark.rimStrong,
   },
   storeIdBlock: { paddingTop: 52, paddingHorizontal: spacing['5'], gap: 4 },
   storeNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing['1'] },
@@ -488,9 +488,9 @@ const styles = StyleSheet.create({
   },
   vendorBtnPrimary: { backgroundColor: palette.brand.orange },
   vendorBtnGhost: {
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.28)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rimStrong,
   },
   vendorBtnLabel: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
   vendorBtnLabelGhost: { ...typography.buttonLabel, color: '#FFFFFF', fontSize: 13 },
@@ -499,9 +499,9 @@ const styles = StyleSheet.create({
   reviewCard: {
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rim,
   },
   reviewAuthor: { ...typography.bodyEmphasis, color: '#FFFFFF' },
   reviewText: { ...typography.body, color: 'rgba(255, 255, 255, 0.85)', marginTop: 2 },

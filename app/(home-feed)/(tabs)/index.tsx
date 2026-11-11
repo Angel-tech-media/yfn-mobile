@@ -10,14 +10,14 @@ import { NavIconButton } from '@/components/kit/Fields';
 import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
 import { PostCard, type PostItem } from '@/components/feed/PostCard';
 import { Avatar } from '@/components/ui/Avatar';
-import { CartMascot } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMe } from '@/src/api/account/hooks';
 import { useConversations } from '@/src/api/chat/hooks';
 import { useFeed, useFeedReels, useStoriesInbox } from '@/src/api/feed/hooks';
 import { useCartCount } from '@/src/store/cart';
-import { continuous, corner, layout, type, useUi } from '@/src/theme/ui';
+import { plasma } from '@/src/theme/plasma';
+import { continuous, corner, layout, solidBackground, type, useUi } from '@/src/theme/ui';
 import { formatKobo } from '@/src/utils/money';
 
 import type { Post, Story } from '@/src/api/types';
@@ -122,21 +122,21 @@ export default function HomeFeedScreen() {
                   haptic="light"
                   scaleTo={0.97}
                   onPress={() => router.push(`/reel?id=${reel.id}` as never)}
-                  style={[styles.reel, { backgroundColor: ui.card }]}>
+                  style={[styles.reel, { backgroundColor: ui.card, borderColor: ui.separator }]}>
                   {reel.coverUrl ? (
                     <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
                   ) : null}
-                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+                  <LinearGradient colors={['transparent', 'rgba(5,7,15,0.78)']} style={StyleSheet.absoluteFill} />
                   {reel.product ? (
                     <View style={styles.reelBadge}>
                       <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
                     </View>
                   ) : null}
                   <View style={styles.reelMeta}>
-                    <Text style={[type.subhead, { color: '#FFF' }]} numberOfLines={1}>
+                    <Text style={[type.subhead, { color: '#FFF', fontFamily: 'Inter_600SemiBold' }]} numberOfLines={1}>
                       {reel.author.name}
                     </Text>
-                    <Text style={[type.footnote, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>
+                    <Text style={[type.footnote, { color: 'rgba(255,255,255,0.78)' }]} numberOfLines={1}>
                       {reel.caption}
                     </Text>
                   </View>
@@ -184,25 +184,26 @@ function StoryTile({
   addable?: boolean;
 }) {
   const ui = useUi();
+  const holeBg = ui.isDark ? solidBackground.dark : solidBackground.light;
   return (
     <PressableScale haptic="light" scaleTo={0.94} onPress={onPress} style={styles.story} accessibilityLabel={name}>
       {ring ? (
         <View style={styles.storyRingWrapper}>
           <LinearGradient
-            colors={['#FF3B3B', '#2F6BFF']}
+            colors={plasma.spectrum}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.storyRingGradient}>
-            <View style={[styles.storyRingHole, { backgroundColor: ui.background }]}>
+            <View style={[styles.storyRingHole, { backgroundColor: holeBg }]}>
               {avatar}
             </View>
           </LinearGradient>
         </View>
       ) : (
-        <View style={[styles.storyRing, { borderColor: ui.separator }]}>{avatar}</View>
+        <View style={[styles.storyRing, { borderColor: ui.separator, backgroundColor: ui.card }]}>{avatar}</View>
       )}
       {addable ? (
-        <View style={[styles.storyAdd, { backgroundColor: ui.accent, borderColor: ui.background }]}>
+        <View style={[styles.storyAdd, { backgroundColor: ui.accent, borderColor: holeBg }]}>
           <Ionicons name="add" size={14} color={ui.onAccent} />
         </View>
       ) : null}
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   stories: { paddingHorizontal: layout.gutter, gap: 14 },
   story: { width: 72, alignItems: 'center', gap: 6 },
   storyRingWrapper: {
-    shadowColor: '#2F6BFF',
+    shadowColor: '#C94124',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,
     shadowRadius: 10,
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    borderWidth: 2,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -299,10 +300,11 @@ const styles = StyleSheet.create({
     borderRadius: corner.lg,
     overflow: 'hidden',
     justifyContent: 'flex-end',
+    borderWidth: StyleSheet.hairlineWidth,
     ...continuous,
   },
   reelBadge: { position: 'absolute', top: 10, left: 10 },
   reelMeta: { padding: 12, gap: 2 },
-  posts: { gap: 20 },
+  posts: { paddingHorizontal: layout.gutter, gap: 20 },
   empty: { alignItems: 'center', gap: 12, padding: 32 },
 });

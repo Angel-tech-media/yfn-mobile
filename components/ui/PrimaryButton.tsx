@@ -7,42 +7,37 @@ import { PressableScale, type HapticKind } from '@/components/ui/PressableScale'
 import { apiErrorMessage } from '@/src/utils/api-error-message';
 import { useToast } from '@/src/hooks/use-toast';
 import { radius, spacing, typography } from '@/src/theme';
+import { glass, plasma } from '@/src/theme/plasma';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 type Props = {
   label: string;
-  /**
-   * May return a promise. While it is pending the button shows a spinner, ignores further taps
-   * and (if it throws) surfaces an error toast — no per-screen loading state needed.
-   */
   onPress?: () => void | Promise<unknown>;
   variant?: Variant;
   size?: Size;
   icon?: keyof typeof Ionicons.glyphMap;
-  /** Label shown while a promise-returning onPress is pending. */
   loadingLabel?: string;
-  /** Force the loading state from the outside (e.g. a react-query mutation). */
   loading?: boolean;
   disabled?: boolean;
   haptic?: HapticKind;
   style?: StyleProp<ViewStyle>;
 };
 
-const HEIGHT: Record<Size, number> = { sm: 38, md: 46, lg: 56 };
+const HEIGHT: Record<Size, number> = { sm: 38, md: 46, lg: 54 };
 
 function colorsFor(variant: Variant) {
   switch (variant) {
     case 'primary':
-      return { bg: 'transparent', fg: '#FFFFFF', border: 'transparent' };
+      return { bg: '#E85D3F', fg: '#FFFFFF', border: 'rgba(255, 255, 255, 0.24)' };
     case 'danger':
-      return { bg: '#E5262F', fg: '#FFFFFF', border: 'transparent' };
+      return { bg: '#E5262F', fg: '#FFFFFF', border: 'rgba(255, 255, 255, 0.20)' };
     case 'secondary':
-      return { bg: '#121833', fg: '#F5F1EA', border: 'rgba(47, 107, 255, 0.28)' };
+      return { bg: glass.dark.fillRaised, fg: '#FAFAFA', border: glass.dark.rimStrong };
     case 'ghost':
     default:
-      return { bg: 'transparent', fg: '#F5F1EA', border: 'rgba(47, 107, 255, 0.20)' };
+      return { bg: glass.dark.fillSubtle, fg: '#FAFAFA', border: glass.dark.rim };
   }
 }
 
@@ -109,15 +104,16 @@ export function PrimaryButton({
       debounceMs={350}
       style={[
         styles.base,
-        isPrimary && styles.primaryGlow,
+        isPrimary && styles.primaryShadow,
         { height: HEIGHT[size], backgroundColor: colors.bg, borderColor: colors.border },
-        colors.border !== 'transparent' && styles.bordered,
+        styles.bordered,
+        disabled && styles.disabledDim,
         isLoading && !disabled && styles.loadingDim,
         style,
       ]}>
       {isPrimary ? (
         <LinearGradient
-          colors={['#FF3B3B', '#2F6BFF']}
+          colors={['#E85D3F', '#C94124']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -141,11 +137,12 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['5'],
     overflow: 'hidden',
+    borderCurve: 'continuous',
   },
   contentRow: {
     flexDirection: 'row',
@@ -153,15 +150,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing['2'],
   },
-  primaryGlow: {
-    shadowColor: '#2F6BFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
+  primaryShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
     shadowRadius: 14,
-    elevation: 6,
+    elevation: 4,
   },
   bordered: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  disabledDim: {
+    opacity: 0.45,
   },
   loadingDim: {
     opacity: 0.85,
@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.buttonLabel.fontFamily,
     fontSize: typography.buttonLabel.fontSize,
     lineHeight: typography.buttonLabel.lineHeight,
+    letterSpacing: -0.3,
   },
   labelSmall: {
     fontSize: 13,

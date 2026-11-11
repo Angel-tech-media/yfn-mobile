@@ -144,8 +144,8 @@ export function ProductSearchMap({ vendors, searchQuery, userCoords }: ProductSe
 
           {/* Map Grid / Street Vectors */}
           <Circle cx={SCREEN_WIDTH / 2} cy={MAP_HEIGHT / 2} r="180" fill="url(#radarPulse)" />
-          <Circle cx={SCREEN_WIDTH / 2} cy={MAP_HEIGHT / 2} r="120" stroke="rgba(47, 107, 255, 0.12)" strokeWidth="1" strokeDasharray="4 4" fill="none" />
-          <Circle cx={SCREEN_WIDTH / 2} cy={MAP_HEIGHT / 2} r="220" stroke="rgba(47, 107, 255, 0.08)" strokeWidth="1" strokeDasharray="6 6" fill="none" />
+          <Circle cx={SCREEN_WIDTH / 2} cy={MAP_HEIGHT / 2} r="120" stroke="rgba(232, 93, 63, 0.12)" strokeWidth="1" strokeDasharray="4 4" fill="none" />
+          <Circle cx={SCREEN_WIDTH / 2} cy={MAP_HEIGHT / 2} r="220" stroke="rgba(232, 93, 63, 0.08)" strokeWidth="1" strokeDasharray="6 6" fill="none" />
 
           {/* Stylized Street Lines */}
           <Line x1="0" y1={MAP_HEIGHT * 0.35} x2={SCREEN_WIDTH} y2={MAP_HEIGHT * 0.42} stroke="#221810" strokeWidth="8" />
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: 'rgba(26, 18, 14, 0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.45)',
+    borderColor: 'rgba(232, 93, 63, 0.45)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   storeCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.10)',
     gap: spacing['3'],
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -581,9 +581,9 @@ const styles = StyleSheet.create({
     gap: spacing['2'],
     padding: spacing['2'],
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(47, 107, 255, 0.08)',
+    backgroundColor: 'rgba(232, 93, 63, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.18)',
+    borderColor: 'rgba(232, 93, 63, 0.18)',
   },
   productBannerTitle: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -640,9 +640,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.3)',
+    borderColor: 'rgba(232, 93, 63, 0.3)',
   },
   viewItemBtnText: {
     fontFamily: typography.buttonLabel.fontFamily,
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     marginLeft: 'auto',
   },
   openPillText: {

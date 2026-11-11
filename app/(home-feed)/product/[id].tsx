@@ -272,7 +272,7 @@ export default function ProductDetailScreen() {
                   {product.vendor.isYfnVerified ? (
                     <View style={styles.kycBadge}>
                       <Ionicons name="shield-checkmark" size={10} color="#fff" />
-                      <Text style={styles.kycText}>YFN</Text>
+                      <Text style={styles.kycText}>Aktive</Text>
                     </View>
                   ) : null}
                 </View>
@@ -419,7 +419,7 @@ export default function ProductDetailScreen() {
                   </View>
                 </View>
                 <Text style={styles.payExplain}>
-                  Money leaves your eWallet into Vibe escrow. The vendor sees the payment
+                  Money leaves your eWallet into Aktive escrow. The vendor sees the payment
                   but it only releases to them when you confirm delivery.
                 </Text>
 
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.45)',
   },
@@ -637,9 +637,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.32)',
+    borderColor: 'rgba(232, 93, 63, 0.32)',
   },
   viaText: {
     flex: 1,
@@ -746,9 +746,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(47, 107, 255, 0.10)',
+    backgroundColor: 'rgba(232, 93, 63, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.28)',
+    borderColor: 'rgba(232, 93, 63, 0.28)',
     marginTop: spacing['2'],
     marginBottom: spacing['1'],
     alignSelf: 'flex-start',
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },
@@ -927,8 +927,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
-    backgroundColor: '#121833',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.5,

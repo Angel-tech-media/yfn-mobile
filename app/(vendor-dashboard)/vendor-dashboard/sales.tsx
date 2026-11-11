@@ -99,7 +99,7 @@ export default function SalesAnalyticsScreen() {
                         styles.bar,
                         {
                           height: bucket.count ? `${Math.max(8, (bucket.count / maxOrders) * 100)}%` : '0%',
-                          backgroundColor: '#121833',
+                          backgroundColor: 'rgba(22, 22, 27, 0.76)',
                         },
                       ]}
                     />
@@ -344,11 +344,11 @@ const styles = StyleSheet.create({
   scroll: { paddingVertical: spacing['3'], gap: spacing['3'], paddingBottom: 40 },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderRadius: radius.md,
     padding: 4,
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   tab: {
     flex: 1,
@@ -368,9 +368,9 @@ const styles = StyleSheet.create({
   stateCard: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['2'],
   },
   stateText: {
@@ -386,9 +386,9 @@ const styles = StyleSheet.create({
   chartCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
   },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -465,9 +465,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: 2,
   },
   kpiLabel: {
@@ -489,18 +489,18 @@ const styles = StyleSheet.create({
   emptyCard: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -520,9 +520,9 @@ const styles = StyleSheet.create({
   funnelCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
   },
   funnelRow: {

@@ -51,7 +51,7 @@ export default function LiveProductDetailScreen() {
               {product.isYfnVerified ? (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="shield-checkmark" size={12} color="#fff" />
-                  <Text style={styles.verifiedText}>YFN-verified</Text>
+                  <Text style={styles.verifiedText}>Aktive-verified</Text>
                 </View>
               ) : null}
             </View>

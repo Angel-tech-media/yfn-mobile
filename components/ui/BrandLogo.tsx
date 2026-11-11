@@ -40,14 +40,14 @@ export function BrandLogo({
           },
           style,
         ]}>
-        VIBE
+        AKTIVE
       </Text>
     </View>
   );
 }
 
 /**
- * Friendly Shopping Cart Mascot ("Vibe Carty")
+ * Friendly Shopping Cart Mascot ("Aktive Carty")
  * A warm, lovable shopping companion character with joyful expressive eyes,
  * blushing cheeks, a cheerful smile, shiny wheels, and a golden magic discovery star!
  */

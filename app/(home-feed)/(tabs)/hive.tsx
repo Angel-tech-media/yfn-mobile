@@ -204,7 +204,7 @@ function authorName(article: Article) {
     const { name } = author as { name?: unknown };
     if (typeof name === 'string' && name.trim()) return name;
   }
-  return 'Vibe News';
+  return 'Aktive News';
 }
 
 function coverColors(category: string): [string, string] {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     padding: spacing['3'],
     backgroundColor: 'rgba(255,255,255,0.28)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['2'],
   },
   categoryEmojiWrap: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   emptyText: { ...typography.body, color: palette.ink.onDarkSoft },
   trendingRow: {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
     flexDirection: 'row',

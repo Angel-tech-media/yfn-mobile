@@ -52,10 +52,10 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing['2'],
     paddingRight: spacing['4'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(245, 242, 236, 0.19)',
     gap: spacing['3'],
   },
   flagPill: {
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['2'],
     paddingVertical: 6,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   pressed: { opacity: 0.7 },
   flag: {

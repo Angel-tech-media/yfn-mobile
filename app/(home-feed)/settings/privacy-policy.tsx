@@ -11,7 +11,7 @@ export default function PrivacyPolicyScreen() {
         <View style={styles.header}>
           <Text style={styles.effectiveDate}>Effective Date: October 2026</Text>
           <Text style={styles.intro}>
-            Your privacy is fundamental to Vibe. This Privacy Policy details how we collect, protect, and use your personal information when using our mobile application and social commerce network.
+            Your privacy is fundamental to Aktive. This Privacy Policy details how we collect, protect, and use your personal information when using our mobile application and social commerce network.
           </Text>
         </View>
 
@@ -46,7 +46,7 @@ export default function PrivacyPolicyScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>5. Contact Our Privacy Officer</Text>
           <Text style={styles.paragraph}>
-            If you have questions or data protection requests, please contact privacy@vibe.ng.
+            If you have questions or data protection requests, please contact privacy@aktive.ng.
           </Text>
         </View>
       </ScrollView>

@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     padding: spacing['6'],
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.35)',
+    borderColor: 'rgba(232, 93, 63, 0.35)',
     overflow: 'hidden',
     shadowColor: '#D89544',
     shadowOffset: { width: 0, height: 10 },

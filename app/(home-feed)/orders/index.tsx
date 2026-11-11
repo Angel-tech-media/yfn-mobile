@@ -101,7 +101,7 @@ export default function OrdersScreen() {
                   style={[
                     styles.statusPill,
                     o.status === 'released' && { backgroundColor: 'rgba(76,175,80,0.18)' },
-                    o.status === 'shipped' && { backgroundColor: 'rgba(47, 107, 255, 0.18)' },
+                    o.status === 'shipped' && { backgroundColor: 'rgba(232, 93, 63, 0.18)' },
                   ]}>
                   <Text style={styles.statusPillText}>{o.status.toUpperCase()}</Text>
                 </View>
@@ -179,9 +179,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   chipActive: {
     backgroundColor: palette.brand.gloryBlue,
@@ -221,9 +221,9 @@ const styles = StyleSheet.create({
   card: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: spacing['3'],
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   thumbName: {
     flex: 1,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: spacing['2'],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(47, 107, 255, 0.16)',
+    borderTopColor: 'rgba(232, 93, 63, 0.16)',
   },
   totalLabel: {
     fontFamily: typography.body.fontFamily,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
   },

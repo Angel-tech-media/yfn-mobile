@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   visibilityChipOn: {
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     borderColor: palette.brand.orange,
   },
   visibilityLabel: {

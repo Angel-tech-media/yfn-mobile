@@ -96,7 +96,7 @@ export default function ArticleScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.authorName}>{author.name}</Text>
               <Text style={styles.authorMeta}>
-                {author.role ?? 'Vibe News'} · {dateLabel(article.publishedAt)} · {article.readMin} min read
+                {author.role ?? 'Aktive News'} · {dateLabel(article.publishedAt)} · {article.readMin} min read
               </Text>
             </View>
             <Pressable style={styles.followBtn}>
@@ -161,7 +161,7 @@ export default function ArticleScreen() {
               </View>
             )}
             <Text style={styles.authorCardName}>Written by {author.name}</Text>
-            <Text style={styles.authorCardMeta}>{author.role ?? 'Vibe News'}</Text>
+            <Text style={styles.authorCardMeta}>{author.role ?? 'Aktive News'}</Text>
             <Pressable style={styles.authorFollow}>
               <Text style={styles.authorFollowText}>Follow</Text>
             </Pressable>
@@ -169,7 +169,7 @@ export default function ArticleScreen() {
 
           {article.related.length ? (
             <>
-              <Text style={styles.sectionTitle}>More from Vibe</Text>
+              <Text style={styles.sectionTitle}>More from Aktive</Text>
               {article.related.map((related) => (
                 <Pressable
                   key={related.id}
@@ -233,7 +233,7 @@ function sourceLabel(article: Article) {
 
 function articleAuthor(article: Article) {
   const { author } = article;
-  if (!author || typeof author !== 'object') return { name: 'Vibe News' };
+  if (!author || typeof author !== 'object') return { name: 'Aktive News' };
 
   const name = 'name' in author ? (author as { name?: unknown }).name : undefined;
   const role = 'role' in author ? (author as { role?: unknown }).role : undefined;
@@ -241,7 +241,7 @@ function articleAuthor(article: Article) {
   const initial = 'initial' in author ? (author as { initial?: unknown }).initial : undefined;
 
   return {
-    name: typeof name === 'string' && name.trim() ? name : 'Vibe News',
+    name: typeof name === 'string' && name.trim() ? name : 'Aktive News',
     role: typeof role === 'string' && role.trim() ? role : undefined,
     avatarUrl: typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl : undefined,
     initial: typeof initial === 'string' && initial.trim() ? initial : undefined,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     alignItems: 'center',
     justifyContent: 'center',
   },

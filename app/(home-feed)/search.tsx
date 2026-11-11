@@ -102,7 +102,7 @@ export default function SearchScreen() {
           ) : (
             <View style={styles.empty}>
               <Ionicons name="search" size={36} color={palette.ink.onDarkMuted} />
-              <Text style={styles.emptyTitle}>Search Vibe</Text>
+              <Text style={styles.emptyTitle}>Search Aktive</Text>
               <Text style={styles.emptySub}>Type to search people, products, tags, and places.</Text>
             </View>
           )}
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: 'rgba(47, 107, 255,0.18)',
+    backgroundColor: 'rgba(232, 93, 63,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -372,9 +372,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minHeight: 36,
     borderRadius: 999,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.sm,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   productName: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: spacing['2'],
@@ -507,9 +507,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.35)',
+    borderColor: 'rgba(232, 93, 63, 0.35)',
   },
   proximityText: {
     fontFamily: typography.caption.fontFamily,

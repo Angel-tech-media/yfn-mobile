@@ -28,7 +28,7 @@ export const PLATFORM_FEE_THRESHOLD_NGN = 5000;
 export const PLATFORM_FEE_RATE = 0.005; // 0.5%
 export const PLATFORM_FEE_MAX_NGN = 500;
 
-/** Compute the buyer-side Vibe service fee for a given subtotal. */
+/** Compute the buyer-side Aktive service fee for a given subtotal. */
 export function computePlatformFee(subtotal: number): number {
   if (subtotal <= 0) return 0;
   const overThreshold = Math.max(0, subtotal - PLATFORM_FEE_THRESHOLD_NGN);

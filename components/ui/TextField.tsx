@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { palette, radius, spacing, typography } from '@/src/theme';
+import { glass, plasma } from '@/src/theme/plasma';
 
 type Props = TextInputProps & {
   label?: string;
@@ -33,16 +34,31 @@ export function TextField({
   ...rest
 }: Props) {
   const [hidden, setHidden] = useState(true);
+  const [focused, setFocused] = useState(false);
   const effectiveSecure = isPassword ? hidden : secureTextEntry;
 
   return (
     <View style={[styles.root, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.field, error ? styles.fieldError : null]}>
+      <View
+        style={[
+          styles.field,
+          focused ? styles.fieldFocused : null,
+          error ? styles.fieldError : null,
+        ]}>
         <TextInput
           {...rest}
+          onFocus={(e) => {
+            setFocused(true);
+            rest.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            rest.onBlur?.(e);
+          }}
           secureTextEntry={effectiveSecure}
-          placeholderTextColor={palette.ink.onDarkMuted}
+          placeholderTextColor="rgba(245, 246, 250, 0.52)"
+          selectionColor={plasma.cyan}
           style={[styles.input, style]}
         />
         {isPassword ? (
@@ -54,7 +70,7 @@ export function TextField({
             <Ionicons
               name={hidden ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={palette.ink.onDarkSoft}
+              color="rgba(245, 246, 250, 0.78)"
             />
           </Pressable>
         ) : null}
@@ -73,7 +89,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.caption.fontFamily,
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
-    color: palette.ink.onDarkSoft,
+    color: 'rgba(245, 246, 250, 0.85)',
     marginBottom: spacing['2'],
   },
   field: {
@@ -81,10 +97,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 56,
     paddingHorizontal: spacing['4'],
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: glass.dark.rimStrong,
+  },
+  fieldFocused: {
+    borderColor: plasma.nude,
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
   },
   fieldError: {
     borderColor: palette.status.danger,
@@ -94,7 +114,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyLg.fontFamily,
     fontSize: typography.bodyLg.fontSize,
     lineHeight: typography.bodyLg.lineHeight,
-    color: palette.ink.onDarkStrong,
+    color: '#F5F6FA',
     paddingVertical: 0,
   },
   error: {

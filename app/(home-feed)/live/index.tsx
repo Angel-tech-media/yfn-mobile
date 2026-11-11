@@ -62,7 +62,7 @@ export default function LiveMarketplaceScreen() {
                   {item.isYfnVerified ? (
                     <View style={styles.verifiedBadge}>
                       <Ionicons name="shield-checkmark" size={11} color="#fff" />
-                      <Text style={styles.verifiedText}>YFN</Text>
+                      <Text style={styles.verifiedText}>Aktive</Text>
                     </View>
                   ) : null}
                 </View>

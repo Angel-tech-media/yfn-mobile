@@ -11,85 +11,85 @@ export function isDarkMode(): boolean {
 }
 
 const darkBg = {
-  espressoStart: '#0A0E1F',
-  espressoMid: '#0A0E1F',
-  espressoEnd: '#0A0E1F',
-  welcomePeachStart: '#0A0E1F',
-  welcomePeachMid: '#121833',
-  welcomePeachEnd: '#0A0E1F',
-  surface: '#121833',
-  surfaceMuted: '#1A2244',
-  glassDark: 'rgba(47, 107, 255, 0.12)',
-  glassDarkSoft: 'rgba(47, 107, 255, 0.06)',
-  cream: '#121833',
-  creamMuted: '#1A2244',
-  creamDeep: '#1E274D',
-  sage: '#1E3027',
-  sageSoft: '#14221A',
+  espressoStart: '#08080C',
+  espressoMid: '#0E0E14',
+  espressoEnd: '#08080C',
+  welcomePeachStart: '#08080C',
+  welcomePeachMid: '#0E0E14',
+  welcomePeachEnd: '#08080C',
+  surface: 'rgba(22, 22, 27, 0.76)',
+  surfaceMuted: 'rgba(32, 32, 39, 0.84)',
+  glassDark: 'rgba(255, 255, 255, 0.08)',
+  glassDarkSoft: 'rgba(255, 255, 255, 0.05)',
+  cream: 'rgba(22, 22, 27, 0.76)',
+  creamMuted: 'rgba(32, 32, 39, 0.84)',
+  creamDeep: 'rgba(42, 42, 50, 0.88)',
+  sage: '#18261F',
+  sageSoft: '#121C17',
   coral: '#E5262F',
-  softPeach: '#1A2244',
+  softPeach: 'rgba(32, 32, 39, 0.84)',
 };
 
 const lightBg = {
-  espressoStart: '#FFFFFF',
-  espressoMid: '#FAF7F1',
-  espressoEnd: '#F2EDE3',
-  welcomePeachStart: '#FFFFFF',
-  welcomePeachMid: '#FAF7F1',
-  welcomePeachEnd: '#E8DCC4',
+  espressoStart: '#F8F7F4',
+  espressoMid: '#F3F1EC',
+  espressoEnd: '#EAE6DF',
+  welcomePeachStart: '#F8F7F4',
+  welcomePeachMid: '#F3F1EC',
+  welcomePeachEnd: '#EAE6DF',
   surface: '#FFFFFF',
   surfaceMuted: '#FAFAFA',
   glassDark: 'rgba(0, 0, 0, 0.04)',
-  glassDarkSoft: 'rgba(0, 0, 0, 0.04)',
-  cream: '#FAF6EE',
-  creamMuted: '#F2EBDD',
-  creamDeep: '#E8DEC8',
+  glassDarkSoft: 'rgba(0, 0, 0, 0.03)',
+  cream: '#FAF8F5',
+  creamMuted: '#F2EFE9',
+  creamDeep: '#E6E1D8',
   sage: '#3B5A4A',
   sageSoft: '#E5EDE7',
   coral: '#E5262F',
-  softPeach: '#FFE8D6',
+  softPeach: '#FDECE6',
 };
 
 const darkInk = {
-  onLightStrong: '#F5F1EA',
-  onLightSubtle: 'rgba(245, 241, 234, 0.75)',
-  onDarkStrong: '#F5F1EA',
-  onDarkSoft: 'rgba(245, 241, 234, 0.85)',
-  onDarkMuted: 'rgba(245, 241, 234, 0.65)',
-  onDarkFaint: 'rgba(245, 241, 234, 0.40)',
+  onLightStrong: '#FAFAFA',
+  onLightSubtle: 'rgba(250, 250, 250, 0.75)',
+  onDarkStrong: '#FAFAFA',
+  onDarkSoft: 'rgba(250, 250, 250, 0.85)',
+  onDarkMuted: 'rgba(250, 250, 250, 0.62)',
+  onDarkFaint: 'rgba(250, 250, 250, 0.40)',
 };
 
 const lightInk = {
-  onLightStrong: '#0A0E1F',
-  onLightSubtle: 'rgba(10, 14, 31, 0.75)',
-  onDarkStrong: '#0A0E1F',
-  onDarkSoft: 'rgba(10, 14, 31, 0.85)',
-  onDarkMuted: 'rgba(10, 14, 31, 0.65)',
-  onDarkFaint: 'rgba(10, 14, 31, 0.40)',
+  onLightStrong: '#09090B',
+  onLightSubtle: 'rgba(9, 9, 11, 0.72)',
+  onDarkStrong: '#09090B',
+  onDarkSoft: 'rgba(9, 9, 11, 0.82)',
+  onDarkMuted: 'rgba(9, 9, 11, 0.60)',
+  onDarkFaint: 'rgba(9, 9, 11, 0.38)',
 };
 
 const darkLine = {
-  divider: 'rgba(47, 107, 255, 0.16)',
-  onDark: 'rgba(47, 107, 255, 0.16)',
+  divider: 'rgba(255, 255, 255, 0.12)',
+  onDark: 'rgba(255, 255, 255, 0.12)',
 };
 
 const lightLine = {
-  divider: '#E5E0D6',
-  onDark: 'rgba(0, 0, 0, 0.08)',
+  divider: 'rgba(9, 9, 11, 0.09)',
+  onDark: 'rgba(9, 9, 11, 0.09)',
 };
 
 export const palette = {
   brand: {
-    orange: '#2F6BFF',
-    orangeDeep: '#2050D8',
-    gloryBlue: '#2F6BFF',
+    orange: '#E85D3F',
+    orangeDeep: '#C94124',
+    gloryBlue: '#E85D3F',
     altarRed: '#E5262F',
-    amber: '#F4C464',
-    gold: '#F4C464',
-    accentSky: '#5B8EFF',
-    accentTeal: '#2F6BFF',
-    accentLavender: '#7C67FF',
-    accentGold: '#F4C464',
+    amber: '#F5C469',
+    gold: '#F5C469',
+    accentSky: '#F59E0B',
+    accentTeal: '#E85D3F',
+    accentLavender: '#9F1239',
+    accentGold: '#F5C469',
     accentCoral: '#E5262F',
     accentLime: '#30D158',
     accentLimeDeep: '#249C42',
@@ -105,8 +105,8 @@ export const palette = {
   },
   status: {
     success: '#30D158',
-    info: '#2F6BFF',
-    warning: '#F4C464',
+    info: '#E85D3F',
+    warning: '#F5C469',
     danger: '#E5262F',
   },
   shadow: {
@@ -119,8 +119,8 @@ export const radius = {
   xs: 2,
   sm: 6,
   md: 12,
-  lg: 18,
-  xl: 24,
+  lg: 22,
+  xl: 28,
   pill: 999,
 } as const;
 
@@ -140,9 +140,9 @@ export const spacing = {
 } as const;
 
 export const typography = {
-  display: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -0.7 },
-  h1: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 34, letterSpacing: -0.6 },
-  h2: { fontFamily: 'Inter_600SemiBold', fontSize: 22, lineHeight: 28, letterSpacing: -0.45 },
+  display: { fontFamily: 'InterTight_700Bold', fontSize: 34, lineHeight: 36, letterSpacing: -1.1 },
+  h1: { fontFamily: 'InterTight_700Bold', fontSize: 28, lineHeight: 32, letterSpacing: -0.8 },
+  h2: { fontFamily: 'InterTight_600SemiBold', fontSize: 22, lineHeight: 26, letterSpacing: -0.5 },
   title: { fontFamily: 'Inter_600SemiBold', fontSize: 16, lineHeight: 22 },
   bodyLg: { fontFamily: 'Inter_400Regular', fontSize: 16, lineHeight: 22 },
   body: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, letterSpacing: -0.1 },
@@ -154,19 +154,19 @@ export const typography = {
 
 export const gradient = {
   primary: {
-    colors: ['#FF3B3B', '#2F6BFF'] as const,
+    colors: ['#E85D3F', '#C94124'] as const,
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
   espresso: {
     type: 'linear' as const,
-    colors: ['#0A0E1F', '#0A0E1F'],
+    colors: ['#08080C', '#0E0E14'],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
   welcomePeach: {
     type: 'linear' as const,
-    colors: ['#0A0E1F', '#121833'],
+    colors: ['#08080C', '#0E0E14'],
     start: { x: 0.5, y: 0 },
     end: { x: 0.5, y: 1 },
   },

@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.35)',
+    borderColor: 'rgba(232, 93, 63, 0.35)',
     maxHeight: '90%',
     overflow: 'hidden',
   },
@@ -456,9 +456,9 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255, 0.08)',
+    backgroundColor: 'rgba(232, 93, 63, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.22)',
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   productThumbWrap: {
     width: 48,
@@ -513,9 +513,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   formatBtnActive: {
-    backgroundColor: 'rgba(47, 107, 255, 0.18)',
+    backgroundColor: 'rgba(232, 93, 63, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.3)',
+    borderColor: 'rgba(232, 93, 63, 0.3)',
   },
   formatBtnText: {
     fontFamily: typography.caption.fontFamily,
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   mediaActionBtnActive: {
-    backgroundColor: 'rgba(47, 107, 255, 0.14)',
+    backgroundColor: 'rgba(232, 93, 63, 0.14)',
     borderColor: palette.brand.orange,
   },
   mediaActionText: {

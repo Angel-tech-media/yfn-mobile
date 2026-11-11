@@ -237,7 +237,7 @@ function CommunityView({
         contentContainerStyle={styles.scroll}>
         {/* Group hero */}
         <LinearGradient
-          colors={['rgba(47, 107, 255,0.18)', 'transparent']}
+          colors={['rgba(232, 93, 63,0.18)', 'transparent']}
           style={styles.communityHero}>
           <View style={styles.communityAvatar}>
             <Text style={{ fontSize: 28 }}>{node.emoji}</Text>
@@ -736,9 +736,9 @@ const styles = StyleSheet.create({
     marginTop: spacing['2'],
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(47, 107, 255,0.10)',
+    backgroundColor: 'rgba(232, 93, 63,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.30)',
+    borderColor: 'rgba(232, 93, 63,0.30)',
     gap: spacing['2'],
   },
   topicHeader: {
@@ -799,9 +799,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing['3'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(47, 107, 255,0.10)',
+    backgroundColor: 'rgba(232, 93, 63,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.25)',
+    borderColor: 'rgba(232, 93, 63,0.25)',
   },
   botBubbleName: {
     ...typography.small,
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(47, 107, 255,0.25)',
+    backgroundColor: 'rgba(232, 93, 63,0.25)',
   },
   pollOptionRow: {
     flexDirection: 'row',
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     shadowColor: 'rgba(40, 26, 16, 0.10)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,

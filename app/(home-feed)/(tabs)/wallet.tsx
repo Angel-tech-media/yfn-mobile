@@ -9,7 +9,7 @@ import { DeliveryTrackCard } from '@/components/ui/DeliveryTrackCard';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { useOrders } from '@/src/api/orders/hooks';
 import { useTopUpWallet, useWallet } from '@/src/api/wallet/hooks';
-import { palette, radius, spacing, typography } from '@/src/theme';
+import { display, glass, plasma, palette, radius, spacing, typography } from '@/src/theme';
 import { formatKobo, nairaToKobo } from '@/src/utils/money';
 
 export default function WalletScreen() {
@@ -52,7 +52,7 @@ export default function WalletScreen() {
           ) : (
           <>
           <LinearGradient
-            colors={[palette.brand.orange, palette.brand.orangeDeep]}
+            colors={['#28231E', '#1D1916', '#141210']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.balanceCard}>
@@ -287,16 +287,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     gap: spacing['2'],
-    backgroundColor: '#121833',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rim,
   },
   balanceCard: {
     marginHorizontal: spacing['4'],
     padding: spacing['5'],
     borderRadius: radius.xl,
     gap: spacing['2'],
-    shadowColor: palette.brand.orange,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rimStrong,
+    shadowColor: plasma.blue,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -310,10 +312,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   balanceAmount: {
-    ...typography.display,
-    color: '#fff',
-    fontSize: 36,
-    lineHeight: 42,
+    ...display.stat,
+    color: '#F5F6FA',
   },
   balanceRow: {
     flexDirection: 'row',
@@ -350,9 +350,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(47, 107, 255,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.3)',
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rimStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -388,9 +388,9 @@ const styles = StyleSheet.create({
   list: {
     marginHorizontal: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: palette.line.onDark,
+    backgroundColor: glass.dark.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: glass.dark.rim,
     overflow: 'hidden',
   },
   row: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(47, 107, 255,0.15)',
+    backgroundColor: 'rgba(232, 93, 63,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },

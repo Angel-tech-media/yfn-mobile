@@ -14,7 +14,7 @@ const TOPICS: Array<{ key: string; label: string; icon: keyof typeof Ionicons.gl
   { key: 'orders', label: 'Orders & shipping', icon: 'cube-outline' },
   { key: 'returns', label: 'Returns & refunds', icon: 'arrow-undo-outline' },
   { key: 'payments', label: 'Payments & escrow', icon: 'card-outline' },
-  { key: 'vendor', label: 'Selling on Vibe', icon: 'storefront-outline' },
+  { key: 'vendor', label: 'Selling on Aktive', icon: 'storefront-outline' },
   { key: 'account', label: 'Account & security', icon: 'lock-closed-outline' },
   { key: 'content', label: 'Posts, stories & reels', icon: 'sparkles-outline' },
 ];
@@ -24,7 +24,7 @@ const FAQ: Faq[] = [
   { id: 'q2', question: 'How do I become a vendor?', answer: 'Tap the "Become a vendor" CTA on your profile. You\'ll be guided through identity verification and store setup in under 10 minutes.' },
   { id: 'q3', question: 'Can I return an item?', answer: 'Yes — most items are eligible for return within 7 days of delivery. Open the order and tap "Request return".' },
   { id: 'q4', question: 'When does my withdrawal arrive?', answer: 'Vendor withdrawals arrive in your linked account within 1–2 business days after standard verification.' },
-  { id: 'q5', question: 'How does escrow protection work?', answer: 'When you make a payment on Vibe, your money is securely locked in escrow. Funds are only transferred to the seller once you inspect and confirm receipt of your order.' },
+  { id: 'q5', question: 'How does escrow protection work?', answer: 'When you make a payment on Aktive, your money is securely locked in escrow. Funds are only transferred to the seller once you inspect and confirm receipt of your order.' },
 ];
 
 export default function HelpScreen() {
@@ -83,7 +83,7 @@ export default function HelpScreen() {
           <Text style={styles.contactTitle}>Still need help?</Text>
           <View style={styles.contactRow}>
             <Pressable
-              onPress={() => void Linking.openURL('mailto:support@vibe.ng?subject=Vibe%20Support')}
+              onPress={() => void Linking.openURL('mailto:support@aktive.ng?subject=Aktive%20Support')}
               style={styles.contactBtn}>
               <Ionicons name="mail-outline" size={18} color={palette.brand.gloryBlue} />
               <Text style={styles.contactLabel}>Email Us</Text>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(47, 107, 255, 0.12)',
+    backgroundColor: 'rgba(232, 93, 63, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },

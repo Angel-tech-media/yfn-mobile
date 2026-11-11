@@ -51,7 +51,7 @@ export default function IntentScreen() {
   return (
     <ScreenContainer variant="espresso">
       <View style={styles.titleBlock}>
-        <Text style={styles.title}>What brought{'\n'}you to Vibe?</Text>
+        <Text style={styles.title}>What brought{'\n'}you to Aktive?</Text>
         <Text style={styles.subtitle}>Pick the one that fits you best — you can change this later.</Text>
       </View>
 

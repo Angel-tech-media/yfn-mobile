@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   visibilityChipOn: {
-    backgroundColor: 'rgba(47, 107, 255, 0.15)',
+    backgroundColor: 'rgba(232, 93, 63, 0.15)',
     borderColor: palette.brand.orange,
   },
   visibilityLabel: {
@@ -267,16 +267,16 @@ const styles = StyleSheet.create({
     gap: spacing['3'],
     padding: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: 'rgba(47, 107, 255,0.08)',
+    backgroundColor: 'rgba(232, 93, 63,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.30)',
+    borderColor: 'rgba(232, 93, 63,0.30)',
     marginBottom: spacing['3'],
   },
   earnIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(47, 107, 255,0.18)',
+    backgroundColor: 'rgba(232, 93, 63,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -21,7 +21,7 @@ const SECTIONS: Array<{ title: string; rows: Pref[] }> = [
     title: 'Email',
     rows: [
       { key: 'order-emails', label: 'Order receipts', description: 'Email confirmation for purchases', defaultOn: true },
-      { key: 'newsletter', label: 'Vibe weekly', description: 'Trending vendors and product picks' },
+      { key: 'newsletter', label: 'Aktive weekly', description: 'Trending vendors and product picks' },
       { key: 'promos', label: 'Promo codes & flash sales', description: 'Limited-time discounts' },
     ],
   },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
   },

@@ -27,7 +27,7 @@ type Props = {
 export function Avatar({
   source,
   initials,
-  initialsBackground = '#1A2244',
+  initialsBackground = '#26221E',
   size = 48,
   ring = false,
   isLive = false,
@@ -45,27 +45,27 @@ export function Avatar({
       {source ? (
         <Image source={source} style={{ width: size, height: size, borderRadius: radius }} />
       ) : initials ? (
-        <Text style={[styles.initials, { fontSize: Math.round(size * 0.42) }]}>{initials}</Text>
+        <Text style={[styles.initials, { fontSize: Math.round(size * 0.4) }]}>{initials}</Text>
       ) : (
-        <Ionicons name="person" size={size * 0.55} color="rgba(245, 241, 234, 0.65)" />
+        <Ionicons name="person" size={size * 0.52} color="rgba(245, 242, 236, 0.62)" />
       )}
     </View>
   );
 
   if (ring || isLive) {
-    const ringPadding = 2.5;
-    const outerSize = size + ringPadding * 2 + 4;
+    const ringPadding = 1.5;
+    const outerSize = size + ringPadding * 2 + 3;
     return (
       <View style={[styles.ringWrapper, { width: outerSize, height: outerSize }]}>
         <LinearGradient
-          colors={['#FF3B3B', '#2F6BFF']}
+          colors={isLive ? ['#E5262F', '#E85D3F'] : ['#E2D3C1', '#C94124']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.ringGradient, { width: outerSize, height: outerSize, borderRadius: outerSize / 2 }]}>
           <View
             style={[
               styles.ringCutout,
-              { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 },
+              { width: size + 3, height: size + 3, borderRadius: (size + 3) / 2 },
             ]}>
             {inner}
           </View>
@@ -79,31 +79,28 @@ export function Avatar({
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: '#121833',
+    backgroundColor: '#26221E',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(245, 242, 236, 0.14)',
   },
   initials: {
     fontFamily: typography.h2.fontFamily,
-    color: '#F5F1EA',
-    letterSpacing: 0.5,
+    color: '#F5F2EC',
+    letterSpacing: -0.2,
   },
   ringWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#2F6BFF',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
   },
   ringGradient: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringCutout: {
-    backgroundColor: '#0A0E1F',
+    backgroundColor: '#08080C',
     alignItems: 'center',
     justifyContent: 'center',
   },

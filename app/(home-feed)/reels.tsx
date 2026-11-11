@@ -200,8 +200,8 @@ function ReelCard({
   const handleShare = async () => {
     try {
       await Share.share({
-        title: reel.caption || 'Watch on YFN',
-        message: `${reel.caption ? reel.caption + '\n\n' : ''}Watch & shop on YFN! ${
+        title: reel.caption || 'Watch on Aktive',
+        message: `${reel.caption ? reel.caption + '\n\n' : ''}Watch & shop on Aktive! ${
           reel.product ? '\n🛍️ Product: ' + reel.product.name + ' (' + formatKobo(reel.product.price) + ')' : ''
         }`,
       });
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   },
   sheetContainer: {
     height: SCREEN_HEIGHT * 0.65,
-    backgroundColor: '#161210',
+    backgroundColor: 'rgba(14, 19, 38, 0.68)',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,

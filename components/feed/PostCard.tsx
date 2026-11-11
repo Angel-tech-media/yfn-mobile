@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 
@@ -68,8 +67,11 @@ function compact(value: number) {
 }
 
 /**
- * A feed post, product-first: author row, edge-to-edge media with the price on the image,
- * a quiet action row, then the caption. A shoppable post gets one clear "Shop" action.
+ * Editorial Apple-grade social commerce feed card:
+ * - Warm smoked-stone glass container with a 1px warm-bone specular rim.
+ * - Clean author header with subtle typography hierarchy.
+ * - Inset squircle media frame (10pt inset) so the glass card frames the photography evenly.
+ * - Quiet action bar and a refined, minimalist nude-accent Shop bar.
  */
 export function PostCard({ post }: { post: PostItem }) {
   const ui = useUi();
@@ -115,8 +117,8 @@ export function PostCard({ post }: { post: PostItem }) {
     try {
       await Share.share({
         title: 'Share post',
-        message: `${post.author}: ${post.caption} https://yfn.app/post/${post.id}`,
-        url: `https://yfn.app/post/${post.id}`,
+        message: `${post.author}: ${post.caption} https://aktive.app/post/${post.id}`,
+        url: `https://aktive.app/post/${post.id}`,
       });
     } catch (error: unknown) {
       if (error instanceof Error && error.message !== 'User did not share') {
@@ -145,22 +147,21 @@ export function PostCard({ post }: { post: PostItem }) {
   const openProfile = () => router.push(`/u/${post.authorHandle}` as never);
 
   return (
-    <Card style={styles.card}>
+    <Card elevated style={styles.card}>
       {/* Author */}
       <View style={styles.authorRow}>
-        <PressableScale haptic="light" scaleTo={0.96} onPress={openProfile} style={styles.authorTap}>
+        <PressableScale haptic="light" scaleTo={0.97} onPress={openProfile} style={styles.authorTap}>
           <Avatar
-            size={36}
+            size={38}
             source={post.authorAvatarUrl ? { uri: post.authorAvatarUrl } : undefined}
             initials={initialsFor(post.author)}
-            ring
           />
           <View style={styles.authorText}>
             <View style={styles.nameRow}>
               <Text style={[type.subhead, styles.name, { color: ui.label }]} numberOfLines={1}>
                 {post.author}
               </Text>
-              {post.verified ? <Ionicons name="checkmark-circle" size={14} color={ui.success} /> : null}
+              {post.verified ? <Ionicons name="checkmark-circle" size={14} color={ui.accent} /> : null}
             </View>
             <Text style={[type.footnote, { color: ui.secondaryLabel }]} numberOfLines={1}>
               @{post.authorHandle}
@@ -171,8 +172,9 @@ export function PostCard({ post }: { post: PostItem }) {
           accessibilityLabel="More options"
           haptic="light"
           hitSlop={10}
-          onPress={() => setOptionsOpen(true)}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={ui.secondaryLabel} />
+          onPress={() => setOptionsOpen(true)}
+          style={styles.moreBtn}>
+          <Ionicons name="ellipsis-horizontal" size={18} color={ui.secondaryLabel} />
         </PressableScale>
       </View>
 
@@ -226,36 +228,34 @@ export function PostCard({ post }: { post: PostItem }) {
           scaleTo={0.99}
           onPress={() => router.push(`/post/${post.id}` as never)}
           style={styles.caption}>
-          <Text style={[type.subhead, { color: ui.label }]} numberOfLines={3}>
-            <Text style={{ fontFamily: 'Inter_700Bold' }}>{post.author} </Text>
-            {post.caption}
+          <Text style={[type.subhead, styles.captionText, { color: ui.label }]} numberOfLines={3}>
+            <Text style={styles.captionAuthor}>{post.author}  </Text>
+            <Text style={{ color: 'rgba(245, 242, 236, 0.88)' }}>{post.caption}</Text>
           </Text>
         </PressableScale>
       ) : null}
 
-      {/* Shop */}
+      {/* Minimalist Nude Shop Bar */}
       {shoppable ? (
         <PressableScale
           accessibilityRole="button"
           accessibilityLabel={`Shop ${post.product}`}
           haptic="medium"
-          scaleTo={0.98}
+          scaleTo={0.985}
           onPress={() => router.push(`/place/${post.authorHandle}` as never)}
-          style={[styles.shop, { backgroundColor: ui.fill }]}>
+          style={[styles.shop, { backgroundColor: ui.fill, borderColor: ui.separator }]}>
+          <View style={[styles.shopIconBox, { backgroundColor: ui.cardRaised, borderColor: ui.separator }]}>
+            <Ionicons name="bag-handle-outline" size={16} color={ui.accent} />
+          </View>
           <View style={styles.shopText}>
-            <Text style={[type.subhead, { color: ui.label }]} numberOfLines={1}>
+            <Text style={[type.subhead, styles.shopTitle, { color: ui.label }]} numberOfLines={1}>
               {post.product}
             </Text>
             <PriceTag value={post.price} size="sm" />
           </View>
-          <View style={styles.shopCtaWrapper}>
-            <LinearGradient
-              colors={['#FF3B3B', '#2F6BFF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.shopCta}>
-              <Text style={[type.subhead, { color: '#FFFFFF', fontFamily: 'Inter_700Bold' }]}>Shop</Text>
-            </LinearGradient>
+          <View style={[styles.shopCta, { backgroundColor: ui.accent }]}>
+            <Text style={[type.footnote, styles.shopCtaText, { color: ui.onAccent }]}>Shop</Text>
+            <Ionicons name="arrow-forward" size={13} color={ui.onAccent} />
           </View>
         </PressableScale>
       ) : null}
@@ -333,13 +333,13 @@ function Action({
       accessibilityRole="button"
       accessibilityLabel={label}
       haptic={haptic}
-      scaleTo={0.86}
+      scaleTo={0.88}
       hitSlop={6}
       onPress={onPress}
       style={styles.action}>
-      <Ionicons name={icon} size={24} color={color} />
+      <Ionicons name={icon} size={22} color={color} />
       {count !== undefined && count > 0 ? (
-        <Text style={[type.footnote, { color: ui.secondaryLabel }]}>{compact(count)}</Text>
+        <Text style={[type.footnote, styles.actionCount, { color: ui.secondaryLabel }]}>{compact(count)}</Text>
       ) : null}
     </PressableScale>
   );
@@ -377,7 +377,9 @@ function Media({
 }) {
   const ui = useUi();
   const { width } = useWindowDimensions();
-  const mediaWidth = width - layout.gutter * 2;
+  const inset = 10;
+  const mediaWidth = width - layout.gutter * 2 - inset * 2;
+  const mediaHeight = Math.round(mediaWidth * 1.12);
   const [index, setIndex] = useState(0);
   const [viewer, setViewer] = useState(false);
   const multiple = imageUrls.length > 1;
@@ -389,7 +391,15 @@ function Media({
 
   return (
     <>
-      <View style={[styles.media, { width: mediaWidth, height: mediaWidth * 1.15 }]}>
+      <View
+        style={[
+          styles.media,
+          {
+            width: mediaWidth,
+            height: mediaHeight,
+            borderColor: ui.separator,
+          },
+        ]}>
         <ScrollView
           horizontal
           pagingEnabled
@@ -405,7 +415,7 @@ function Media({
               onPress={() => setViewer(true)}>
               <Image
                 source={{ uri: url }}
-                style={{ width: mediaWidth, height: mediaWidth * 1.15, backgroundColor: ui.cardRaised }}
+                style={{ width: mediaWidth, height: mediaHeight, backgroundColor: ui.cardRaised }}
                 contentFit="cover"
                 transition={150}
               />
@@ -424,7 +434,7 @@ function Media({
             {imageUrls.map((url, i) => (
               <View
                 key={`${url}-dot-${i}`}
-                style={[styles.dot, { backgroundColor: i === index ? '#FFFFFF' : 'rgba(255,255,255,0.45)' }]}
+                style={[styles.dot, { backgroundColor: i === index ? '#F5F2EC' : 'rgba(245,242,236,0.40)' }]}
               />
             ))}
           </View>
@@ -441,29 +451,50 @@ function Media({
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: layout.gutter, padding: 0 },
+  card: {
+    marginHorizontal: layout.gutter,
+    padding: 0,
+    borderRadius: 24,
+  },
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 12,
   },
   authorTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-  authorText: { flexShrink: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  name: { fontFamily: 'Inter_700Bold', flexShrink: 1 },
-  media: { alignSelf: 'center', overflow: 'hidden', borderRadius: corner.md, ...continuous },
-  priceOverlay: { position: 'absolute', left: 10, bottom: 10 },
+  authorText: { flexShrink: 1, gap: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  name: { fontFamily: 'Inter_600SemiBold', letterSpacing: -0.3, flexShrink: 1 },
+  moreBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  media: {
+    alignSelf: 'center',
+    overflow: 'hidden',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    ...continuous,
+  },
+  priceOverlay: { position: 'absolute', left: 12, bottom: 12 },
   dots: {
     position: 'absolute',
     bottom: 12,
     alignSelf: 'center',
     flexDirection: 'row',
     gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(14, 13, 12, 0.55)',
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
+  dot: { width: 5, height: 5, borderRadius: 2.5 },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -472,27 +503,47 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 10,
   },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionCount: { fontFamily: 'Inter_500Medium', fontVariant: ['tabular-nums'] },
   caption: { paddingHorizontal: 14, paddingBottom: 12 },
+  captionText: { lineHeight: 20 },
+  captionAuthor: { fontFamily: 'Inter_600SemiBold', letterSpacing: -0.2 },
   shop: {
-    marginHorizontal: 12,
-    marginBottom: 12,
+    marginHorizontal: 10,
+    marginBottom: 10,
     padding: 10,
-    paddingLeft: 14,
-    borderRadius: corner.md,
+    paddingLeft: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     ...continuous,
   },
-  shopText: { flex: 1, gap: 2 },
-  shopCtaWrapper: {
-    shadowColor: '#2F6BFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    elevation: 4,
+  shopIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...continuous,
   },
-  shopCta: { paddingHorizontal: 18, height: 34, borderRadius: corner.pill, alignItems: 'center', justifyContent: 'center' },
+  shopText: { flex: 1, gap: 1 },
+  shopTitle: { fontFamily: 'Inter_500Medium', letterSpacing: -0.2 },
+  shopCta: {
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: corner.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    ...continuous,
+  },
+  shopCtaText: {
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: -0.2,
+  },
   sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 20 },
 });

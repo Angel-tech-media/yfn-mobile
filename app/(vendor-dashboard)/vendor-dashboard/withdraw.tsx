@@ -142,9 +142,9 @@ const styles = StyleSheet.create({
   balanceCard: {
     padding: spacing['4'],
     borderRadius: radius.lg,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: 4,
   },
   balanceLabel: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.h2.fontFamily,
     fontSize: 18,
     color: palette.ink.onDarkStrong,
-    backgroundColor: '#1A2244',
+    backgroundColor: 'rgba(32, 32, 39, 0.86)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: radius.md,
@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   quickChipText: {
     fontFamily: typography.bodyEmphasis.fontFamily,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   summary: {
     padding: spacing['4'],
     borderRadius: radius.md,
-    backgroundColor: '#121833',
+    backgroundColor: 'rgba(22, 22, 27, 0.76)',
     gap: spacing['1'],
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },

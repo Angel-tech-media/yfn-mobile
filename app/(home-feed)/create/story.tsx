@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
   iconBtnActive: {
-    backgroundColor: 'rgba(47, 107, 255, 0.78)',
+    backgroundColor: 'rgba(232, 93, 63, 0.78)',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: spacing['2'] },
   toolStack: { gap: spacing['2'] },

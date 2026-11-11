@@ -33,7 +33,7 @@ export function usePushNotifications() {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#2F6BFF',
+        lightColor: '#E85D3F',
         enableLights: true,
         enableVibrate: true,
       });

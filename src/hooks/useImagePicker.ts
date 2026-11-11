@@ -133,7 +133,7 @@ function extensionFor(contentType: string): string {
 function promptOpenSettings(kind: 'camera' | 'photos') {
   Alert.alert(
     `Permission needed`,
-    `Vibe needs access to your ${kind} to continue.`,
+    `Aktive needs access to your ${kind} to continue.`,
     [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Open Settings', onPress: () => Linking.openSettings() },

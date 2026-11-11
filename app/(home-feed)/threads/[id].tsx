@@ -262,9 +262,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['3'],
     paddingVertical: spacing['2'],
     borderRadius: 14,
-    backgroundColor: 'rgba(47, 107, 255,0.18)',
+    backgroundColor: 'rgba(232, 93, 63,0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(47, 107, 255,0.4)',
+    borderColor: 'rgba(232, 93, 63,0.4)',
   },
   productText: {
     ...typography.bodyEmphasis,

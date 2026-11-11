@@ -11,21 +11,21 @@ export default function TermsOfServiceScreen() {
         <View style={styles.header}>
           <Text style={styles.effectiveDate}>Effective Date: October 2026</Text>
           <Text style={styles.intro}>
-            Welcome to Vibe. These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Vibe platform, mobile application, escrow commerce tools, and related services.
+            Welcome to Aktive. These Terms of Service (&quot;Terms&quot;) govern your access to and use of the Aktive platform, mobile application, escrow commerce tools, and related services.
           </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>1. Account & Eligibility</Text>
           <Text style={styles.paragraph}>
-            You must be at least 18 years of age (or the legal age of majority in your jurisdiction) to open a vendor store or initiate transactions on Vibe. You are responsible for safeguarding your login credentials and for all activities under your account.
+            You must be at least 18 years of age (or the legal age of majority in your jurisdiction) to open a vendor store or initiate transactions on Aktive. You are responsible for safeguarding your login credentials and for all activities under your account.
           </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>2. Escrow & Payment Protection</Text>
           <Text style={styles.paragraph}>
-            All buyer purchases on Vibe are secured by automated escrow protection. When an order is placed, funds are safely held until the buyer confirms delivery or the standard inspection window elapses. Vendors are credited upon verified fulfillment.
+            All buyer purchases on Aktive are secured by automated escrow protection. When an order is placed, funds are safely held until the buyer confirms delivery or the standard inspection window elapses. Vendors are credited upon verified fulfillment.
           </Text>
         </View>
 
@@ -46,7 +46,7 @@ export default function TermsOfServiceScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>5. Contact & Inquiries</Text>
           <Text style={styles.paragraph}>
-            For questions or disputes regarding these Terms, contact our legal and support team at support@vibe.ng.
+            For questions or disputes regarding these Terms, contact our legal and support team at support@aktive.ng.
           </Text>
         </View>
       </ScrollView>

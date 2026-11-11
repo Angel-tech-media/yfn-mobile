@@ -175,7 +175,7 @@ export function CreateSheet({ visible, onClose }: Props) {
                       continuous,
                       {
                         borderRadius: corner.sm,
-                        backgroundColor: a.isPrimary ? ui.accent : (ui.isDark ? '#121833' : '#E5E5EA'),
+                        backgroundColor: a.isPrimary ? ui.accent : (ui.isDark ? 'rgba(22, 22, 27, 0.76)' : '#E5E5EA'),
                       },
                     ]}>
                     <Text

@@ -11,7 +11,6 @@ import { NavIconButton, SearchField } from '@/components/kit/Fields';
 import { LargeTitleHeader, SectionHeader } from '@/components/kit/Header';
 import { ProductCard } from '@/components/product/ProductCard';
 import { ProductQuickViewModal } from '@/components/product/ProductQuickViewModal';
-import { CartMascot } from '@/components/ui/BrandLogo';
 import { EspressoBackground } from '@/components/ui/EspressoBackground';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useFeedReels } from '@/src/api/feed/hooks';
@@ -113,8 +112,8 @@ export default function MarketScreen() {
                   }
                 />
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hRow}>
-                  {reels.map((reel, idx) => (
-                    <ReelCard key={reel.id ? `reel-${reel.id}` : `reel-${idx}`} reel={reel} />
+                  {reels.map((r, idx) => (
+                    <ReelCard key={r.id ? `reel-${r.id}` : `reel-${idx}`} reel={r} />
                   ))}
                 </ScrollView>
               </View>
@@ -186,18 +185,18 @@ function ReelCard({ reel }: { reel: Reel }) {
       onPress={() => router.push(`/reel?id=${reel.id}` as never)}
       haptic="light"
       scaleTo={0.97}
-      style={[styles.reelCard, { backgroundColor: ui.card }]}>
+      style={[styles.reelCard, { backgroundColor: ui.card, borderColor: ui.separator }]}>
       {reel.coverUrl ? (
         <Image source={{ uri: reel.coverUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
       ) : null}
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['transparent', 'rgba(5,7,15,0.78)']} style={StyleSheet.absoluteFill} />
       {reel.product ? (
         <View style={styles.reelBadge}>
           <Badge tone="price" icon="bag-handle" label={formatKobo(reel.product.price)} />
         </View>
       ) : null}
       <View style={styles.reelMeta}>
-        <Text style={[type.subhead, { color: '#FFFFFF' }]} numberOfLines={1}>
+        <Text style={[type.subhead, { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold' }]} numberOfLines={1}>
           {reel.author.name}
         </Text>
         <Text style={[type.footnote, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={2}>
@@ -257,6 +256,7 @@ const styles = StyleSheet.create({
     borderRadius: corner.lg,
     overflow: 'hidden',
     justifyContent: 'flex-end',
+    borderWidth: StyleSheet.hairlineWidth,
     ...continuous,
   },
   reelBadge: { position: 'absolute', top: 10, left: 10 },
